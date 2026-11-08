@@ -49,9 +49,8 @@ var TOURNAMENT_CONFIG = {
   // 6. Footer creator copyright and contact email
   copyrightHtml: '© Created by <a href="mailto:aries75@gmail.com" style="color:#444; text-decoration:underline; font-weight:700;">aries75@gmail.com</a>',
 
-  // 7. Group tee times (shown on home screen group cards)
-  firstTeeTime: "11:30",
-  teeIntervalMin: 8,
+  // 7. Group tee times (disabled by default)
+  firstTeeTime: "", 
 
   // 8. Default group & handicap roster (used for initial sheet auto-creation / can be overwritten anytime via admin.html)
   groups: [
