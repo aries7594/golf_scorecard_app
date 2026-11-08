@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⛳ 실시간 골프대회 스코어보드</title>
+  <script>
+    // Route /t/<slug> paths directly to the tournament app even before static preview build completes
+    (function () {
+      var path = window.location.pathname || "";
+      var m = path.match(/^(.*)\/t\/([a-zA-Z0-9_-]+)\/?$/);
+      if (m) {
+        var base = m[1] || "";
+        var slug = m[2].toLowerCase();
+        window.location.replace(window.location.origin + base + "/?t=" + encodeURIComponent(slug));
+        return;
+      }
+    })();
+  </script>
+</head>
+
+<body style="font-family:sans-serif; text-align:center; padding:40px 20px; color:#334155;">
+  <div style="font-size:16px; font-weight:700;">대회 화면으로 이동 중입니다...</div>
+</body>
+
+</html>

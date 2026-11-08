@@ -650,10 +650,13 @@
   <script>
     var GAS_URL_STORAGE_KEY = "golf_gas_api_url_v1";
 
+    var GH_TOKEN_STORAGE_KEY = "golf_gh_pat_v1";
+    var DEFAULT_GH_REPO_SLUG = "aries7594/golf_scorecard_app";
     var editingExistingSlug = "";
     var editorGroups = [];
     var toastTimer = null;
     var hasGithubPreviewToken = false;
+    var syncedSlugsMap = {};
     var previewPollTimer = null;
 
     function normalizeSlugClient(raw) {
@@ -678,8 +681,91 @@
       return loc.replace(/\/admin\.html$/i, "/").replace(/\/?$/, "/");
     }
 
-    function buildParticipantUrl(slug) {
-      if (hasGithubPreviewToken) {
+    function getStoredGhToken() {
+      try { return (localStorage.getItem(GH_TOKEN_STORAGE_KEY) || "").trim(); } catch (e) { return ""; }
+    }
+
+    function detectGithubRepoFromLocation() {
+      try {
+        var host = window.location.hostname || "";
+        var pathParts = (window.location.pathname || "").split("/").filter(Boolean);
+        if (/\.github\.io$/i.test(host) && pathParts.length >= 1 && pathParts[0] !== "admin.html") {
+          var owner = host.replace(/\.github\.io$/i, "");
+          return owner + "/" + pathParts[0];
+        }
+      } catch (e) { }
+      return DEFAULT_GH_REPO_SLUG;
+    }
+
+    // Directly publish lightweight title-only HTML (t/<slug>/index.html) from browser to GitHub REST API
+    async function syncPreviewPageDirectFromBrowser(slug, tournamentName, isDelete) {
+      var tok = getStoredGhToken();
+      if (!tok || !slug) return false;
+      var repo = detectGithubRepoFromLocation();
+      var apiUrl = "https://api.github.com/repos/" + repo + "/contents/t/" + encodeURIComponent(slug) + "/index.html";
+      var headers = {
+        "Authorization": "Bearer " + tok,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      };
+      try {
+        var existingSha = "";
+        var getR = await fetch(apiUrl, { method: "GET", headers: headers, cache: "no-store" });
+        if (getR.status === 200) {
+          var getJson = await getR.json();
+          existingSha = getJson.sha || "";
+        }
+        if (isDelete) {
+          if (!existingSha) return true;
+          var delR = await fetch(apiUrl, {
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
+            body: JSON.stringify({ message: "Remove tournament preview: " + slug, sha: existingSha })
+          });
+          return delR.ok;
+        }
+        var cleanTitle = String(tournamentName || "골프대회 스코어보드").replace(/^[⛳🏆🎯\s]+/, "").trim();
+        var safeTitle = ("⛳ " + cleanTitle)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+        var html = [
+          '<!DOCTYPE html>',
+          '<html lang="ko">',
+          '<head>',
+          '  <meta charset="UTF-8">',
+          '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+          '  <title>' + safeTitle + '</title>',
+          '  <meta property="og:type" content="website">',
+          '  <meta property="og:title" content="' + safeTitle + '">',
+          '  <meta property="og:description" content="실시간 스코어카드 · 조 편성표">',
+          '  <script>window.location.replace("../../?t=' + encodeURIComponent(slug) + '");<\/script>',
+          '</head>',
+          '<body></body>',
+          '</html>',
+          ''
+        ].join("\n");
+        var b64 = btoa(unescape(encodeURIComponent(html)));
+        var bodyObj = { message: "Publish tournament title preview: " + cleanTitle + " (" + slug + ")", content: b64 };
+        if (existingSha) bodyObj.sha = existingSha;
+        var putR = await fetch(apiUrl, {
+          method: "PUT",
+          headers: { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
+          body: JSON.stringify(bodyObj)
+        });
+        if (putR.ok) {
+          syncedSlugsMap[slug] = true;
+          return true;
+        }
+        return false;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function buildParticipantUrl(slug, forcePrettyOpt) {
+      if (forcePrettyOpt || syncedSlugsMap[slug] || getStoredGhToken()) {
         return getAppBaseDirUrl() + "t/" + encodeURIComponent(slug) + "/";
       }
       return getAppBaseDirUrl() + "?t=" + encodeURIComponent(slug);
@@ -785,7 +871,7 @@
         clearInterval(previewPollTimer);
         previewPollTimer = null;
       }
-      if (!hasGithubPreviewToken || url.indexOf("/t/") === -1) {
+      if (url.indexOf("/t/") === -1) {
         hintEl.style.display = "none";
         return;
       }
@@ -832,22 +918,32 @@
         showToast("⚠️ ghp_ 로 시작하는 GitHub 토큰을 입력해주세요.");
         return;
       }
-      callAdminApi("adminSaveGithubToken", [getPinValue(), tok])
-        .then(function (res) {
+      var repo = detectGithubRepoFromLocation();
+      fetch("https://api.github.com/repos/" + repo, {
+        method: "GET",
+        headers: { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json" }
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error("유효하지 않거나 만료된 GitHub 토큰입니다 (HTTP " + r.status + "). 새 토큰을 발급받아 입력해주세요.");
+          try { localStorage.setItem(GH_TOKEN_STORAGE_KEY, tok); } catch (e) { }
           document.getElementById("ghTokenInput").value = "";
-          updateGhTokenBadgeUI(res && res.hasGithubToken);
+          updateGhTokenBadgeUI(true);
           document.getElementById("engineUrlDetails").open = false;
+          callAdminApi("adminSaveGithubToken", [getPinValue(), tok, repo]).catch(function () { });
           renderMasterTournamentListHighlight();
-          showToast("✅ GitHub 토큰이 저장되었습니다! 이제 대회를 생성하면 카톡에 대회 제목이 자동으로 표시됩니다.", 4500);
+          showToast("✅ GitHub 토큰 인증 성공! 이제 대회를 생성하거나 저장하면 카톡에 대회 이름이 제목으로 자동 반영됩니다.", 4500);
         })
         .catch(function (err) {
-          showToast("❌ 토큰 저장 실패: " + err.message, 4500);
+          showToast("❌ " + err.message, 5000);
         });
     }
 
-    function showIssuedLinksBanner(slug, resultsUrl, sheetTitle) {
+    function showIssuedLinksBanner(slug, resultsUrl, sheetTitle, ghSyncedOpt) {
       var box = document.getElementById("issuedLinksBox");
-      var pUrl = buildParticipantUrl(slug);
+      var usePretty = Boolean(ghSyncedOpt || syncedSlugsMap[slug]);
+      var pUrl = usePretty
+        ? (getAppBaseDirUrl() + "t/" + encodeURIComponent(slug) + "/")
+        : (getAppBaseDirUrl() + "?t=" + encodeURIComponent(slug));
       document.getElementById("issuedBannerTitle").textContent =
         "✅ [" + (sheetTitle || slug) + "] 전용 링크가 발급되었습니다!";
       document.getElementById("participantShareUrlText").textContent = pUrl;
@@ -1497,8 +1593,9 @@
     function loadMasterTournamentList() {
       callAdminApi("adminListTournaments", [getPinValue()])
         .then(function (data) {
-          updateGhTokenBadgeUI(data && data.hasGithubToken);
-          if (!(data && data.hasGithubToken)) {
+          var hasTok = Boolean(getStoredGhToken() || (data && data.hasGithubToken));
+          updateGhTokenBadgeUI(hasTok);
+          if (!getStoredGhToken()) {
             document.getElementById("engineUrlDetails").open = true;
           }
           renderMasterTournamentList(data.tournaments || []);
@@ -1558,16 +1655,21 @@
           pars: getSelectedCoursePars()
         }
       ])
-        .then(function (res) {
+        .then(async function (res) {
           if (!res || !res.slug) {
             throw new Error("구글 Apps Script에 아직 이전 버전 코드가 실행 중입니다! script.google.com에서 새 Code.gs를 붙여넣고 [배포] -> [배포 관리] -> 연필 아이콘(수정) -> 버전: [새 버전]으로 배포해주세요.");
           }
           editingExistingSlug = res.slug;
+          var ghOk = Boolean(res.ghPreviewSynced);
+          if (!ghOk && getStoredGhToken()) {
+            ghOk = await syncPreviewPageDirectFromBrowser(res.slug, res.sheetTitle || cfg.sheetTitle, false);
+          }
+          if (ghOk) syncedSlugsMap[res.slug] = true;
           refreshEditingModeUI();
-          showIssuedLinksBanner(res.slug, res.resultsUrl, res.sheetTitle);
+          showIssuedLinksBanner(res.slug, res.resultsUrl, res.sheetTitle, ghOk);
           syncSlugLocalCache(res.slug, res.config || cfg, res.sheetId);
           loadMasterTournamentList();
-          showToast("🎉 대회 구글 시트와 전용 링크(?t=" + res.slug + ")가 자동 생성되었습니다!", 5000);
+          showToast("🎉 대회 구글 시트와 전용 링크가 자동 생성되었습니다!", 5000);
           window.scrollTo({ top: 0, behavior: "smooth" });
         })
         .catch(function (err) {
@@ -1584,10 +1686,16 @@
       if (!slug) return;
       var cfg = collectConfigFromForm(slug);
       callAdminApi("adminUpdateTournamentConfig", [slug, getPinValue(), cfg, ""])
-        .then(function (res) {
+        .then(async function (res) {
+          var ghOk = Boolean(res && res.ghPreviewSynced);
+          if (!ghOk && getStoredGhToken()) {
+            ghOk = await syncPreviewPageDirectFromBrowser(slug, cfg.sheetTitle, false);
+          }
+          if (ghOk) syncedSlugsMap[slug] = true;
+          showIssuedLinksBanner(slug, res.resultsUrl, cfg.sheetTitle, ghOk);
           syncSlugLocalCache(slug, cfg, res.sheetId);
           loadMasterTournamentList();
-          showToast("✅ 시트는 그대로 유지하고 [" + cfg.sheetTitle + "] 공지·설정이 즉시 저장되었습니다!");
+          showToast("✅ 시트는 그대로 유지하고 [" + cfg.sheetTitle + "] 설정 및 카톡 제목이 저장되었습니다!");
         })
         .catch(function (err) {
           showToast("❌ 설정 저장 실패: " + err.message, 4500);
@@ -1614,7 +1722,8 @@
         return;
       }
       callAdminApi("adminDeleteTournament", [getPinValue(), slug])
-        .then(function () {
+        .then(async function () {
+          if (getStoredGhToken()) { await syncPreviewPageDirectFromBrowser(slug, "", true); }
           if (editingExistingSlug === slug) {
             startFreshTournamentForm();
           }
