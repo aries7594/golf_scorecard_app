@@ -1,33 +1,33 @@
 /* ============================================================================
- * [TournamentConfig.js] 기본 대회 설정 및 백엔드 API 연결 파일 (GitHub 직접 실행용)
+ * [TournamentConfig.js] Default Tournament Config & Backend API Connection (GitHub Direct Execution)
  * ----------------------------------------------------------------------------
- * 1) GAS_BACKEND_URL: gas-backend/Code.gs를 내 구글 계정에 1회 배포한 뒤 받은 웹앱 URL을 적습니다.
- *    (총무용 웹화면 admin.html에서 대회명, 골프장, 참석자/핸디 명단을 입력해
- *     새 구글 시트를 자동 생성하면 서버에 저장된 최신 대회 설정이 우선 적용됩니다.)
- * 2) 아직 생성된 시트가 없을 때 index.html을 처음 열면, 아래 TOURNAMENT_CONFIG의
- *    기본 설정과 groups 명단으로 구글 드라이브에 대회 시트가 자동 생성됩니다.
+ * 1) GAS_BACKEND_URL: Paste the Web App URL obtained after deploying gas-backend/Code.gs once.
+ *    (When a new Google Sheet is auto-generated from admin.html with tournament title, course,
+ *     and player/handicap roster, the latest server-stored config takes precedence.)
+ * 2) If index.html is opened when no sheet exists yet, a tournament Google Sheet is automatically
+ *    created in Google Drive using TOURNAMENT_CONFIG and the default groups roster below.
  * ============================================================================ */
 
 var GAS_BACKEND_URL = "";
 
 var TOURNAMENT_CONFIG = {
-  // 0. 대회 고유 식별자 (새 대회를 파일로 열 때 변경 가능, admin.html 사용 시 자동 관리)
+  // 0. Unique tournament identifier (editable for static setup; managed automatically when using admin.html)
   tournamentId: "2026-fall",
 
-  // 1. 사용할 골프장 선택 ("wente", "moffett", 또는 "poppy_hills")
+  // 1. Golf course key to use ("wente", "moffett", or "poppy_hills")
   courseKey: "wente",
 
-  // 2. 대회 명칭 (상단 바 & 메인 배너 타이틀 & 생성될 구글 시트 파일명)
+  // 2. Tournament titles (top bar, hero banner, and generated Google Sheet filename)
   sheetTitle: "2026년 회장배",
   tournamentTitle: "⛳ 2026 회장배 가을 골프대회",
   heroTitle: "2026 회장배 가을 골프대회",
 
-  // 3. 이번 대회 장타(Long Drive) 및 니어(Near Pin) 이벤트 홀 번호
+  // 3. Long Drive and Near Pin event hole numbers for this tournament
   longDriveHoles: [8],
   nearPinHoles: [3, 7, 11, 14],
   defaultTeeKey: "white",
 
-  // 4. 경기 진행 안내 (공지사항 카드)
+  // 4. Pace-of-play & tournament notice card
   noticeTitle: "📢 경기 진행 안내",
   noticeLeadHtml: '일몰시간으로 뒷조의 18홀 완주가 빠듯합니다. 뒷조를 배려하여 최대한 신속하게, 모든 조가 <b style="font-weight:900;">4시간 30분</b> 이내 완료하도록 적극 협조 부탁드립니다.',
   noticeItems: [
@@ -40,20 +40,20 @@ var TOURNAMENT_CONFIG = {
     '<b style="font-weight:900;">세컨샷:</b> 동반자 공 봐주기보다, 자신의 샷위치로 미리 이동'
   ],
 
-  // 5. 티박스 로컬룰 · 이벤트 안내 · 뒷풀이 장소 (경기 진행 안내 카드 하단에 통합 표시)
+  // 5. Tee-box local rules, event guide, and after-party venue (displayed at bottom of notice card)
   teeBannerTitle: "남성:화이트티, 여성:레드티",
   teeBannerSubHtml: '시그니처 홀인 전후반 첫홀<b style="font-weight:900;">(1번홀, 10번홀)</b>만 남성:블루티, 여성:화이트티',
   eventBannerSubHtml: "장타상(남녀 별도)과 단타·리버스 니어상이 있으니 잘못 쳐도 페어웨이·그린에 올렸으면 기록해 주세요.<br>(단, 1등·꼴등만 시상하니 빠른 진행을 위해 해당 안 되면 생략)",
   afterPartyHtml: '뒷풀이: <span style="font-size:11px; font-weight:600; color:#451a03;">Canton Village (<a href="https://maps.app.goo.gl/HMbiCNwJqs5JsX6b8" target="_blank" style="color:#003876; text-decoration:underline; font-weight:600;">1070 E Stanley Blvd, Livermore, CA 94550</a>)</span>',
 
-  // 6. 하단 제작자 저작권 및 이메일 표기
+  // 6. Footer creator copyright and contact email
   copyrightHtml: '© Created by <a href="mailto:aries75@gmail.com" style="color:#444; text-decoration:underline; font-weight:700;">aries75@gmail.com</a>',
 
-  // 7. 조별 티타임 (첫 화면 조 카드에 표시)
+  // 7. Group tee times (shown on home screen group cards)
   firstTeeTime: "11:30",
   teeIntervalMin: 8,
 
-  // 8. 기본 조 편성 및 핸디 명단 (구글 시트가 아직 없을 때 자동 생성용 / admin.html에서 언제든 덮어쓰기 가능)
+  // 8. Default group & handicap roster (used for initial sheet auto-creation / can be overwritten anytime via admin.html)
   groups: [
     {
       name: "1조",

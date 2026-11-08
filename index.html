@@ -23,7 +23,7 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* 화면 전체를 100dvh로 맞추어 기종별 외부 스크롤 완전 차단 + 안드로이드 글자확대/당겨서새로고침 방어 */
+    /* Fit viewport to 100dvh to block outer page scroll + prevent Android font-boosting and pull-to-refresh */
     html,
     body {
       margin: 0;
@@ -40,7 +40,7 @@
       color: var(--text);
     }
 
-    /* 전체 수직 Flex 레이아웃 */
+    /* Full-height vertical Flex layout */
     .app-container {
       display: flex;
       flex-direction: column;
@@ -49,7 +49,7 @@
       padding: 5px 8px;
     }
 
-    /* 상단 헤더 & 조 선택 (스코어 입력 화면에서만 상단 1줄 빨간 바로 표시) */
+    /* Top header & group selector (single-row burgundy bar shown only on score entry screen) */
     .top-compact-bar {
       flex: 0 0 auto;
       display: none;
@@ -181,7 +181,7 @@
       background: #800020;
     }
 
-    /* ===== 첫 화면: 골프장 전경 히어로 카드 & 공지사항 & 전체 조 편성표 ===== */
+    /* ===== Home Screen: Course Hero Card, Tournament Notice & Group Cards ===== */
     #quickSelectArea {
       flex: 1 1 auto;
       display: flex;
@@ -192,7 +192,7 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    /* 골프장 전경 히어로 배너 */
+    /* Course hero banner */
     .golf-hero-card {
       position: relative;
       width: 100%;
@@ -279,7 +279,7 @@
       text-underline-offset: 2px;
     }
 
-    /* 주소 앞 구글맵 아이콘 (새 구글맵 로고 모양: 그라데이션 핀 + 흰 구멍, 그림 파일 없이 CSS로만 그림) */
+    /* Google Maps pin icon before address links (gradient pin + white cutout drawn purely in CSS) */
     .gmaps-pin {
       position: relative;
       display: inline-block;
@@ -306,7 +306,7 @@
       background: #ffffff;
     }
 
-    /* 공지사항 배너 */
+    /* Tournament notice banner */
     .notice-card {
       flex: 0 0 auto;
       background: #fffdf5;
@@ -359,7 +359,7 @@
       line-height: 1.4;
     }
 
-    /* 편성표 안내 바 */
+    /* Group selection guide bar */
     .quick-banner {
       flex: 0 0 auto;
       background: #fff;
@@ -420,7 +420,7 @@
       justify-content: space-between;
     }
 
-    /* 첫 화면 조 카드: 조 번호 배지 옆 티타임 (TournamentConfig의 firstTeeTime/teeIntervalMin이 있을 때만 표시) */
+    /* Home group card: tee time next to group badge (shown only when firstTeeTime/teeIntervalMin are configured) */
     .q-card-left {
       display: inline-flex;
       align-items: center;
@@ -468,7 +468,7 @@
       word-break: keep-all;
     }
 
-    /* 첫 화면: 마지막 조 카드 옆 빈칸(오른쪽 아래)에 저작권 문구 표시 */
+    /* Home screen: creator copyright placed in bottom-right grid space */
     .q-copyright-cell {
       display: flex;
       align-items: flex-end;
@@ -499,7 +499,7 @@
       border: 1px dashed #ccc;
     }
 
-    /* ===== 메인 컨텐츠 영역 (스마트 다이나믹 + 소형 기기/키보드 시 전체 스크롤 허용) ===== */
+    /* ===== Main Content Area (smart dynamic layout + full scroll fallback on small screens/keyboards) ===== */
     #contentArea {
       flex: 1 1 auto;
       display: none;
@@ -516,7 +516,7 @@
       display: none;
     }
 
-    /* ===== 홀 네비게이션 ===== */
+    /* ===== Hole Navigation Bar ===== */
     .hole-bar {
       flex: 0 0 auto;
       display: flex;
@@ -573,7 +573,7 @@
       text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
     }
 
-    /* 현재 홀 헤더 카드 */
+    /* Current hole header card */
     .hole-header-card {
       flex: 0 0 auto;
       background: #fff;
@@ -732,7 +732,7 @@
       box-shadow: none;
     }
 
-    /* 홀 레이아웃(GPS) & 그린 경사도(히트맵) 전체화면 모달 */
+    /* Fullscreen modal for Hole Layout (GPS) & Green Slope (Heatmap) */
     #holeMapModal.mode-modal-backdrop {
       padding: 0;
     }
@@ -1037,7 +1037,7 @@
       text-shadow: 0 1px 4px rgba(0, 0, 0, 0.98), 0 0 8px rgba(0, 0, 0, 0.92);
     }
 
-    /* 📐 지형·날씨 보정 상세 팝업 (항목별 한 줄 표시 + 닫기 버튼) */
+    /* Plays-like terrain & weather adjustment detail popup (single line per factor + close button) */
     .pl-detail-pop {
       display: none;
       position: fixed;
@@ -1093,14 +1093,14 @@
       color: #ffffff;
     }
 
-    /* 📡 GPS를 다시 켜고 첫 위치를 기다리는 동안(보통 1~5초, 최대 8초)은 거리 숫자를 흐리게 (아직 실시간 위치 아님) */
+    /* Dim distance numbers while waiting for fresh GPS fix after turning GPS on (typically 1-5s, max 8s) */
     .hm-yd-group.hm-yd-waiting .hm-yd-val,
     .hm-yd-group.hm-yd-waiting .hm-pl-sub {
       opacity: 0.35;
       transition: opacity 0.2s;
     }
 
-    /* 📍 GPS 안내창 공통 (위치 권한 · 앱 안 브라우저 · 정확한 위치) — 작은 폰에서는 창 안에서 스크롤 */
+    /* Common GPS guide modal styles (Location Permission, In-App Browser, Precise Location) — scrollable on small phones */
     .mode-modal-backdrop.gg-backdrop {
       padding: 12px;
     }
@@ -1419,7 +1419,7 @@
       background: linear-gradient(90deg, #1c4ed8 0%, #199bd2 20%, #2ec96e 40%, #e8cc30 60%, #f78a27 80%, #d62626 100%);
     }
 
-    /* 전체 스코어카드 모달 (전반 OUT / 후반 IN) */
+    /* Full 18-hole scorecard modal (Front 9 OUT / Back 9 IN) */
     .sc-modal-card {
       width: 100%;
       max-width: 410px;
@@ -1543,7 +1543,7 @@
       border: 1px solid #bae6fd;
     }
 
-    /* 선수 리스트 컨테이너 (절대 찌그러지지 않게 고정) */
+    /* Players list container (prevent flex shrinking) */
     #playersList {
       flex: 0 0 auto;
       display: flex;
@@ -1551,7 +1551,7 @@
       gap: clamp(3px, 0.55dvh, 5px);
     }
 
-    /* 선수별 카드 */
+    /* Individual player card */
     .player-card {
       flex: 0 0 auto;
       display: flex;
@@ -1618,7 +1618,7 @@
       box-shadow: 0 2px 4px rgba(201, 42, 42, 0.35);
     }
 
-    /* 니어/롱기 숫자 키패드 팝업 모달 */
+    /* Near-Pin / Long-Drive numeric keypad popup modal */
     .ek-modal-card {
       width: 100%;
       max-width: 310px;
@@ -1755,7 +1755,7 @@
       margin-left: 2px;
     }
 
-    /* ✅ 빠른 버튼 그룹 (-2 ~ 5 총 8칸 균등 분할) */
+    /* Quick score button group (-2 to +5, 8 equal columns) */
     .btn-group {
       display: grid;
       grid-template-columns: repeat(8, 1fr);
@@ -1803,7 +1803,7 @@
       color: #212529;
     }
 
-    /* 슬림 메모 */
+    /* Compact memo input */
     .note-box {
       flex: 0 0 auto;
       margin-top: 3px;
@@ -1840,7 +1840,7 @@
       color: #868e96;
     }
 
-    /* 하단 저장 및 이동 버튼바 */
+    /* Bottom save & hole navigation button bar */
     .footer-actions {
       flex: 0 0 auto;
       margin-top: 4px;
@@ -1849,7 +1849,7 @@
       gap: 6px;
     }
 
-    /* 하단 실시간 미니 스코어카드 (이름·총점 고정 + 현재 홀 중심 슬라이딩 + 스마트 다이나믹 높이) */
+    /* Bottom live mini-scorecard (sticky player name & total + current-hole auto-centering + dynamic height) */
     .mini-sc-wrap {
       flex: 1 0 auto;
       min-height: 124px;
@@ -2062,7 +2062,7 @@
       letter-spacing: -0.3px;
     }
 
-    /* 모드 선택 모달 (스코어 입력 vs 점수 구경하기) */
+    /* Mode selection modal (Score Input vs Spectator View-Only) */
     .mode-modal-backdrop {
       display: none;
       position: fixed;
@@ -2169,7 +2169,7 @@
       pointer-events: none;
     }
 
-    /* 전체 참가자 실시간 버디 · 이글 공지 배너 (방식 1: 한 박스 내 시간순 표시 후 6초 뒤 자동 닫힘) */
+    /* Shared real-time Birdie / Eagle broadcast banner (chronological list, auto-closes after 6s+) */
     #birdieBroadcastBanner {
       display: none;
       position: fixed;
@@ -2364,7 +2364,7 @@
       white-space: nowrap;
     }
 
-    /* 오늘의 명예의 전당 (전체 공지 다시보기) 모달 스타일 */
+    /* Today's Hall of Fame modal styles (view all tournament highlights) */
     .hof-modal-card {
       width: calc(100% - 20px);
       max-width: 420px;
@@ -2425,8 +2425,8 @@
       line-height: 1.5;
     }
 
-    /* 📊 니어/롱기 전광판: 🎯 니어순위 / 🚀 롱기순위 버튼을 누르면 열림 + 홀에 도착하면 잠깐 팝업 (추가 기능) */
-    /* 버튼 모양은 옆의 🏆 명예의 전당 버튼과 같은 입체 모양 (크기·높이 동일, 색만 니어=파랑 / 롱기=빨강) */
+    /* Near/Long Scoreboard modal: opens via 3D header badge button + brief auto-popup on hole arrival */
+    /* Match 3D pressable button style/height of adjacent Hall of Fame button (blue for Near, red for Long) */
     #holeEvent {
       display: inline-flex;
       align-items: center;
@@ -2468,8 +2468,8 @@
       box-shadow: none;
     }
 
-    /* 버튼 앞 그림(🎯/🚀). 자리가 모자랄 때(가로 360px 미만 폰 · 구경 모드)는 그림만 안 보이게 해서 */
-    /* 홀 제목 줄이 원래(🎯 니어홀)보다 넓어지지 않게 함. 숨겨도 버튼 높이는 그대로 (명예의 전당 버튼과 높이 같음) */
+    /* Leading badge icon: hidden on narrow viewports (<360px) or in spectator mode so header never overflows */
+    /* Keeps hole header width compact while preserving identical button height next to Hall of Fame button */
     #holeEvent .badge-nearpin::before {
       content: "🎯 ";
     }
@@ -2582,14 +2582,14 @@
 
 <body>
   <div class="app-container">
-    <!-- 상단 헤더: 스코어 입력 화면에서만 노출되는 1줄 빨간 바 -->
+    <!-- Top header: single-line burgundy bar visible only on score screen -->
     <div class="top-compact-bar" id="topCompactBar">
       <div class="top-right-wrap" id="topRightWrap">
         <div class="top-title" id="topTitleText">⛳ 2026 회장배</div>
       </div>
     </div>
 
-    <!-- 첫 진입 대기 화면: 골프장 전경 + 공지사항 + 전체 조 편성표 -->
+    <!-- Landing screen: course hero banner + notice card + group selection grid -->
     <div id="quickSelectArea">
       <div class="golf-hero-card">
         <img id="heroImgEl" alt="" class="golf-hero-img">
@@ -2636,7 +2636,7 @@
       </div>
     </div>
 
-    <!-- 메인 컨텐츠 영역 (조 선택 시 노출) -->
+    <!-- Main content area (shown after selecting a group) -->
     <div id="contentArea" style="display:none; flex: 1 1 auto; flex-direction:column; min-height:0;">
       <div class="holemap-promo-row">
         <button type="button" class="holemap-btn" id="topHoleMapBtn" onclick="openHoleMapModal('map')">
@@ -2716,7 +2716,7 @@
         <button class="nav-btn disabled-btn" id="nextBtn" onclick="handleNextClick()">다음 홀 ▶</button>
       </div>
 
-      <!-- 하단 실시간 미니 스코어카드 (Par 제외, 이름/총점 고정, 현재 홀 중심 표시) -->
+      <!-- Bottom live mini-scorecard (sticky names/totals, centered around current hole) -->
       <div class="mini-sc-wrap" id="miniScorecardWrap">
         <div class="mini-sc-scroll" id="miniScScroll"></div>
       </div>
@@ -2726,7 +2726,7 @@
     </div>
   </div>
 
-  <!-- 우측 상단 드롭다운 조 선택 시 모드 선택 모달 -->
+  <!-- Mode selection modal when switching groups via top-right dropdown -->
   <div id="modeModal" class="mode-modal-backdrop">
     <div class="mode-modal-card">
       <div class="mode-modal-title" id="modeModalTitle">⛳ 조 입장 모드 선택</div>
@@ -2745,7 +2745,7 @@
     </div>
   </div>
 
-  <!-- 1~18홀 전체 스코어카드 모달 (전반 OUT / 후반 IN) -->
+  <!-- Full 1~18 hole scorecard modal (OUT / IN) -->
   <div id="scorecardModal" class="mode-modal-backdrop" onclick="if(event.target===this) closeScorecardModal()">
     <div class="sc-modal-card">
       <div class="sc-modal-head">
@@ -2756,7 +2756,7 @@
     </div>
   </div>
 
-  <!-- 오늘의 명예의 전당 (전체 공지 다시보기) 모달 -->
+  <!-- Today's Hall of Fame modal (all tournament highlights) -->
   <div id="hallOfFameModal" class="mode-modal-backdrop" onclick="if(event.target===this) closeHallOfFameModal()">
     <div class="hof-modal-card">
       <div class="hof-modal-head">
@@ -2767,7 +2767,7 @@
     </div>
   </div>
 
-  <!-- 📊 니어/롱기 전광판 모달 (1·2·3등 · 꼴등) -->
+  <!-- Near-Pin / Long-Drive Scoreboard modal (Top 3 & Last place) -->
   <div id="eventBoardModal" class="mode-modal-backdrop" onclick="if(event.target===this) closeEventBoard()">
     <div class="hof-modal-card eb-card">
       <div class="hof-modal-head">
@@ -2778,7 +2778,7 @@
     </div>
   </div>
 
-  <!-- 홀 레이아웃(GPS) & 그린 경사도(히트맵) 모달 -->
+  <!-- Hole Layout (GPS) & Green Slope (Heatmap) modal -->
   <div id="holeMapModal" class="mode-modal-backdrop" onclick="if(event.target===this) closeHoleMapModal()">
     <div class="hm-modal-card">
       <div class="hm-head">
@@ -2860,7 +2860,7 @@
     </div>
   </div>
 
-  <!-- 니어/롱기 전용 숫자 키패드 모달 -->
+  <!-- Dedicated numeric keypad modal for Near-Pin / Long-Drive -->
   <div id="eventKeypadModal" class="mode-modal-backdrop" onclick="if(event.target===this) closeEventKeypadModal()">
     <div class="ek-modal-card">
       <div class="ek-modal-title" id="ekModalTitle">🎯 니어 거리 입력</div>
@@ -2890,13 +2890,13 @@
     </div>
   </div>
 
-  <!-- 아이폰 GPS 위치 권한 거부 시 안내 모달 (영문/한글 iOS 메뉴 병기) -->
+  <!-- GPS Location Permission Guide modal (bilingual English/Korean menu paths) -->
   <div id="gpsPermissionModal" class="mode-modal-backdrop gg-backdrop" style="z-index:10500;"
     onclick="if(event.target===this) closeGpsPermissionModal()">
     <div class="mode-modal-card gg-card" style="border-top:5px solid #e03131;">
       <div class="gg-title" id="gpsPermTitle" style="color:#c92a2a;">📍 아이폰 GPS 권한 켜는 법</div>
       <div class="gg-sub" id="gpsPermSub">위치 권한이 꺼져 있어 GPS 거리를 표시할 수 없습니다.</div>
-      <!-- 사파리용: 쉬운 방법 먼저 + 위치 서비스 전체 스위치 + 정확한 위치 -->
+      <!-- iOS Safari guide: quick website settings first + OS Location Services + Precise Location -->
       <div id="gpsPermSafari">
         <div class="gg-box gg-box-main">
           <div class="gg-box-head">① 먼저 이것부터 <span class="gg-chip">10초</span></div>
@@ -2912,7 +2912,7 @@
         </div>
         <div class="gg-note">💡 바꾼 뒤 아래 버튼을 눌러도 안 되면 <b>페이지를 새로고침</b>해 주세요. 입력한 점수는 그대로 남아 있습니다.</div>
       </div>
-      <!-- 크롬용 -->
+      <!-- iOS Chrome guide -->
       <div id="gpsPermChrome" style="display:none;">
         <div class="gg-box gg-box-main">
           <div class="gg-box-head">① 아이폰 설정 앱</div>
@@ -2927,7 +2927,7 @@
         </div>
         <div class="gg-note">💡 새로고침해도 입력한 점수는 그대로 남아 있습니다.</div>
       </div>
-      <!-- 안드로이드(갤럭시 등)용 -->
+      <!-- Android (Galaxy / Chrome / Samsung Internet) guide -->
       <div id="gpsPermAndroid" style="display:none;">
         <div class="gg-box gg-box-main">
           <div class="gg-box-head">① 크롬(Chrome) 브라우저 <span class="gg-chip">10초</span></div>
@@ -2951,7 +2951,7 @@
     </div>
   </div>
 
-  <!-- 🧭 앱 안 브라우저(밴드·인스타 등) 안내: 코스맵에서 10초 안에 GPS가 안 잡히거나 위치가 거부될 때 1회 -->
+  <!-- In-app browser guide (Band, Instagram, Line, etc.): shown once if GPS times out (10s) or is denied -->
   <div id="inAppGuideModal" class="mode-modal-backdrop gg-backdrop" style="z-index:10500;"
     onclick="if(event.target===this) closeInAppGuideModal()">
     <div class="mode-modal-card gg-card" style="border-top:5px solid #1c7ed6;">
@@ -2974,7 +2974,7 @@
     </div>
   </div>
 
-  <!-- 📍 '정확한 위치' 꺼짐 안내: 골프장 근처에서 오차 1km 초과가 20초 넘게 계속될 때 1회 -->
+  <!-- 'Precise Location Off' guide: shown once near the course if GPS accuracy stays >1km for over 20s -->
   <div id="gpsApproxModal" class="mode-modal-backdrop gg-backdrop" style="z-index:10500;"
     onclick="if(event.target===this) closeGpsApproxModal()">
     <div class="mode-modal-card gg-card" style="border-top:5px solid #f08c00;">
@@ -2991,7 +2991,7 @@
     </div>
   </div>
 
-  <!-- 📐 지형·날씨 보정 상세 팝업 ([✕ 닫기] 버튼, 15초 뒤 자동 닫힘) -->
+  <!-- Terrain & weather adjustment breakdown popup (close button + 15s auto-close) -->
   <div id="plDetailPop" class="pl-detail-pop">
     <div class="pl-detail-head">
       <span class="pl-detail-title" id="plDetailTitle"></span>
@@ -3002,7 +3002,7 @@
 
   <div id="toast"></div>
 
-  <!-- 전체 참가자 버디(-1) · 이글(-2) 실시간 공지 배너 (터치 시 즉시 닫힘) -->
+  <!-- Shared real-time Birdie(-1) / Eagle(-2) broadcast banner (tap to dismiss) -->
   <div id="birdieBroadcastBanner" onclick="hideBirdieBroadcastBanner()">
     <div class="bb-header">
       <div class="bb-title" id="birdieBroadcastTitle">🎉 실시간 버디 · 이글 공지!</div>
@@ -3011,16 +3011,16 @@
     <div class="bb-list" id="birdieBroadcastList"></div>
   </div>
 
-  <!-- GitHub 직접 실행용 대회 설정(TournamentConfig.js) & 골프장 DB(CourseData.js) 로드 -->
+  <!-- Load TournamentConfig.js & CourseData.js for direct GitHub execution -->
   <script src="TournamentConfig.js"></script>
   <script src="CourseData.js"></script>
 
   <script>
     // =========================================================================
-    // ✅ GitHub 직접 실행 메인 앱 API 연동 & 구글 시트 자동 부트스트랩 어댑터
-    // - 구글 시트 내장 웹앱이 아닌 GitHub Pages에서 곧바로 실행됩니다.
-    // - 시트가 아직 없으면 백엔드 엔진이 TournamentConfig.js 기준으로 자동 생성합니다.
-    // - 총무 웹화면(admin.html)에서 새 대회/시트를 생성하면 서버 설정이 즉시 자동 반영됩니다.
+    // GitHub direct-execution API adapter & automatic Google Sheet bootstrapper
+    // - Runs directly on GitHub Pages rather than inside a Google Sheet-bound Apps Script web app.
+    // - Auto-creates a Google Sheet from TournamentConfig.js if none exists yet.
+    // - Dynamically applies latest server tournament settings created via admin.html.
     // =========================================================================
     var GAS_URL_STORAGE_KEY = "golf_gas_api_url_v1";
     var CACHED_REMOTE_CFG_KEY = "golf_active_tournament_cfg_v1";
@@ -3113,7 +3113,7 @@
     var hasPendingLocalSave = false;
     var pendingLocalHoles = [];
     var dirtyScoreCells = {};
-    // 🔢 저장 번호표: 앱을 열 때 이 폰의 ID를 만들고, 저장 요청마다 번호를 1씩 올림
+    // Save sequence ticket: generate per-device ID on launch and increment seq on every save request
     var saveDeviceId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     var saveTicketNo = 0;
     var dirtyNoteHoles = {};
@@ -3224,8 +3224,8 @@
     var activeBirdieBannerItems = [];
 
     // =========================================================================
-    // ✅ 대회 설정(TournamentConfig.html) 및 골프장 DB(CourseData.html) 통합 로드
-    // - 골프장 및 공지/이벤트홀 변경은 TournamentConfig.html 파일에서 관리합니다.
+    // Load tournament configuration and golf course catalog
+    // - Course selection, notices, and event holes are managed via TournamentConfig / admin.html.
     // =========================================================================
     var T_CFG = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
     try {
@@ -3292,7 +3292,7 @@
 
     rebuildActiveCourseVars(T_CFG, ACTIVE_TOURNAMENT_SCOPE);
 
-    // 안내 문구 속 구글맵 링크(뒷풀이 주소 등) 앞에 구글맵 아이콘 자동 추가 (TournamentConfig 수정 불필요)
+    // Automatically prepend Google Maps pin icon to map links (e.g. after-party address)
     function addGmapsPinToMapLinks(rootEl) {
       if (!rootEl) return;
       var links = rootEl.querySelectorAll("a[href]");
@@ -3399,7 +3399,7 @@
       }
     }
 
-    // 저작권 문구가 좁은 폰에서도 잘리지 않고 한 줄에 다 보이도록 글씨 크기를 자동으로 줄임 (최소 8px)
+    // Auto-shrink copyright font size (down to 8px) so it fits on a single line on narrow phones
     function fitCopyrightOneLine() {
       var el = document.getElementById("appCopyrightEl");
       if (!el || el.style.display === "none") return;
@@ -3419,7 +3419,7 @@
     var hmState = {
       open: false,
       hole: 1,
-      teeKey: ACTIVE_COURSE.defaultTeeKey || "white", // 기본 선택 티
+      teeKey: ACTIVE_COURSE.defaultTeeKey || "white", // Default selected tee key
       tab: "map", // "map" | "green"
       gpsWatchId: null,
       gpsActive: false,
@@ -3427,7 +3427,7 @@
       outsideCourseNotified: false,
       gpsLat: null,
       gpsLon: null,
-      gpsFixAt: 0, // 마지막 GPS 위치를 받은 시각 (오래된 위치 판단용)
+      gpsFixAt: 0, // Timestamp of last received GPS fix (used to discard stale positions)
       playerLat: null,
       playerLon: null,
       targetLat: null,
@@ -3620,7 +3620,7 @@
       }
     }
 
-    // 그린 진입 방향 기준 앞(Front) / 중앙(Center) / 뒤(Back) 좌표 계산
+    // Compute Front / Center / Back green coordinates along the approach line
     function getGreenFrontCenterBack(hObj) {
       var gCenter = hObj.path[2];
       var approachFrom = hObj.path[1] || hObj.path[0];
@@ -3688,9 +3688,9 @@
       };
     }
 
-    // ===== 실시간 기상(바람/기온/기압/습도) 캐시 & USGS 1m LiDAR 75점 페어웨이 + 25점 그린 통합 탄도(Ballistics) 엔진 =====
-    // - 골프장별 기상 캐시는 처음 조회할 때 자동 생성되고, 값은 Open-Meteo 실시간 기상(1번홀 그린 좌표)으로 채워집니다.
-    // - 실시간 기상 수신(loaded=true) 전에는 바람·기온·기압·습도 보정 없이 고저차 보정만 적용합니다.
+    // ===== Real-Time Weather Cache & Integrated USGS 1m LiDAR (75-pt Fairway + 25-pt Green) Ballistics Engine =====
+    // - Per-course weather cache is populated on demand from Open-Meteo using Hole 1 green coordinates.
+    // - Before live weather arrives (loaded=false), only elevation slope adjustment is applied.
     var hmWeatherCache = {};
 
     function getActiveCourseWeatherKey() {
@@ -3720,7 +3720,7 @@
       if (entry.fetching) return;
       entry.fetching = true;
 
-      // 현재 활성 코스의 실제 좌표 추출 (CourseData.html의 1번홀 그린 좌표 기준, 좌표가 없으면 조회 생략)
+      // Extract Hole 1 green coordinates for active course (skip fetch if missing)
       var h1 = getHoleCourseObj(1);
       if (!h1 || !h1.path || !h1.path[2]) {
         entry.fetching = false;
@@ -3808,7 +3808,7 @@
       };
     }
 
-    // 15x5 페어웨이 USGS 1m LiDAR 고도 격자(75개 지점)에 대한 2D Bicubic 연속 곡면 보간
+    // 2D Bicubic continuous surface interpolation over the 15x5 (75-point) fairway USGS 1m LiDAR grid
     function evalFairwayElevation75(sigma, tau, fwElev) {
       var gx = Math.max(0, Math.min(4, sigma * 4));
       var gy = Math.max(0, Math.min(14, tau * 14));
@@ -3837,12 +3837,12 @@
       return cubicHermite(colVals[0], colVals[1], colVals[2], colVals[3], ty);
     }
 
-    // 코스 내 임의의 (lat, lon) 위치의 USGS 1m LiDAR 해발고도(m) 반환 (그린 25점 + 페어웨이 75점 통합)
+    // Return USGS 1m LiDAR elevation (m) for any (lat, lon) on the hole (combines 25-pt green + 75-pt fairway)
     function getCourseTerrainElevation(hObj, lat, lon) {
       if (!hObj) return 0;
       var info = getHoleRotationInfo(hObj);
 
-      // 1) 그린 및 그린 프린지 영역이면 초정밀 5x5 그린 LiDAR 격자(elev25) 우선 적용
+      // 1) Inside green/fringe bounds: prioritize high-resolution 5x5 green LiDAR grid (elev25)
       var padLat = 0.000035;
       var padLon = 0.000045;
       if (hObj.elev25 && hObj.elev25.length === 25 &&
@@ -3855,7 +3855,7 @@
         return evalGreenElevation25(lonFrac, latFrac, hObj.elev25);
       }
 
-      // 2) 티박스·페어웨이·러프·벙커 전체 영역은 15x5(75점) 페어웨이 LiDAR 격자(fwElev) 곡면 보간 적용
+      // 2) Tee, fairway, rough, and bunkers: interpolate over 15x5 (75-pt) fairway LiDAR grid (fwElev)
       if (hObj.fwElev && hObj.fwElev.length === 75) {
         var rm = info.toRot(lat, lon);
         var vSpan = Math.max(10, info.vMax - info.vMin);
@@ -3865,14 +3865,14 @@
         return evalFairwayElevation75(sigma, tau, hObj.fwElev);
       }
 
-      // 3) 폴백: 그린 중앙 고도 (LiDAR 데이터가 없는 홀은 출발·도착 모두 0을 반환 -> 고저차 보정 0)
+      // 3) Fallback: green center elevation (returns 0 for both ends if hole lacks LiDAR data -> 0 slope adj)
       if (hObj.elev25 && hObj.elev25.length === 25) {
         return hObj.elev25[12];
       }
       return 0;
     }
 
-    // 두 지점 간 고저차(Slope) + 실시간 바람(Wind) + 기온·기압·습도 탄도(Ballistics) 통합 보정 거리 계산
+    // Compute Plays-Like adjusted yardage combining elevation slope, live wind, temperature, pressure, and humidity
     function calcPlaysLikeShot(hObj, fromLat, fromLon, toLat, toLon, baseYdsOverride) {
       var straightYds = (typeof baseYdsOverride === "number")
         ? baseYdsOverride
@@ -3883,11 +3883,11 @@
       var elevDiffM = elevToM - elevFromM;
       var elevDiffYds = elevDiffM * 1.09361;
 
-      // 1) 고저차(Slope) 탄도 보정: 아이언/웨지 낙하각(45~50°) 특성을 반영해 고저차의 1.08배 보정
+      // 1) Slope ballistics adjustment: 1.08x elevation delta reflecting 45-50 deg iron/wedge descent angle
       var slopeScale = (straightYds < 18) ? (straightYds / 18) : 1.0;
       var slopeDeltaYds = elevDiffYds * 1.08 * slopeScale;
 
-      // 2) 실시간 바람(Wind) + 기온·기압·습도(Air Density) 탄도 보정
+      // 2) Live wind + air density (temperature, barometric pressure, humidity) ballistics adjustment
       var windDeltaYds = 0;
       var envDeltaYds = 0;
       var headwindMph = 0;
@@ -3895,33 +3895,33 @@
       var wx = getActiveCourseWeather();
 
       var shotVec = latLonToLocalMeters(toLat, toLon, fromLat, fromLon);
-      var shotBearingRad = Math.atan2(shotVec.x, shotVec.y); // 0=북, PI/2=동
+      var shotBearingRad = Math.atan2(shotVec.x, shotVec.y); // 0 = North, PI/2 = East
 
       if (wx && wx.loaded) {
         var windFromRad = (wx.windFromDeg * Math.PI) / 180;
-        // 양수(+): 타겟 쪽에서 불어오는 맞바람(Headwind), 음수(-): 뒤에서 밀어주는 뒷바람(Tailwind)
+        // Positive (+): headwind from target; Negative (-): tailwind from behind
         headwindMph = wx.windMph * Math.cos(windFromRad - shotBearingRad);
-        // 양수(+): 우->좌 횡풍, 음수(-): 좌->우 횡풍
+        // Positive (+): right-to-left crosswind; Negative (-): left-to-right crosswind
         crosswindMph = wx.windMph * Math.sin(windFromRad - shotBearingRad);
 
         var windPct = 0;
         if (headwindMph >= 0) {
-          // 맞바람은 스핀양 증가로 탄도가 떠서 거리 손실이 비대칭적으로 큼 (~1.05%/mph + 강풍 가중치)
+          // Headwind increases spin/apex, causing asymmetric distance loss (~1.05%/mph + strong-wind factor)
           windPct = headwindMph * (0.0102 + 0.00018 * Math.min(25, headwindMph));
         } else {
-          // 뒷바람은 스핀 감소로 탄도가 낮아져 맞바람의 약 절반 수준 이득 (-0.55%/mph)
+          // Tailwind reduces spin/apex, yielding roughly half the magnitude as gain (-0.55%/mph)
           windPct = headwindMph * 0.0055;
         }
-        // 강한 횡풍(Crosswind)도 공기저항 벡터 증가로 소폭 거리 손실 유발
+        // Strong crosswind increases air-drag vector, causing slight carry loss
         if (Math.abs(crosswindMph) > 6) {
           windPct += (Math.abs(crosswindMph) - 6) * 0.0012;
         }
         var flightScale = Math.min(1.0, Math.max(0.2, straightYds / 60));
-        // 파4/파5 티박스에서 그린까지(300~550y) 조회 시에도 단일 샷 체공 캐리(최대 250y) 기준으로 바람·공기밀도 탄도 적용
+        // Cap air-ballistics reference carry at single-shot max carry (250y) even on 300-550y Par 4/5 holes
         var effectiveCarryYds = Math.min(250, straightYds);
         windDeltaYds = effectiveCarryYds * windPct * flightScale;
 
-        // 3) 기온(70°F 기준) + 현지 기압(1013.25hPa 기준 고도 공기밀도) + 습도(50% 기준) 탄도 보정
+        // 3) Air density adjustment from temperature (ref 70F), station pressure (ref 1013.25hPa), and humidity (ref 50%)
         var tempDelta = (70 - wx.tempF) * 0.00133 * effectiveCarryYds;
         var pressureDelta = -((1013.25 - wx.pressureHpa) / 10) * 0.0032 * effectiveCarryYds;
         var humidDelta = -((wx.humidity - 50) / 50) * 0.0025 * effectiveCarryYds;
@@ -3959,9 +3959,9 @@
           relText: "풍향 대기"
         };
       }
-      // 바람이 불어가는 방향 (0=북, 90=동, 180=남, 270=서)
+      // Direction wind is blowing toward (0=N, 90=E, 180=S, 270=W)
       var windToDeg = (wx.windFromDeg + 180) % 360;
-      // 현재 홀의 티박스(아래) -> 그린(위, 0°) 정렬 각도를 뺀 화면 기준 화살표 회전각
+      // Screen-relative wind arrow angle after subtracting hole rotation (tee at bottom -> green at top = 0 deg)
       var arrowDeg = (windToDeg - info.holeBearingDeg + 360) % 360;
       var speedMph = Math.round(wx.windMph);
 
@@ -4047,7 +4047,7 @@
 
     var plDetailTimer = null;
 
-    // 📐 지형·날씨 보정 상세: 항목마다 한 줄(줄바꿈 없음) + [✕ 닫기] 버튼, 15초 뒤 자동 닫힘
+    // Plays-like adjustment breakdown popup: one line per factor + close button, auto-closes after 15s
     function showPlaysLikeDetailToast() {
       var hObj = getHoleCourseObj(hmState.hole);
       var pl = hmState.lastPlaysLikeCenter;
@@ -4097,7 +4097,7 @@
       hmState.open = true;
       hmState.tab = defaultTab || "map";
       var targetHole = currentHole || 1;
-      dropStaleGpsFix(); // GPS가 꺼져 있던 동안의 오래된 위치(20초 초과)는 쓰지 않음
+      dropStaleGpsFix(); // Discard stale GPS position (>20s old) left over from before GPS was paused
       if (hmState.hole === targetHole && hmState.playerLat !== null && hmState.targetLat !== null) {
         hmState.zoom = 1;
         hmState.panX = 0;
@@ -4132,7 +4132,7 @@
     }
 
     function pauseHoleMapGpsForBattery() {
-      cancelGpsWarmup(); // GPS를 끌 때 대기 타이머도 같이 취소 (꺼진 뒤에 위치가 들어가지 않게)
+      cancelGpsWarmup(); // Cancel warmup timer when turning GPS off so delayed callbacks cannot inject stale coordinates
       if (hmState.gpsWatchId !== null && typeof hmState.gpsWatchId === "number" && navigator.geolocation) {
         navigator.geolocation.clearWatch(hmState.gpsWatchId);
       }
@@ -4147,15 +4147,15 @@
       hmState.open = false;
       closePlaysLikeDetail();
       document.getElementById("holeMapModal").style.display = "none";
-      // 비거리 측정 중이 아닐 때는 코스맵을 닫으면 고정밀 GPS를 자동 중지하여 배터리 절약
+      // Auto-pause high-accuracy GPS when closing course map (unless shot-distance tracking is active) to save battery
       if (!hmState.shotMeasuring) {
         pauseHoleMapGpsForBattery();
       }
       silentRefreshGroupData(false);
     }
 
-    // 🔋 저장하고 다음 홀로 넘어가면 비거리 측정 종료 + GPS 끄기
-    //    (코스맵이 열려 있거나, 측정 중인 홀보다 앞 홀 점수를 늦게 저장할 때는 유지)
+    // Stop shot-distance tracking & pause GPS when saving and advancing to the next hole
+    //    (keep active if course map is open or if saving an earlier hole behind the tracked hole)
     function stopShotMeasureOnSave(savedHole) {
       if (hmState.open || !hmState.shotMeasuring || savedHole < hmState.shotMeasureHole) return;
       hmState.shotMeasuring = false;
@@ -4226,7 +4226,7 @@
       startHoleMapGps(false);
     }
 
-    // ===== 카톡 외 앱 안 브라우저(밴드·인스타·라인 등) 안내 — 아이폰만, 사파리·크롬·홈 화면 앱은 제외 =====
+    // ===== In-App Browser Guide (Band, Instagram, Line, etc.) — iOS only, excludes Safari/Chrome/Standalone PWA =====
     var inAppNameCache = null;
     var inAppGuideShown = false;
 
@@ -4248,7 +4248,7 @@
       return name;
     }
 
-    // 코스맵을 열 때: 앱 안 브라우저라도 10초 안에 GPS가 잡히면 안내하지 않음 (사파리·크롬은 아무것도 안 함)
+    // When opening course map in an in-app browser: skip guide if GPS succeeds within 10s (no-op on Safari/Chrome)
     function maybeShowInAppGuide() {
       if (inAppGuideShown || !detectInAppBrowserName()) return;
       setTimeout(function () {
@@ -4310,20 +4310,20 @@
       }
     }
 
-    // ===== '정확한 위치' 꺼짐(대략적 위치) 감지 — 판정 전까지는 지금과 완전히 동일하게 동작 =====
-    // 골프장 근처(약 10km 이내)에서 오차 1km 초과가 20초 이상 계속될 때만 판정
-    // → 위치를 쓰지 않고 티박스 기준으로 표시 + 안내 1회, 정확한 위치(오차 1km 이하)가 다시 들어오면 자동 복귀
-    // ※ 대략적 위치는 위치 갱신이 드물 수 있어서, 다음 위치를 기다리지 않고 20초 뒤 한 번 확인(그때만 타이머 1개)
+    // ===== 'Precise Location Off' (Approximate Location) Detector — zero behavior change until triggered =====
+    // Triggered only within ~10km of the course when GPS accuracy stays >1km for 20+ seconds
+    // -> Fall back to tee-box position + show guide once; auto-recover immediately if accuracy <=1km arrives
+    // Since approximate location updates infrequently, schedule a single 20s check timer
     var gpsApprox = { since: null, mode: false, notified: false, timer: null, lastAcc: 0 };
 
-    function checkApproxLocation(lat, lon, accM) { // true = 이번 위치는 무시
+    function checkApproxLocation(lat, lon, accM) { // true = ignore this GPS fix
       if (typeof accM !== "number" || !isFinite(accM) || accM <= 1000) {
         resetApproxStreak();
         gpsApprox.mode = false;
         return false;
       }
       var hObjA = getHoleCourseObj(hmState.hole);
-      if (calcYards(lat, lon, hObjA.path[2][0], hObjA.path[2][1]) > 11000) { // 약 10km 밖(집 등)은 판정 안 함
+      if (calcYards(lat, lon, hObjA.path[2][0], hObjA.path[2][1]) > 11000) { // Skip check when >10km away from the golf course (e.g. testing from home)
         resetApproxStreak();
         return false;
       }
@@ -4336,7 +4336,7 @@
         }, 20000);
       }
       if (Date.now() - gpsApprox.since >= 20000) enterApproxMode();
-      return gpsApprox.mode; // 20초 전까지는 false → 지금과 동일하게 위치 사용
+      return gpsApprox.mode; // Returns false during first 20s -> behaves identically to normal GPS
     }
 
     function resetApproxStreak() {
@@ -4362,7 +4362,7 @@
       maybeShowApproxGuide();
     }
 
-    // 코스맵이 열려 있을 때만 안내 (닫혀 있을 때 판정되면 다음에 코스맵을 열 때 안내)
+    // Show modal only while course map is open (if triggered while closed, show next time map opens)
     function maybeShowApproxGuide() {
       if (gpsApprox.mode && !gpsApprox.notified && hmState.open) {
         gpsApprox.notified = true;
@@ -4401,18 +4401,18 @@
     function retryGpsFromApproxModal() {
       closeGpsApproxModal();
       resetApproxStreak();
-      gpsApprox.notified = false; // 그래도 대략적 위치면 20초 뒤 한 번 더 안내
+      gpsApprox.notified = false; // Reset flag so guide can re-notify after another 20s if still approximate
       pauseHoleMapGpsForBattery();
       startHoleMapGps(false);
     }
 
-    // ===== 오래된 위치 안 쓰기: GPS가 꺼져 있던 동안의 마지막 위치(20초 초과)는 버림 =====
-    // - 파란 마커가 그 GPS 위치에 있으면 현재 홀 티로 되돌림 (손으로 옮긴 마커는 그대로 둠)
-    // - 코스맵을 열 때 + GPS를 다시 켤 때(화면 다시 켤 때 포함) 확인
+    // ===== Discard Stale Position: drop last GPS fix (>20s old) from while GPS was off =====
+    // - Reset blue player marker to current tee if it was sitting on stale GPS (keep manually dragged position)
+    // - Checked when opening course map and when resuming GPS (including screen wake)
     function dropStaleGpsFix() {
-      if (hmState.gpsWatchId !== null && hmState.gpsActive) return; // GPS가 켜져 위치를 받고 있으면 그대로
+      if (hmState.gpsWatchId !== null && hmState.gpsActive) return; // Keep as-is while GPS is actively streaming fixes
       if (hmState.gpsLat === null || hmState.gpsLon === null) return;
-      if (Date.now() - (hmState.gpsFixAt || 0) <= 20000) return; // 20초 이내 위치는 다시 사용
+      if (Date.now() - (hmState.gpsFixAt || 0) <= 20000) return; // Reuse recent fix if <=20s old
       var markerOnGps = hmState.playerLat !== null && hmState.playerLon !== null &&
         calcYards(hmState.playerLat, hmState.playerLon, hmState.gpsLat, hmState.gpsLon) <= 3;
       hmState.gpsLat = null;
@@ -4426,9 +4426,9 @@
       }
     }
 
-    // ===== 켠 직후 대충 잡힌 위치 거르기: 최대 8초 동안 오차 50m 이하 위치를 기다림 =====
-    // - 좋은 위치가 오면 바로 사용하고 대기 끝 (이후는 지금과 동일)
-    // - 8초 안에 좋은 위치가 없으면 그동안 가장 정확했던 위치를 사용 (무한정 기다리지 않음)
+    // ===== Post-Wake GPS Warmup Filter: wait up to 8s for an accurate fix (<=50m accuracy) =====
+    // - Accept immediately as soon as a <=50m fix arrives
+    // - If no <=50m fix arrives within 8s, use the best fix received so far (never wait forever)
     var gpsWarmup = { until: 0, best: null, timer: null };
 
     function startGpsWarmup() {
@@ -4439,7 +4439,7 @@
         gpsWarmup.timer = null;
         gpsWarmup.until = 0;
         gpsWarmup.best = null;
-        if (b && hmState.gpsWatchId !== null) { // GPS가 아직 켜져 있을 때만 (꺼진 뒤에는 절대 넣지 않음)
+        if (b && hmState.gpsWatchId !== null) { // Apply only if GPS is still enabled (never inject after GPS was turned off)
           applyIncomingGpsPosition(b.lat, b.lon, b.acc);
         }
       }, 8000);
@@ -4455,21 +4455,21 @@
       gpsWarmup.best = null;
     }
 
-    function holdRoughFixDuringWarmup(lat, lon, accM) { // true = 이번 위치는 건너뜀
+    function holdRoughFixDuringWarmup(lat, lon, accM) { // true = skip rendering this coarse warmup fix for now
       if (!gpsWarmup.until) return false;
       if (typeof accM === "number" && isFinite(accM) && accM > 50 && Date.now() < gpsWarmup.until) {
         if (!gpsWarmup.best || accM < gpsWarmup.best.acc) gpsWarmup.best = { lat: lat, lon: lon, acc: accM };
         return true;
       }
-      cancelGpsWarmup(); // 좋은 위치(오차 50m 이하)가 왔거나 8초가 지남 → 대기 끝
+      cancelGpsWarmup(); // Good fix (<=50m) arrived or 8s elapsed -> end warmup
       return false;
     }
 
     function applyIncomingGpsPosition(lat, lon, accM) {
       if (!isFinite(lat) || !isFinite(lon)) return;
       closeGpsPermissionModal();
-      if (checkApproxLocation(lat, lon, accM)) return; // '정확한 위치' 꺼짐으로 판정된 동안만 위치 무시 (그 전에는 지금과 동일)
-      if (holdRoughFixDuringWarmup(lat, lon, accM)) return; // GPS를 켠 직후 대충 잡힌 위치는 건너뜀 (최대 8초)
+      if (checkApproxLocation(lat, lon, accM)) return; // Ignore GPS coordinates while in Approximate Location mode
+      if (holdRoughFixDuringWarmup(lat, lon, accM)) return; // Filter out coarse initial fixes right after GPS wake (up to 8s)
       var wasActive = hmState.gpsActive;
       var baseLat = (hmState.lastRenderedGpsLat !== undefined && hmState.lastRenderedGpsLat !== null) ? hmState.lastRenderedGpsLat : null;
       var baseLon = (hmState.lastRenderedGpsLon !== undefined && hmState.lastRenderedGpsLon !== null) ? hmState.lastRenderedGpsLon : null;
@@ -4485,7 +4485,7 @@
       var movedYds = (wasActive && baseLat !== null && baseLon !== null)
         ? calcYards(baseLat, baseLon, lat, lon)
         : 999;
-      // 마지막으로 화면에 반영된 위치 대비 1야드 미만 미세 흔들림일 때만 캔버스 재렌더링 생략
+      // Skip canvas re-render on sub-1-yard GPS jitter relative to last rendered position
       if (wasActive && movedYds < 1) {
         return;
       }
@@ -4515,7 +4515,7 @@
         var ua = navigator.userAgent || "";
         var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
         if (isIOS && detectInAppBrowserName()) {
-          openInAppGuideModal(); // 앱 안 브라우저: 사파리 설정 대신 'Safari로 열기' 안내
+          openInAppGuideModal(); // In-app browser on iOS: show 'Open in Safari' guide instead of Safari settings guide
         } else {
           openGpsPermissionModal();
         }
@@ -4546,8 +4546,8 @@
         showToast("📡 현재 GPS 위치를 확인하는 중...");
       }
       if (hmState.gpsWatchId === null) {
-        dropStaleGpsFix(); // 꺼져 있던 동안의 오래된 위치(20초 초과)는 쓰지 않음 (화면 다시 켤 때 포함)
-        startGpsWarmup(); // 켠 직후 최대 8초 동안 정확한 위치(오차 50m 이하)를 기다림
+        dropStaleGpsFix(); // Drop stale GPS fix (>20s old) before starting watch (including after screen wake)
+        startGpsWarmup(); // Wait up to 8s after GPS start for a clean fix (<=50m accuracy)
       }
       if (hmState.open) syncHoleMapUI();
 
@@ -4557,8 +4557,8 @@
             applyIncomingGpsPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
           },
           function (err) {
-            // 위치 권한 명시적 거부(code === 1)가 아닌 일시적 신호 지연/타임아웃(code 2, 3) 시에는
-            // watchPosition을 끄지 않고 유지하여 화면을 다시 켰을 때나 그늘 통과 후 자동 복구되도록 보호
+            // On temporary GPS signal delay/timeout (codes 2, 3) rather than explicit permission denial (code 1),
+            // keep watchPosition alive so GPS recovers automatically after waking screen or leaving tree cover
             if (err && err.code !== 1) {
               return;
             }
@@ -4710,7 +4710,7 @@
         canvas.width = cssW * dpr;
         canvas.height = cssH * dpr;
       }
-      // 그린 경사도는 고정 화면: 같은 홀·같은 크기로 이미 그렸으면 다시 그리지 않음 (GPS 수신 때 재계산 방지)
+      // Green slope view is static per hole/size: skip redundant redraws on incoming GPS ticks
       var greenKey = hmState.hole + "|" + canvas.width + "x" + canvas.height;
       if (hmState.tab === "green" && hmState.greenDrawnKey === greenKey) return;
       hmState.greenDrawnKey = (hmState.tab === "green") ? greenKey : null;
@@ -4727,7 +4727,7 @@
       ctx.restore();
     }
 
-    // ===== 탭 1: 18Birdies 스타일 위성 홀 레이아웃 & 핀치 줌 =====
+    // ===== Tab 1: 18Birdies-Style Satellite Hole Layout & Pinch Zoom =====
     function drawHoleLayoutView(ctx, W, H, hObj) {
       ctx.fillStyle = "#16241c";
       ctx.fillRect(0, 0, W, H);
@@ -4741,7 +4741,7 @@
 
       var teeM = latLonToLocalMeters(tee[0], tee[1], midLat, midLon);
       var grnM = latLonToLocalMeters(grn[0], grn[1], midLat, midLon);
-      // 티박스(아래) -> 그린(위) 회전 각도 계산
+      // Compute rotation angle so Tee is at bottom and Green is at top
       var dx = grnM.x - teeM.x;
       var dy = grnM.y - teeM.y;
       var rotAngle = Math.atan2(dx, dy);
@@ -4772,7 +4772,7 @@
         if (rm.v > maxV) maxV = rm.v;
       });
 
-      // 홀이 화면에 큼직하게 꽉 차고 상단 투명 거리/GPS 영역 뒤까지 위성지도가 넓게 보이도록 배치
+      // Frame hole layout generously across viewport extending behind translucent top HUD
       var spanU = Math.max(55, (maxU - minU) + 34);
       var spanV = Math.max(95, (maxV - minV) + 38);
       var baseScale = Math.min((W - 20) / spanU, (H - 52) / spanV);
@@ -4815,10 +4815,10 @@
         playerScr: plScr
       };
 
-      // 1) 고해상도 Esri World Imagery 위성 타일 전체 배경 렌더링 (z17 + z18)
+      // 1) Render high-resolution Esri World Imagery satellite background tiles (z17 + z18)
       drawRotatedSatelliteTiles(ctx, W, H, midLat, midLon, rotAngle, scale, centerU, centerV, originX, originY, hObj, screenToLatLon);
 
-      // 2) 페어웨이 코리더 반투명 가이드
+      // 2) Translucent fairway corridor guide line
       var p0 = latLonToScreen(activeTee[0], activeTee[1]);
       var p1 = latLonToScreen(dogleg[0], dogleg[1]);
       var p2 = latLonToScreen(grn[0], grn[1]);
@@ -4833,7 +4833,7 @@
       ctx.lineWidth = Math.max(22, 32 * scale);
       ctx.stroke();
 
-      // 3) 그린 폴리곤 하이라이트
+      // 3) Green polygon highlight
       ctx.beginPath();
       hObj.green.forEach(function (pt, idx) {
         var sp = latLonToScreen(pt[0], pt[1]);
@@ -4848,7 +4848,7 @@
       ctx.stroke();
       ctx.restore();
 
-      // 4) 플레이어 위치(🔵) -> 타겟 크로스헤어(⊕) -> 그린 중앙(⛳) 거리 측정선
+      // 4) Measurement line: Player (blue) -> Target Crosshair -> Green Center
       var grScr = p2;
 
       ctx.save();
@@ -4867,7 +4867,7 @@
       ctx.stroke();
       ctx.restore();
 
-      // 비거리 측정 중일 때 시작점(🟢) -> 현재 위치(🔵) 궤적 라인 표시
+      // Draw shot-tracking trajectory line from start point (green) to current position (blue)
       if (hmState.shotMeasuring && hmState.shotStartLat !== null && hmState.shotStartLon !== null) {
         var stScr = latLonToScreen(hmState.shotStartLat, hmState.shotStartLon);
         ctx.save();
@@ -4889,7 +4889,7 @@
         ctx.restore();
       }
 
-      // 그린 핀 아이콘
+      // Green flagstick icon
       ctx.save();
       ctx.fillStyle = "#fa5252";
       ctx.strokeStyle = "#ffffff";
@@ -4900,7 +4900,7 @@
       ctx.stroke();
       ctx.restore();
 
-      // 내 위치(티박스/GPS) 마커
+      // Player position marker (Tee / GPS)
       ctx.save();
       ctx.fillStyle = "#339af0";
       ctx.strokeStyle = "#ffffff";
@@ -4911,7 +4911,7 @@
       ctx.stroke();
       ctx.restore();
 
-      // 18Birdies 스타일 타겟 흰색 동그라미(⊕) - 터치 후 드래그 가능
+      // Draggable 18Birdies-style white target crosshair circle
       ctx.save();
       ctx.fillStyle = (hmState.dragMode === "target")
         ? "rgba(255, 212, 59, 0.28)"
@@ -4938,7 +4938,7 @@
       ctx.fill();
       ctx.restore();
 
-      // 두 구간 거리 배지 표시 (직선거리 + 75점 페어웨이 고도 & 바람·탄도 보정거리 동시 표시)
+      // Render dual segment distance badges (straight yardage + 75-pt LiDAR & wind Plays-Like yardage)
       var ydToTarget = calcYards(hmState.playerLat, hmState.playerLon, hmState.targetLat, hmState.targetLon);
       var ydTargetToGreen = calcYards(hmState.targetLat, hmState.targetLon, grn[0], grn[1]);
       var plToTarget = calcPlaysLikeShot(hObj, hmState.playerLat, hmState.playerLon, hmState.targetLat, hmState.targetLon, ydToTarget);
@@ -5056,14 +5056,14 @@
       ctx.translate(originX - centerU * scale, originY + centerV * scale);
       ctx.rotate(-rotAngle);
 
-      // 화면 전체 빈틈없이 채우는 z17 배경 타일 + 홀 주변 고해상도 z18 타일 중첩 렌더링
+      // Composite gap-free z17 base tiles with sharp z18 detail tiles around the hole corridor
       drawTileLayerAtZoom(ctx, 17, midLat, midLon, scale, minEastM - 180, maxEastM + 180, minNorthM - 180, maxNorthM + 180);
       drawTileLayerAtZoom(ctx, 18, midLat, midLon, scale, minEastM - 80, maxEastM + 80, minNorthM - 80, maxNorthM + 80);
 
       ctx.restore();
     }
 
-    // ===== 탭 2: 18Birdies 스타일 초정밀 그린 경사도 히트맵 & 브레이크 화살표 (USGS 1m LiDAR 5x5 + 2D Bicubic 곡면 보간) =====
+    // ===== Tab 2: 18Birdies-Style High-Precision Green Slope Heatmap & Break Arrows (USGS 1m LiDAR 5x5 + 2D Bicubic) =====
     function cubicHermite(p0, p1, p2, p3, t) {
       var a = -0.5 * p0 + 1.5 * p1 - 1.5 * p2 + 0.5 * p3;
       var b = p0 - 2.5 * p1 + 2.0 * p2 - 0.5 * p3;
@@ -5072,7 +5072,7 @@
       return ((a * t + b) * t + c) * t + d;
     }
 
-    // 5x5 LiDAR 격자(남->북 5행, 서->동 5열)에 대한 2D Bicubic (Catmull-Rom) 연속 곡면 보간
+    // 2D Bicubic (Catmull-Rom) surface interpolation over 5x5 LiDAR grid (5 rows S->N, 5 cols W->E)
     function evalGreenElevation25(lonFrac, latFrac, elev25) {
       var gx = Math.max(0, Math.min(4, lonFrac * 4));
       var gy = Math.max(0, Math.min(4, latFrac * 4));
@@ -5099,7 +5099,7 @@
       return cubicHermite(colVals[0], colVals[1], colVals[2], colVals[3], ty);
     }
 
-    // Chaikin 코너 커팅 스플라인으로 각진 OSM 폴리곤을 18Birdies처럼 매끄러운 곡선 그린 외곽선으로 보정
+    // Smooth angular OSM green polygon corners into natural curves via Chaikin corner-cutting spline
     function smoothPolygonChaikin(pts, iterations) {
       var curr = pts.slice();
       for (var it = 0; it < (iterations || 3); it++) {
@@ -5276,7 +5276,7 @@
         minSpanM: 8, padW: 10, padH: 10, zoom: 1, panX: 0, panY: 0, vOffsetPx: 0, chaikinIter: 2, zSampleSteps: 14
       });
 
-      // 18Birdies 미니 히트맵 아이콘 스타일 사선 도트 패턴
+      // Diagonal dot pattern for mini heatmap button icon
       ctx.fillStyle = "rgba(8, 9, 10, 0.75)";
       var stepX = 9.5, stepY = 8.5;
       var gAng = -0.46;
@@ -5324,10 +5324,10 @@
         pinScr: pinScr
       };
 
-      // 18Birdies 스타일 회전 격자 배치 + 굵고 선명한 내리막 경사 화살표 렌더링
+      // Rotated grid layout + crisp downhill break arrows (18Birdies style)
       var gridStepX = 42;
       var gridStepY = 38;
-      var gridAngle = -0.46; // 약 -26도 대각선 격자 정렬
+      var gridAngle = -0.46; // ~ -26 deg diagonal grid alignment
       var cosG = Math.cos(gridAngle), sinG = Math.sin(gridAngle);
       var rangeSteps = Math.ceil(7 * zoom);
 
@@ -5345,7 +5345,7 @@
       }
       ctx.restore();
 
-      // 그린 외곽선 굵은 블랙 테두리
+      // Bold black outline around green perimeter
       ctx.save();
       ctx.beginPath();
       polyScr.forEach(function (p, i) {
@@ -5358,7 +5358,7 @@
       ctx.stroke();
       ctx.restore();
 
-      // • Back / • Front 표시 (18Birdies 스타일)
+      // Render Back / Front depth reference dots
       if (backUV) {
         var bScr = uvToScr(backUV.u, backUV.v);
         drawGreenEdgeLabel(ctx, bScr.x + 12, Math.max(42, bScr.y + 10), "Back");
@@ -5368,7 +5368,7 @@
         drawGreenEdgeLabel(ctx, fScr.x + 18, Math.min(H - 16, fScr.y - 18), "Front");
       }
 
-      // 중앙(또는 터치한 위치) 타겟 핀(◉) 표시
+      // Render center (or tapped) target pin marker
       ctx.save();
       ctx.fillStyle = "rgba(255, 224, 198, 0.52)";
       ctx.beginPath();
@@ -5384,7 +5384,7 @@
       ctx.fill();
       ctx.restore();
 
-      // 하단 그린 크기 & 핀 위치 경사 정보 업데이트
+      // Update bottom green depth/width & pin local slope readout
       var pinSlope = getLocalScreenSlope(pinScr.x, pinScr.y, scrToUV, evalUVZ);
       var dirText = angleToKoreanBreak(pinSlope.angle);
       var infoEl = document.getElementById("hmGreenInfoText");
@@ -5405,7 +5405,7 @@
       var zU = evalUVZ(uvU.u, uvU.v);
       var zD = evalUVZ(uvD.u, uvD.v);
 
-      // 높은 곳에서 낮은 곳(내리막) 방향 벡터
+      // Downhill gradient vector (from higher to lower elevation)
       var dxDown = zL - zR;
       var dyDown = zU - zD;
       return {
@@ -5495,13 +5495,13 @@
       if (!canvas) return;
       hmCanvasEventsBound = true;
 
-      // 한 손가락 터치 시작: 흰색 타겟 동그라미(⊕) 안쪽이면 타겟 이동, 그 외 영역이면 지도 이동(Pan)
+      // Single-finger touch start: drag target if inside white crosshair circle, otherwise pan map
       function startSinglePointer(clientX, clientY) {
         var rect = canvas.getBoundingClientRect();
         var sx = clientX - rect.left;
         var sy = clientY - rect.top;
 
-        // 그린 경사도는 고정 화면: 손가락 이동·핀 끌기 없음
+        // Green slope tab is fixed: disable panning and pin dragging
         if (hmState.tab === "green") {
           hmState.dragMode = null;
           return;
@@ -5528,7 +5528,7 @@
           }
         }
 
-        // 마커 바깥을 한 손가락으로 잡고 움직일 때는 지도 이동(Pan)
+        // Single-finger drag outside crosshair marker pans the map
         hmState.dragMode = "pan";
         hmState.panStartSX = sx;
         hmState.panStartSY = sy;
@@ -5568,11 +5568,11 @@
         }
       }
 
-      // 터치 이벤트: 두 손가락(핀치 줌) vs 한 손가락(흰색 동그라미 이동 / 지도 이동)
+      // Touch handler: two-finger pinch-zoom vs single-finger target drag / map pan
       canvas.addEventListener("touchstart", function (e) {
         if (e.touches.length >= 2) {
           e.preventDefault();
-          if (hmState.tab === "green") return; // 그린 경사도는 확대/축소 없음
+          if (hmState.tab === "green") return; // Disable zoom on fixed Green Slope tab
           if (hmState.preTouchSnapshot) {
             hmState.playerLat = hmState.preTouchSnapshot.playerLat;
             hmState.playerLon = hmState.preTouchSnapshot.playerLon;
@@ -5668,7 +5668,7 @@
         hmState.preTouchSnapshot = null;
       });
 
-      // 데스크탑 마우스 드래그 & 트랙패드/마우스 휠 줌 지원
+      // Desktop mouse drag & trackpad/wheel zoom support
       canvas.addEventListener("mousedown", function (e) {
         if (e.button !== 0) return;
         hmState.isDragging = true;
@@ -5687,7 +5687,7 @@
 
       canvas.addEventListener("wheel", function (e) {
         e.preventDefault();
-        if (hmState.tab === "green") return; // 그린 경사도는 확대/축소 없음
+        if (hmState.tab === "green") return; // Disable zoom on fixed Green Slope tab
         var rect = canvas.getBoundingClientRect();
         var W = rect.width || 340;
         var H = rect.height || 400;
@@ -5720,7 +5720,7 @@
       }
       html += '<th class="sc-col-sum">' + sumLabel + '</th></tr></thead><tbody>';
 
-      // Par 행
+      // Par row
       var parSum = 0;
       html += '<tr class="sc-par-row"><td class="sc-col-name">Par</td>';
       for (var h2 = startHole; h2 <= endHole; h2++) {
@@ -5730,7 +5730,7 @@
       }
       html += '<td class="sc-col-sum">' + parSum + '</td></tr>';
 
-      // 선수별 점수 행
+      // Player score rows
       players.forEach(function (p) {
         var diffSum = 0;
         var strokeSum = 0;
@@ -5831,7 +5831,7 @@
     var hasQueuedRefreshAfterInFlight = false;
     var lastLocalFallbackAt = 0;
 
-    // 백그라운드 안전 동기화 (점수 입력 중이 아닐 때만 조용히 최신 점수 및 실시간 속보 반영)
+    // Safe background refresh (silently updates scores & live feed only when user is not actively editing)
     function silentRefreshGroupData(forceNow) {
       if (!currentGroupData || !currentGroupData.groupName) return;
       if (typeof navigator !== "undefined" && navigator.onLine === false) return;
@@ -5882,7 +5882,7 @@
             latestBirdieFeedCache = freshData.birdieFeed;
           }
           if (!currentGroupData || currentGroupData.groupName !== targetGroup) return;
-          // 응답 도착 시점에도 사용자가 입력 중이거나 오프라인 임시저장이 생겼다면 절대 덮어쓰지 않음
+          // Never overwrite UI state if user started editing or offline pending data appeared while request was in flight
           if (isUserActivelyEditing()) return;
           if (Array.isArray(freshData.birdieFeed)) {
             processBirdieFeed(freshData.birdieFeed);
@@ -5894,7 +5894,7 @@
             freshData.notes = new Array(18).fill("");
           }
 
-          // 실제로 점수가 변경된 게 있을 때만 화면을 갱신하여 버튼 터치 씹힘 방지
+          // Re-render DOM only when group scores/notes actually changed to prevent dropped button taps
           if (!hasGroupDataChanged(currentGroupData, freshData)) return;
 
           currentGroupData = freshData;
@@ -5911,14 +5911,14 @@
           }
         })
         .withFailureHandler(function () {
-          // 백그라운드 조회 실패 시 에러 토스트 없이 조용히 무시
+          // Silently ignore background polling errors without showing error toasts
           isRefreshingGroup = false;
           hasQueuedRefreshAfterInFlight = false;
         })
         .getGroupData(targetGroup);
     }
 
-    // ===== 전체 참가자 실시간 버디(-1) · 이글(-2) 공지 배너 (방식 1: 한 박스 내 시간순 표시 + 6초 후 자동 닫힘) =====
+    // ===== Shared Real-Time Birdie(-1) / Eagle(-2) Broadcast Banner (chronological box + auto-dismiss) =====
     var inMemorySeenBirdieMap = {};
 
     function loadSeenBirdieMap() {
@@ -6123,7 +6123,7 @@
         .withSuccessHandler(function (feed) {
           if (Array.isArray(feed)) {
             latestBirdieFeedCache = feed;
-            // 명예의 전당에서 확인한 공지들도 이미 본 것으로 기록하여 이후 중복 팝업 방지
+            // Mark items viewed inside Hall of Fame as seen so they don't pop up again as banners
             var seenMap = loadSeenBirdieMap();
             var seenChanged = false;
             feed.forEach(function (item) {
@@ -6157,7 +6157,7 @@
       var titleEl = document.getElementById("birdieBroadcastTitle");
       if (!banner || !listEl) return;
 
-      // 이미 배너가 떠 있는 동안 새 버디/이글이 추가로 도착하면 한 박스에 시간순으로 합쳐서 표시
+      // Merge newly arriving Birdie/Eagle items chronologically if banner is already visible
       var mergedMap = {};
       activeBirdieBannerItems.forEach(function (item) {
         if (item && item.id) mergedMap[item.id] = item;
@@ -6195,7 +6195,7 @@
       if (birdieBannerTimer) {
         clearTimeout(birdieBannerTimer);
       }
-      // 공지 1개면 6초, 이후 1개 늘어날 때마다 2초씩 추가 (2개 8초, 3개 10초, 4개 12초...)
+      // Display for 6s on 1 item, +2s per additional item (8s for 2, 10s for 3, 12s for 4...)
       var bannerDurationMs = 6000 + Math.max(0, activeBirdieBannerItems.length - 1) * 2000;
       birdieBannerTimer = setTimeout(function () {
         hideBirdieBroadcastBanner();
@@ -6214,7 +6214,7 @@
         }
       });
 
-      // 점수가 수정되어 취소된 버디/이글이나 초기화된 기록은 seen 목록에서 정리
+      // Clean up canceled Birdies/Eagles or reset sheet items from local seen map
       var seenChanged = false;
       Object.keys(seenMap).forEach(function (id) {
         if (!activeIdMap[id]) {
@@ -6223,7 +6223,7 @@
         }
       });
 
-      // 아직 이 폰에서 보지 못했거나 새로 다시 저장(ts 갱신)된 공지만 추출하여 저장된 시간순(오름차순) 정렬
+      // Extract unseen or newly updated (ts bumped) events sorted chronologically (ascending)
       var unseenItems = [];
       feed.forEach(function (item) {
         if (!item || !item.id) return;
@@ -6304,13 +6304,13 @@
       } catch (e) { }
     }
 
-    // 오프라인 임시저장(아직 서버에 반영 안 된 칸/메모)만 셀 단위로 복구 (동반자 서버 점수 및 시트 초기화 보호)
+    // Restore only unsynced offline cells/notes so groupmates' server scores and sheet resets are never overwritten
     function applyLocalBackupIfNewer(serverData) {
       if (isViewOnly || !serverData || !serverData.groupName) return;
       try {
         var key = getLocalBackupKey(serverData.groupName);
         var legacyKey = "golf_2026_backup_" + serverData.groupName;
-        // 구버전 영구 백업 키는 무조건 삭제하여 시트 초기화 시 좀비 데이터 부활 차단
+        // Always purge legacy backup keys to prevent zombie data resurrection after a sheet reset
         try { localStorage.removeItem(legacyKey); } catch (e) { }
         try { sessionStorage.removeItem(legacyKey); } catch (e) { }
 
@@ -6337,7 +6337,7 @@
           return;
         }
 
-        // 6시간 이상 지난 오래된 임시저장은 폐기 (대회 당일 뒷풀이까지 보존)
+        // Discard stale offline backups older than 6 hours (preserves data through tournament dinner)
         if (!backup.updatedAt || (Date.now() - backup.updatedAt > 6 * 3600 * 1000)) {
           clearLocalBackup(serverData.groupName);
           return;
@@ -6416,7 +6416,7 @@
       }
     }
 
-    // 통신 지연/실패 시 폰에 임시 저장하고 다음 홀로 자동 이동 (18홀은 전체표 오픈)
+    // On network timeout/error, save locally on phone and advance to next hole (opens full scorecard on 18H)
     function fallbackToLocalSave(targetHole, isAuto) {
       activeSaveSeq++;
       clearSaveWatchdog();
@@ -6532,7 +6532,7 @@
           .withFailureHandler(function (err) {
             var msg = String((err && err.message) || err || "");
             if (msg.indexOf("허용되지 않은 호출") !== -1) {
-              // 이전 버전 백엔드 호환 폴백
+              // Backward-compatible fallback for older backend deployments
               google.script.run
                 .withSuccessHandler(populateGroups)
                 .withFailureHandler(function (e2) { showToast("조 목록 로드 실패: " + e2.message); })
@@ -6550,7 +6550,7 @@
       }
     })();
 
-    // 인터넷 연결 복구 시 임시 저장된 데이터 자동 서버 전송
+    // Automatically flush pending offline holes when internet connection returns
     window.addEventListener("online", function () {
       if (!isViewOnly && hasPendingLocalSave && currentGroupData && !isSaving && !isDirty) {
         if (pendingLocalHoles.length > 0) {
@@ -6563,7 +6563,7 @@
 
     var syncOfflineStartedAt = 0;
 
-    // 현재 홀이 아직 미입력 상태일 때 이전에 임시 저장된 홀들만 백그라운드 동기화 (버디 속보 배너도 즉시 반영)
+    // Sync previously queued offline holes in background while current hole is clean (also updates birdie banner)
     function syncPendingOfflineHoles() {
       if (isViewOnly || !currentGroupData || isSaving || pendingLocalHoles.length === 0) return;
       if (isSyncingOffline) {
@@ -6587,7 +6587,7 @@
       google.script.run
         .withSuccessHandler(function (res) {
           isSyncingOffline = false;
-          // 동기화 도중 조가 바뀌었거나 사용자가 새로운 수동 저장(saveScores)을 이미 시작한 경우 옛날 응답 무시 (응답 역전 차단)
+          // Ignore stale response if group changed or user initiated a newer manual save while sync was in flight
           if (!currentGroupData || currentGroupData.groupName !== targetGroup || mySyncSeq !== activeSaveSeq) return;
           updateServerBaselineFromResponse(res);
           if (res && res.mergedScores && res.mergedScores.length === currentGroupData.players.length) {
@@ -6659,7 +6659,7 @@
       return !!(holeDirty || hasPending || isSaving);
     }
 
-    // 화면 전환/홈 버튼/탭 닫기/새로고침/뒤로가기 시 미저장(isDirty) 및 오프라인 임시저장(pendingLocalHoles) 즉시 백업 & 서버 전송
+    // Immediately back up & flush unsaved (isDirty) or offline-pending holes on tab hide/close/reload/back
     function flushUnsavedOrPendingOnExit() {
       if (isViewOnly || !currentGroupData || !currentGroupData.groupName) return;
       var holeDirty = isDirty && (isHoleHasAnyInput(currentHole) || hasDirtyChangesOnHole(currentHole));
@@ -6678,7 +6678,7 @@
       }
     }
 
-    // 📱 화면 끄기/앱 전환 시 GPS 절전 및 안전 저장 & 화면 다시 켤 때 자동 복구 + 최신 점수/버디공지 백그라운드 동기화
+    // Pause GPS for battery & flush unsaved scores on screen lock/app switch; auto-resume & sync on wake
     document.addEventListener("visibilitychange", function () {
       if (document.visibilityState === "hidden") {
         pauseHoleMapGpsForBattery();
@@ -6695,12 +6695,12 @@
       }
     });
 
-    // 탭 닫기 / Safari 페이지 전환 시 즉시 백업 및 서버 전송
+    // Immediately back up and send to server on tab close / Safari pagehide
     window.addEventListener("pagehide", function () {
       flushUnsavedOrPendingOnExit();
     });
 
-    // 브라우저 새로고침(Refresh) / 창 닫기 시: 백그라운드 서버 전송 즉시 시작 + 미반영 데이터 보호 확인창 표시
+    // On browser refresh / window close: trigger background flush + show native unsaved-data confirmation
     window.addEventListener("beforeunload", function (e) {
       if (!hasUnsavedOrPendingData()) return;
       flushUnsavedOrPendingOnExit();
@@ -6751,7 +6751,7 @@
       return false;
     }
 
-    // 모바일 뒤로가기(<) 버튼 연타 시 웹앱 이탈 방지 + 열린 모달 닫기 + 미저장/임시저장 데이터 즉시 서버 전송
+    // Prevent accidental app exit on mobile Back button + close topmost modal + flush unsaved data
     window.addEventListener("popstate", function () {
       flushUnsavedOrPendingOnExit();
       if (closeTopmostOpenModal()) {
@@ -6777,7 +6777,7 @@
       }, durationMs || 2500);
     }
 
-    // 저장 여부 및 구경 모드에 따라 하단 버튼 상태 갱신
+    // Update bottom Save/Next button label and state based on saved status and view-only mode
     function updateNextBtnState() {
       var nextBtn = document.getElementById("nextBtn");
       var saveBtn = document.getElementById("saveBtn");
@@ -6843,7 +6843,7 @@
       }
     }
 
-    // 조 이름의 번호로 티타임 계산: "3조" → 1조 시간 + (3-1) x 간격 (설정이 없으면 "" → 표시 안 함)
+    // Compute group tee time from group number: e.g. Group 3 -> firstTeeTime + (3-1) * interval (empty if unset)
     function getGroupTeeTime(groupName) {
       var first = ACTIVE_COURSE.firstTeeTime, step = Number(ACTIVE_COURSE.teeIntervalMin);
       var n = parseInt(String(groupName).replace(/[^0-9]/g, ""), 10);
@@ -6923,14 +6923,14 @@
       if (ACTIVE_COURSE.copyrightHtml) {
         var crCell = document.createElement("div");
         crCell.className = "q-copyright-cell" + (groups.length % 2 === 0 ? " full" : "");
-        // 항상 정확히 2줄: "© To use this app for your tournament," / "contact: 이메일"
+        // Always format into 2 lines: "© To use this app for your tournament," / "contact: email"
         crCell.innerHTML = '<div class="q-cr-inner">' + String(ACTIVE_COURSE.copyrightHtml).replace(/,\s*contact:/i, ",<br>contact:") + '</div>';
         grid.appendChild(crCell);
         fitCopyrightCell();
       }
     }
 
-    // 첫 화면 저작권 칸: 줄바꿈 없이 2줄이 칸 폭에 다 들어가도록 글씨 크기 자동 축소 (최소 7.5px)
+    // Auto-fit home copyright text into 2 clean lines without wrapping (min 7.5px)
     function fitCopyrightCell() {
       var cell = document.querySelector(".q-copyright-cell");
       if (!cell) return;
@@ -6977,7 +6977,7 @@
       }
     });
 
-    // 첫 화면(조 편성표 카드)에서 클릭 시: 처음 선택한 조만 입력 모드, 다른 조는 자동 구경 모드
+    // Tapping a group card on home screen: first chosen group opens in Input mode, other groups open in Spectator mode
     function selectGroupQuick(groupName) {
       if (!myHomeGroup || myHomeGroup === groupName) {
         myHomeGroup = groupName;
@@ -7006,7 +7006,7 @@
       }
     }
 
-    // 우측 상단 드롭다운으로 조 변경 시: 스코어 입력 vs 점수 구경하기 선택창 표시
+    // Switching groups via top-right dropdown: prompt modal for Score Input vs Spectator mode
     function onGroupChange() {
       var sel = document.getElementById("groupSelect");
       var g = sel.value;
@@ -7259,7 +7259,7 @@
       var noteInput = document.getElementById("holeNote");
       var noteVal = (currentGroupData && currentGroupData.notes && currentGroupData.notes[holeNum - 1]) ? currentGroupData.notes[holeNum - 1] : "";
       noteInput.value = noteVal;
-      // 📝 메모 칸은 화면에서 숨김 (니어/롱기 기록은 키패드로만 입력하고, 선수 이름 옆 버튼에 표시)
+      // Keep raw memo input hidden (Near/Long records are entered via keypad and shown on player badge buttons)
       noteInput.parentElement.style.display = "none";
       noteInput.readOnly = true;
       noteInput.disabled = isViewOnly;
@@ -7416,7 +7416,7 @@
       val2: ""
     };
 
-    // 선수 이름 옆 니어/롱기 버튼 클릭 시 숫자 키패드 팝업 오픈
+    // Open numeric keypad modal when tapping the Near/Long button next to a player's name
     function setPlayerEventNote(pIdx, type) {
       if (isViewOnly) {
         showToast("👀 점수 구경 모드입니다. (수정 불가)");
@@ -7568,10 +7568,10 @@
       }
       onNoteChange(noteText);
       closeEventKeypadModal();
-      renderHole(currentHole, true); // 선수 이름 옆 버튼에 바뀐 기록 바로 표시
+      renderHole(currentHole, true); // Immediately reflect updated Near/Long record on the button next to player's name
     }
 
-    // 선수 이름 옆 버튼에 보여줄 기록 글자 (니어: 10'05" / 롱기: 핀까지 35y), 기록이 없으면 ""
+    // Format badge label next to player name (Near: 10'05" / Long: 35y to pin), or "" if none
     function getPlayerEventLabel(note, playerName, type) {
       var segs = String(note || "").split(",");
       for (var i = 0; i < segs.length; i++) {
@@ -7596,7 +7596,7 @@
       return "";
     }
 
-    // 이 선수의 니어/롱기 기록이 메모에 있는지 확인 ([지우기] 버튼 표시용)
+    // Check whether this player has an existing Near/Long entry in memo (controls [Clear] button visibility)
     function hasPlayerEventEntry(playerName) {
       var noteInput = document.getElementById("holeNote");
       var note = (noteInput && noteInput.value) ? String(noteInput.value) : "";
@@ -7607,7 +7607,7 @@
       });
     }
 
-    // 🗑 이 선수 기록만 메모에서 지우기 (다른 선수 기록은 그대로)
+    // Remove only this player's record from hole memo (preserving other groupmates' records)
     function deletePlayerEventNote() {
       var noteInput = document.getElementById("holeNote");
       var note = (noteInput && noteInput.value) ? String(noteInput.value) : "";
@@ -7620,7 +7620,7 @@
       if (noteInput) noteInput.value = noteText;
       onNoteChange(noteText);
       closeEventKeypadModal();
-      renderHole(currentHole, true); // 선수 이름 옆 버튼에 바뀐 기록 바로 표시
+      renderHole(currentHole, true); // Immediately reflect updated Near/Long record on the button next to player's name
     }
 
     function closeEventKeypadModal() {
@@ -7638,10 +7638,10 @@
       }
     }
 
-    // 안드로이드 등에서 메모 터치 시 가상 키보드가 올라와도 메모창과 저장버튼이 가려지지 않게 자동 스크롤
+    // Auto-scroll on Android when virtual keyboard opens so memo field and Save button stay visible
     function onNoteFocus() {
       var ne = document.getElementById("holeNote");
-      if (ne && ne.readOnly) return; // 보기 전용 메모는 키보드가 안 뜨므로 스크롤 불필요
+      if (ne && ne.readOnly) return; // Read-only memo does not open virtual keyboard; skip auto-scroll
       setTimeout(function () {
         var cArea = document.getElementById("contentArea");
         var noteEl = document.getElementById("holeNote");
@@ -7654,7 +7654,7 @@
       }, 280);
     }
 
-    // 메모 변경 시 상태만 미저장으로 전환 + 메모 수정 홀 기록
+    // Mark hole as dirty and record modified memo hole on manual memo change
     function onNoteChange(val) {
       if (isViewOnly || !currentGroupData) return;
       if (!currentGroupData.notes) currentGroupData.notes = new Array(18).fill("");
@@ -7672,7 +7672,7 @@
       renderHoleBar(false);
     }
 
-    // 점수 변경 시 상태만 미저장으로 전환 + 실제 터치한 선수 칸만 수정 목록에 기록
+    // Mark hole as dirty and record exact touched player/hole cell on score button tap
     function setScore(pIdx, val) {
       if (isViewOnly) {
         showToast("👀 점수 구경 모드입니다. (수정 불가)");
@@ -7751,14 +7751,14 @@
       }
     }
 
-    // 명시적 수동 저장 함수 (1명만 입력하거나 메모만 입력해도 스마트 병합 저장 및 다음 홀 이동 가능)
+    // Explicit save handler (supports partial group input or memo-only save with smart merge & next-hole advance)
     function saveScores(isAuto) {
       if (isViewOnly || !currentGroupData || isSaving) return;
 
       var hasHoleInput = isHoleHasAnyInput(currentHole);
       var hasHoleDirty = hasDirtyChangesOnHole(currentHole);
 
-      // 오프라인 임시저장됐던 홀의 점수를 다시 지워 서버 기준값(원래 상태)과 동일해진 경우 임시저장 즉시 해제
+      // Clear offline-pending flag for hole if user erased edits back to exact server baseline
       if (isDirty && !hasHoleDirty) {
         pendingLocalHoles = pendingLocalHoles.filter(function (ph) { return Number(ph) !== Number(currentHole); });
         hasPendingLocalSave = pendingLocalHoles.length > 0;
@@ -7779,7 +7779,7 @@
 
       var hasOfflinePending = hasPendingLocalSave && pendingLocalHoles && pendingLocalHoles.length > 0;
 
-      // 아무 점수도 메모도 없고 수정사항도 없는 백지 상태에서 저장 클릭 시 안내
+      // Prompt user if Save is tapped on a completely blank hole with no changes or pending data
       if (!hasHoleInput && !hasHoleDirty && !hasOfflinePending) {
         if (!isAuto) {
           showToast("⚠️ 최소 1명 이상의 점수 또는 메모를 입력해주세요.");
@@ -7787,7 +7787,7 @@
         return;
       }
 
-      // 이미 저장된 상태에서 아무것도 변경하지 않고 [✓ 저장됨] 버튼을 다시 누른 경우 불필요한 서버 호출 없이 다음 홀로 이동
+      // If already saved with zero new changes, advance to next hole immediately without redundant server RPC
       if (!hasHoleDirty && !hasAnyDirtyChanges() && !hasOfflinePending) {
         if (!isAuto) {
           var fromH = currentHole;
@@ -7829,7 +7829,7 @@
       isSaving = true;
       saveStartedAt = Date.now();
       clearSaveWatchdog();
-      // 7초 이내에 서버 응답이 없으면 폰에 임시 저장 처리하고 다음 홀로 자동 이동
+      // If server does not respond within 7s, fall back to local phone save and advance to next hole
       saveTimeoutTimer = setTimeout(function () {
         if (!currentGroupData || currentGroupData.groupName !== targetGroup) return;
         fallbackToLocalSave(targetHole, isAuto);
@@ -7859,10 +7859,10 @@
             if (saveBtn && !isViewOnly) saveBtn.disabled = false;
           }
 
-          // 서버 기준값은 오직 서버가 실제로 반환한 res 데이터로만 갱신 (현재 화면에서 입력 중인 미저장 점수가 기준값에 섞이지 않도록 보호)
+          // Update server baseline strictly from server-returned merged data (never mix in-progress local edits)
           updateServerBaselineFromResponse(res);
 
-          // 서버에서 병합된 최신 점수/메모 동기화 (현재 수정 중인 홀/칸 데이터는 보호)
+          // Sync merged server scores/notes while protecting any hole/cell currently being edited
           if (res && res.mergedScores && res.mergedScores.length === currentGroupData.players.length) {
             for (var i = 0; i < currentGroupData.players.length; i++) {
               for (var h = 0; h < 18; h++) {
@@ -7905,7 +7905,7 @@
             saveLocalBackup();
           }
 
-          // 이미 7초 타임아웃으로 임시저장 및 다음 홀 이동이 끝난 뒤 뒤늦게 도착한 응답은 백그라운드 정리만 수행
+          // If 7s local fallback already fired before late server response arrived, silently reconcile pending flags only
           if (wasTimedOut) {
             if (!isDirty) {
               isSaved = isHoleHasAnyInput(currentHole);
@@ -7983,7 +7983,7 @@
             showToast("❌ 에러: " + err.message);
             return;
           }
-          // 네트워크 오류 시 폰에 임시 저장하고 다음 홀로 자동 이동
+          // On network failure, save locally on phone and advance to next hole
           fallbackToLocalSave(targetHole, isAuto);
         })
         .saveGroupScores(targetGroup, payload, notesPayload, holesToSync, nearPinHoles, longDriveHoles, dirtyNotesList,
@@ -7991,10 +7991,10 @@
     }
   </script>
   <script>
-    // ===================== 📊 니어/롱기 전광판 (추가 기능 - 기존 코드와 분리된 별도 덩어리) =====================
-    // 여기에 실수가 있어도 이 덩어리만 실행되지 않음 → 전광판만 안 되고 점수 입력·저장 등 앱의 나머지는 정상 동작
-    var EB_AUTO_CLOSE_MS = 8000;       // 홀 도착 팝업: 8초 뒤 자동으로 닫힘
-    var EB_FETCH_TIMEOUT_MS = 15000;   // 서버 응답은 15초까지만 기다림 (넘으면 조용히 포기)
+    // ===================== Near-Pin / Long-Drive Scoreboard (Isolated Add-On Script Block) =====================
+    // Isolated in its own <script> block so any error here cannot affect core scoring or saving
+    var EB_AUTO_CLOSE_MS = 8000;       // Hole-arrival auto-popup closes automatically after 8 seconds
+    var EB_FETCH_TIMEOUT_MS = 15000;   // Wait at most 15 seconds for scoreboard RPC (silently abort on timeout)
     var ebState = { hole: null, seq: 0, autoTimer: null, lastKey: "", shown: {} };
 
     function ebEscape(s) {
@@ -8003,7 +8003,7 @@
       });
     }
 
-    // 이 홀 기록이 '니어/롱기' 탭의 몇 번째 칸인지 (서버 syncNearPinToSheet와 같은 규칙). 이벤트 홀이 아니면 null
+    // Map hole number to its column index in 'Near/Long' tab (matching server syncNearPinToSheet), or null
     function getEventBoardInfo(hole) {
       var h = Number(hole);
       var nearList = (nearPinHoles && nearPinHoles.length > 0) ? nearPinHoles : [3, 7, 11, 14];
@@ -8019,7 +8019,7 @@
 
     var EB_NEAR_RE = /^([0-9]+(?:\.[0-9]+)?)\s*'\s*(?:([0-9]+(?:\.[0-9]+)?)\s*"?)?$/;
 
-    // 기록 → 숫자 (작을수록 1등). 니어: 인치, 롱기: 핀까지 야드. 읽을 수 없는 기록은 null (순위에서 제외)
+    // Parse record into sortable number (smaller = better: inches for Near, yds-to-pin for Long; null if invalid)
     function parseEventBoardValue(type, raw) {
       var s = String(raw === null || raw === undefined ? "" : raw).trim();
       if (s === "") return null;
@@ -8032,7 +8032,7 @@
       return /^[0-9]+(?:\.[0-9]+)?$/.test(s) ? Number(s) : null;
     }
 
-    // 화면 표시: 니어 05'08" → 5'08", 롱기 150 → 핀까지 150y
+    // Format display value: Near 05'08" -> 5'08", Long 150 -> 150y to pin
     function formatEventBoardValue(type, raw) {
       var s = String(raw).trim();
       if (type === "near") {
@@ -8045,7 +8045,7 @@
       return "핀까지 " + Number(s.replace(/\s*(yds?|y|야드)$/i, "")) + "y";
     }
 
-    // 1·2·3등(공동 포함) + 꼴등(공동 포함) 그리기. 3등과 꼴등 사이에 다른 기록이 있으면 ⋯ 표시
+    // Render Top 3 (with ties) + Last place (with ties), inserting ellipsis when middle ranks are omitted
     function buildEventBoardHtml(hole, rows, isAuto) {
       var info = getEventBoardInfo(hole);
       var list = [];
@@ -8060,7 +8060,7 @@
         return { count: 0, html: '<div class="eb-msg">⛳ 아직 기록이 없습니다.<br>첫 기록의 주인공이 되어보세요!</div>' };
       }
       list.sort(function (a, b) { return a.v - b.v; });
-      // 등수: 같은 기록은 같은 등수, 다음 등수는 그 인원만큼 건너뜀 (예: 1, 2, 2, 4)
+      // Competition ranking: tied records share rank, next rank skips by tie count (e.g. 1, 2, 2, 4)
       var tieCount = {};
       list.forEach(function (x, i) {
         x.rank = (i > 0 && x.v === list[i - 1].v) ? list[i - 1].rank : i + 1;
@@ -8086,7 +8086,7 @@
       return { count: list.length, html: html };
     }
 
-    // 서버에서 '니어/롱기' 탭 읽기 (읽기 전용). done(rows) 성공 / done(null) 실패·15초 초과
+    // Read-only fetch of 'Near/Long' tab rows: calls done(rows) on success or done(null) on error/15s timeout
     function fetchEventBoardRows(done) {
       var finished = false;
       var timer = setTimeout(function () { finish(null); }, EB_FETCH_TIMEOUT_MS);
@@ -8125,7 +8125,7 @@
       if (modal) modal.style.display = "none";
     }
 
-    // 🎯 니어순위 / 🚀 롱기순위 버튼을 눌러 열기: '불러오는 중' → 최신 기록 (자동으로 닫히지 않음)
+    // Open scoreboard manually via header 3D button: shows loading state -> latest rankings (stays open until closed)
     function openEventBoard(hole) {
       if (!getEventBoardInfo(hole)) return;
       var modal = document.getElementById("eventBoardModal");
@@ -8139,7 +8139,7 @@
       setEventBoardContent(hole, '<div class="eb-msg">⏳ 기록을 불러오는 중입니다...</div>');
       modal.style.display = "flex";
       fetchEventBoardRows(function (rows) {
-        if (mySeq !== ebState.seq || ebState.hole !== hole) return; // 그사이 닫았거나 다른 홀을 열었으면 버림
+        if (mySeq !== ebState.seq || ebState.hole !== hole) return; // Discard response if modal was closed or user switched holes while loading
         setEventBoardContent(hole, rows ? buildEventBoardHtml(hole, rows).html
           : '<div class="eb-msg">⚠️ 기록을 불러오지 못했습니다.<br>잠시 후 다시 눌러주세요.</div>');
       });
@@ -8154,7 +8154,7 @@
       return !!(pl && pl.style.display === "block");
     }
 
-    // 홀 도착 팝업: 입력 모드에서 '다음 홀'로 한 칸 넘어왔을 때, 이 홀에서 처음 한 번만
+    // Hole-arrival auto-popup: triggers once per hole when advancing forward in Input mode
     function checkEventBoardArrival() {
       if (!currentGroupData || !currentGroupData.groupName) return;
       var g = currentGroupData.groupName, h = Number(currentHole);
@@ -8167,20 +8167,20 @@
       ebState.shown[key] = true;
       if (typeof navigator !== "undefined" && navigator.onLine === false) return;
       fetchEventBoardRows(function (rows) {
-        if (!rows) return;                                                      // 실패·지연: 조용히 넘어감
+        if (!rows) return;                                                      // Silently ignore fetch error or timeout on auto-popup
         var tries = 0;
         (function showWhenReady() {
           if (!currentGroupData || currentGroupData.groupName !== g || Number(currentHole) !== h || isViewOnly) return;
-          if (ebState.hole !== null || isOtherModalOpenForEventBoard()) return;  // 다른 창이 열려 있으면 띄우지 않음
+          if (ebState.hole !== null || isOtherModalOpenForEventBoard()) return;  // Do not auto-open if another modal is currently open
           var toastEl = document.getElementById("toast");
           var bannerEl = document.getElementById("birdieBroadcastBanner");
           var busy = (toastEl && toastEl.style.display === "block") || (bannerEl && bannerEl.style.display === "block");
-          if (busy && tries++ < 27) {   // '저장 완료' 안내 문구나 버디 알림이 사라진 뒤에 띄움 (최대 8초 대기)
+          if (busy && tries++ < 27) {   // Wait until save toast or birdie broadcast banner finishes before showing popup (up to 8s)
             setTimeout(showWhenReady, 300);
             return;
           }
           var built = buildEventBoardHtml(h, rows, true);
-          if (built.count === 0) return;                                        // 기록이 없으면 띄우지 않음
+          if (built.count === 0) return;                                        // Do not open auto-popup when there are 0 recorded entries for this hole
           var modal = document.getElementById("eventBoardModal");
           if (!modal) return;
           ebState.hole = h;

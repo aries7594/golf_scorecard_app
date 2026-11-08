@@ -1,12 +1,12 @@
 /**
  * ============================================================================
- * [Code.gs] 독립형(Standalone) 구글 시트 자동 생성 & 스코어 저장 백엔드 엔진
+ * [Code.gs] Standalone Google Sheet Auto-Generator & Score Storage Backend Engine
  * ----------------------------------------------------------------------------
- * - 내 구글 계정(https://script.google.com)에 딱 1번만 배포해 두고 평생 재사용합니다.
- * - 개별 대회 구글 시트 안에는 스크립트가 단 한 줄도 들어가지 않습니다.
- * - GitHub 메인 앱(index.html) 및 총무 설정 페이지(admin.html)와 JSON API로 통신하며,
- *   새 대회 설정과 참석자/핸디 명단을 받아 '2026년 회장배.xlsx'와 100% 동일한 구조·수식·서식의
- *   구글 스프레드시트('1조~N조', '결과', '니어/롱기', 'Stat')를 자동 생성합니다.
+ * - Deploy once under your Google account (https://script.google.com) and reuse permanently.
+ * - Zero lines of script are embedded inside individual tournament Google Sheets.
+ * - Communicates via JSON API with the GitHub main app (index.html) and admin page (admin.html),
+ *   automatically generating a Google Spreadsheet ('Group 1..N', 'Results', 'Near/Long', 'Stat') with the
+ *   exact structure, formulas, and styling of the tournament template.
  * ============================================================================
  */
 
@@ -63,7 +63,7 @@ function getTargetSpreadsheet() {
 
 function saveChunkedConfig(props, configObj) {
     var raw = JSON.stringify(configObj || {});
-    var chunkSize = 4000; // PropertiesService 9KB 한계 여유 확보 (UTF-8 한글 감안)
+    var chunkSize = 4000; // Keep safe margin under the 9KB PropertiesService per-key limit (accounting for UTF-8 multibyte chars)
     var numChunks = Math.ceil(raw.length / chunkSize) || 1;
     var oldCount = Number(props.getProperty(PROP_CFG_CHUNKS) || 0);
     for (var i = 0; i < numChunks; i++) {
@@ -164,8 +164,8 @@ function colIndexToLetter(col1Based) {
 
 /**
  * ============================================================================
- * 🏗️ '2026년 회장배.xlsx'와 100% 동일한 구글 스프레드시트 자동 생성기
- *   생성 탭: ['1조'...'N조', '결과', '니어/롱기', 'Stat']
+ * Spreadsheet Auto-Generator (exact layout, formulas, and styling)
+ *   Generated tabs: ['Group 1..N', 'Results', 'Near/Long', 'Stat']
  * ============================================================================
  */
 function createTournamentSpreadsheet(spec) {
@@ -191,7 +191,7 @@ function createTournamentSpreadsheet(spec) {
         .replace(/^[⛳🏆🎯\s]+/, "")
         .trim() || "골프대회 스코어보드";
 
-    // 정규화된 조 목록 구성
+    // Build normalized group and player list
     var normGroups = [];
     for (var gi = 0; gi < rawGroups.length; gi++) {
         var g = rawGroups[gi] || {};
@@ -222,16 +222,16 @@ function createTournamentSpreadsheet(spec) {
     var defaultSheets = ss.getSheets();
 
     // ------------------------------------------------------------------------
-    // 1. 조별 탭 생성 ('1조' ~ 'N조')
+    // 1. Create group tabs (Group 1 ~ Group N)
     // ------------------------------------------------------------------------
     for (var idx = 0; idx < normGroups.length; idx++) {
         var grp = normGroups[idx];
         var gSheet = ss.insertSheet(grp.name);
         var pCount = grp.players.length;
-        var lastPlayerRow = 2 + pCount;       // 4명일 때 6행, 3명일 때 5행
-        var guideRow = lastPlayerRow + 1;     // 4명일 때 7행
-        var missionRow = lastPlayerRow + 2;   // 4명일 때 8행
-        var memoRow = Math.max(15, missionRow + 3); // 15행 ('메모')
+        var lastPlayerRow = 2 + pCount;       // Row 6 for 4 players, Row 5 for 3 players
+        var guideRow = lastPlayerRow + 1;     // Row 7 for 4 players
+        var missionRow = lastPlayerRow + 2;   // Row 8 for 4 players
+        var memoRow = Math.max(15, missionRow + 3); // Row 15 ('Memo' row)
 
         var totalRows = memoRow;
         var grid = [];
@@ -241,18 +241,18 @@ function createTournamentSpreadsheet(spec) {
             grid.push(emptyRow);
         }
 
-        // 1행: Hole | 1..18 | TOT | 핸디
+        // Row 1: Hole | 1..18 | TOT | Handicap
         grid[0][0] = "Hole";
         for (var h = 1; h <= 18; h++) grid[0][h] = h;
         grid[0][19] = "TOT";
         grid[0][20] = "핸디";
 
-        // 2행: Par | par1..par18 | =SUM(B2:S2) | ""
+        // Row 2: Par | par1..par18 | =SUM(B2:S2) | ""
         grid[1][0] = "Par";
         for (var hp = 0; hp < 18; hp++) grid[1][hp + 1] = pars[hp];
         grid[1][19] = "=SUM(B2:S2)";
 
-        // 3행 ~ lastPlayerRow행: 선수명 | 빈칸(18홀) | =SUM(B3:S3) | 핸디
+        // Rows 3..lastPlayerRow: Player Name | Empty (18 holes) | =SUM(B3:S3) | Handicap
         for (var p = 0; p < pCount; p++) {
             var rIdx = 2 + p;
             var rNum = rIdx + 1;
@@ -261,22 +261,22 @@ function createTournamentSpreadsheet(spec) {
             grid[rIdx][20] = grp.players[p].handicap;
         }
 
-        // 안내문 행 (B7:T7 병합)
+        // Score input guide row (merged B7:T7)
         grid[guideRow - 1][1] = "파 대비 점수로 적어주세요: (보기:1, 더블:2, 버디:-1, ....)";
 
-        // 홀파미션 행 (A8: '홀파미션', B8:S8 수식)
+        // All-Par Mission row (A8 label, B8:S8 formulas)
         grid[missionRow - 1][0] = "홀파미션";
         for (var hm = 1; hm <= 18; hm++) {
             var colL = colIndexToLetter(hm + 1); // B..S
             grid[missionRow - 1][hm] = '=IF(COUNTBLANK(' + colL + '3:' + colL + lastPlayerRow + ') > 0, "도전", IF(SUM(' + colL + '3:' + colL + lastPlayerRow + ') <= 0, "성공!", "실패"))';
         }
 
-        // 메모 행 (A15: '메모')
+        // Memo row (A15 label)
         grid[memoRow - 1][0] = "메모";
 
         gSheet.getRange(1, 1, totalRows, 21).setValues(grid);
 
-        // 조별 시트 서식 지정 ('2026년 회장배.xlsx' 동일 스타일)
+        // Apply group sheet styling (matching original tournament workbook)
         gSheet.getRange(1, 1, 1, 21)
             .setBackground("#ff0000")
             .setFontColor("#ffffff")
@@ -330,7 +330,7 @@ function createTournamentSpreadsheet(spec) {
     }
 
     // ------------------------------------------------------------------------
-    // 2. '결과' 탭 생성 (gid=659330907 동일 구조·수식·배경색·조건부서식)
+    // 2. Create 'Results' (Results) tab (matching structure, formulas, row colors, and conditional formatting)
     // ------------------------------------------------------------------------
     var resSheet = ss.insertSheet("결과");
     var totalPlayers = 0;
@@ -358,7 +358,7 @@ function createTournamentSpreadsheet(spec) {
     for (var gi2 = 0; gi2 < normGroups.length; gi2++) {
         var grp2 = normGroups[gi2];
         var gEsc = grp2.name.replace(/'/g, "''");
-        var gBg = (gi2 % 2 === 0) ? "#fff2cc" : "#d9ead3"; // 홀수조 연노랑, 짝수조 연초록
+        var gBg = (gi2 % 2 === 0) ? "#fff2cc" : "#d9ead3"; // Odd groups: soft yellow (#fff2cc), Even groups: soft green (#d9ead3)
         var groupStartRow = curResRow;
 
         for (var pi2 = 0; pi2 < grp2.players.length; pi2++) {
@@ -374,30 +374,30 @@ function createTournamentSpreadsheet(spec) {
                 var srcColL = colIndexToLetter(h2 + 1); // B..S
                 rowArr[1 + h2] = "='" + gEsc + "'!" + srcColL + pSheetRow;
             }
-            // U열(20): 합계
+            // Col U (20): Gross relative-to-par total
             rowArr[20] = '=IF(COUNT(C' + r + ':T' + r + ')=18, SUM(C' + r + ':T' + r + '), "")';
-            // V열(21): 핸디
+            // Col V (21): Handicap
             rowArr[21] = "='" + gEsc + "'!U" + pSheetRow;
-            // W열(22): 넷 스코어
+            // Col W (22): Net score
             rowArr[22] = '=IF(AND(ISNUMBER(U' + r + '), ISNUMBER(V' + r + ')), U' + r + '-V' + r + ', "")';
-            // X~AC열(23..28): 버디(-1), 파(0), 보기(1), 더블(2), 트리플(3), 쿼드러플(4)
+            // Cols X..AC (23..28): Birdie(-1), Par(0), Bogey(1), Double(2), Triple(3), Quadruple(4) counts
             rowArr[23] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', -1), "")';
             rowArr[24] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', 0), "")';
             rowArr[25] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', 1), "")';
             rowArr[26] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', 2), "")';
             rowArr[27] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', 3), "")';
             rowArr[28] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', 4), "")';
-            // AD열(29): 잉꼬상 (전·후반 타수 편차 절대값)
+            // Col AD (29): Front/Back consistency diff (abs difference between front 9 and back 9)
             rowArr[29] = '=IF(AND(ISNUMBER(U' + r + '), ISNUMBER(V' + r + ')), ABS(SUM(C' + r + ':K' + r + ')-SUM(L' + r + ':T' + r + ')), "")';
-            // AE열(30): 정직상 (실제 타수와 핸디 편차 절대값)
+            // Col AE (30): Honest handicap diff (abs difference between total over-par and handicap)
             rowArr[30] = '=IF(AND(ISNUMBER(U' + r + '), ISNUMBER(V' + r + ')), ABS(U' + r + ' - V' + r + '), "")';
-            // AF열(31): 바이너리 (0과 1이 번갈아 나온 최장 연속 횟수 — 표준 내장 REDUCE/LAMBDA 수식)
+            // Col AF (31): Binary streak (longest alternating 0/1 sequence using standard built-in REDUCE/LAMBDA)
             rowArr[31] = '=IF(ISNUMBER($U' + r + '), INDEX(REDUCE({0, 0, -99}, C' + r + ':T' + r + ', LAMBDA(acc, v, LET(mx, INDEX(acc,1), cur, INDEX(acc,2), prv, INDEX(acc,3), ncur, IF(OR(v=0, v=1), IF(AND(OR(prv=0, prv=1), v<>prv), cur+1, 1), 0), {MAX(mx, ncur), ncur, v}))), 1), "")';
-            // AG열(32): 전반스코어
+            // Col AG (32): Front 9 relative score
             rowArr[32] = '=IF(COUNT(C' + r + ':T' + r + ')=18, SUM(C' + r + ':K' + r + '), "")';
-            // AH열(33): 후반스코어
+            // Col AH (33): Back 9 relative score
             rowArr[33] = '=IF(COUNT(C' + r + ':T' + r + ')=18, SUM(L' + r + ':T' + r + '), "")';
-            // AI열(34): 후반 타이브레이크 보조 합계
+            // Col AI (34): Back-nine tiebreak auxiliary sum
             rowArr[34] = '=IF(AND(ISNUMBER(D' + r + '), ISNUMBER(U' + r + ')), SUM(M' + r + ':U' + r + '), "")';
 
             resGrid.push(rowArr);
@@ -427,7 +427,7 @@ function createTournamentSpreadsheet(spec) {
         resSheet.getRange(groupMergeRanges[gm][0], 1, groupMergeRanges[gm][1], 1).merge();
     }
 
-    // 최저타 상위 강조 조건부서식
+    // Conditional formatting to highlight lowest gross score
     var uColRange = resSheet.getRange(2, 21, totalPlayers, 1);
     resSheet.setConditionalFormatRules([
         SpreadsheetApp.newConditionalFormatRule()
@@ -446,11 +446,11 @@ function createTournamentSpreadsheet(spec) {
     resSheet.setFrozenColumns(2);
 
     // ------------------------------------------------------------------------
-    // 3. '니어/롱기' 탭 생성
+    // 3. Create 'Near/Long' (Near/Long) tab
     // ------------------------------------------------------------------------
     var nearSheet = ss.insertSheet("니어/롱기");
     var longColBase = Math.max(nearHoles.length * 2 + 1, 9);
-    var hofCol = Math.max(longColBase + longHoles.length * 2, 11); // 기본 K열(11)
+    var hofCol = Math.max(longColBase + longHoles.length * 2, 11); // Default Col K (11)
     var nlHeader = new Array(hofCol).fill("");
     var nlMerges = [];
     var statEventDefs = [];
@@ -479,7 +479,7 @@ function createTournamentSpreadsheet(spec) {
     for (var nm = 0; nm < nlMerges.length; nm++) {
         nearSheet.getRange(1, nlMerges[nm], 1, 2).merge();
     }
-    // 니어 피트/인치 텍스트 열(B, D, F, H)이 날짜/숫자로 자동 변환되지 않도록 텍스트 서식('@') 지정
+    // Format Near-Pin feet/inch columns (B, D, F, H) as plain text ('@') to prevent auto-date/number conversion
     for (var nf = 0; nf < nearHoles.length; nf++) {
         nearSheet.getRange(2, nf * 2 + 2, 60, 1).setNumberFormat("@");
     }
@@ -487,7 +487,7 @@ function createTournamentSpreadsheet(spec) {
     nearSheet.setFrozenRows(1);
 
     // ------------------------------------------------------------------------
-    // 4. 'Stat' 탭 생성 (전 부문 실시간 자동 순위표 =SORT(...))
+    // 4. Create 'Stat' tab (real-time auto-sorted leaderboards across all categories via =SORT(...))
     // ------------------------------------------------------------------------
     var statSheet = ss.insertSheet("Stat");
     var statCategories = [
@@ -537,7 +537,7 @@ function createTournamentSpreadsheet(spec) {
     }
     statSheet.setFrozenRows(1);
 
-    // 기본 생성 시트(Sheet1/시트1) 삭제
+    // Remove initial default blank sheet (Sheet1)
     for (var ds = 0; ds < defaultSheets.length; ds++) {
         try {
             ss.deleteSheet(defaultSheets[ds]);
@@ -608,9 +608,9 @@ function saveActiveTournamentState(sheetInfo, configObj) {
 }
 
 /**
- * GitHub 메인 앱(index.html) 부팅 시 1회 호출:
- * - 이미 생성된 활성 대회 시트가 있으면 즉시 { config, groupList, sheetId, resultsUrl } 반환
- * - 아직 시트가 하나도 없고 fallbackSpec에 기본 설정/명단이 함께 전달되면 Lock 보호 하에 자동으로 새 시트 생성!
+ * Called once when booting the GitHub main app (index.html):
+ * - If an active tournament sheet already exists, immediately returns { config, groupList, sheetId, resultsUrl }.
+ * - If no sheet exists yet and fallbackSpec provides default config/roster, auto-creates a new sheet under Lock protection.
  */
 function getInitBundle(fallbackSpec) {
     var meta = readActiveStateMeta();
@@ -654,7 +654,7 @@ function getInitBundle(fallbackSpec) {
     };
 }
 
-// [초고속] 조 목록 및 선수 명단 가져오기 (시트별 격리 캐시 + '결과' 시트 1회 일괄 조회)
+// [Fast] Fetch group list and player names (per-sheet isolated cache + single batch read from 'Results' tab)
 function getGroupList() {
     var glCacheKey = getScopedCacheKey("GL_");
     try {
@@ -742,9 +742,9 @@ function getGroupList() {
     return groups;
 }
 
-// 이미 읽어온 2차원 배열(A열)에서 "메모"라고 적힌 행 번호(1-based)를 탐색 (없을 경우 에러 발생)
+// Find the 1-based row number labeled 'Memo' in column A from preloaded 2D values (throws if missing)
 function findMemoRowFromValues(allValues, sheetName) {
-    // 1순위: A열 값이 정확히 "메모"인 행
+    // Priority 1: Exact match for 'Memo' in column A
     for (var i = 0; i < allValues.length; i++) {
         var val = allValues[i][0] ? String(allValues[i][0]).trim() : "";
         if (val === "메모") {
@@ -752,7 +752,7 @@ function findMemoRowFromValues(allValues, sheetName) {
         }
     }
 
-    // 2순위: A열 값에 "메모"가 포함된 행
+    // Priority 2: Partial match containing 'Memo' in column A
     for (var j = 0; j < allValues.length; j++) {
         var val2 = allValues[j][0] ? String(allValues[j][0]).trim() : "";
         if (val2.indexOf("메모") !== -1) {
@@ -763,27 +763,27 @@ function findMemoRowFromValues(allValues, sheetName) {
     throw new Error("'" + sheetName + "' 시트의 A열에서 '메모' 행을 찾을 수 없습니다.");
 }
 
-// 특정 조의 데이터 가져오기 (단 1번의 시트 읽기로 Par, 가변 선수 명단, 메모 행 동적 조회)
+// Fetch data for a specific group (single batch read for Pars, dynamic player rows, and memo row)
 function getGroupData(groupName) {
     var ss = getTargetSpreadsheet();
     var sheet = ss.getSheetByName(groupName);
     if (!sheet) throw new Error("해당 조를 찾을 수 없습니다.");
 
-    // 시트 전체(1행~최소30행, A열~S열)를 단 1번의 API 호출로 일괄 읽기
+    // Read the entire sheet block (rows 1..max(lastRow,30), cols A..S) in a single API call
     var maxRow = Math.max(sheet.getLastRow(), 30);
     var allValues = sheet.getRange(1, 1, maxRow, 19).getValues();
 
-    // 1. Par 타수 (2행 B2:S2 -> index 1, col 1..18)
+    // 1. Hole Pars (Row 2 B2:S2 -> index 1, col 1..18)
     var pars = allValues[1].slice(1, 19);
 
-    // 2. 선수 정보 (3행~8행 순회하며 실제 시트 행 번호 기록)
+    // 2. Player rows (scan rows 3..8 and record actual spreadsheet row numbers)
     var players = [];
     for (var r = 2; r <= 7 && r < allValues.length; r++) {
         var rowData = allValues[r];
         var name = rowData[0] ? String(rowData[0]).trim() : "";
-        var actualRow = r + 1; // 실제 스프레드시트 행 번호 (3 ~ 8)
+        var actualRow = r + 1; // Actual 1-based spreadsheet row number (3 ~ 8)
 
-        // 유효한 선수명만 필터링
+        // Keep only valid player rows
         if (name && name !== "홀파미션" && name !== "메모" && name.indexOf("점수") === -1 && name.indexOf("Par") === -1) {
             var scores = [];
             for (var h = 1; h <= 18; h++) {
@@ -793,13 +793,13 @@ function getGroupData(groupName) {
             }
             players.push({
                 name: name,
-                rowNumber: actualRow, // ✅ 선수의 실제 시트 행 번호 전달
+                rowNumber: actualRow, // Pass the player's actual spreadsheet row number
                 scores: scores
             });
         }
     }
 
-    // 3. A열에서 "메모"라고 적힌 행을 찾아 홀별 메모 읽기 (B열~S열)
+    // 3. Locate the 'Memo' row in column A and read per-hole notes (cols B..S)
     var memoRow = findMemoRowFromValues(allValues, groupName);
     var rawNotes = allValues[memoRow - 1].slice(1, 19);
     var notes = rawNotes.map(function (val) {
@@ -815,13 +815,13 @@ function getGroupData(groupName) {
     };
 }
 
-// ✅ 초고속 스코어 및 메모 안전 병합 저장 (1회 일괄 읽기 + 연속 행 묶음 쓰기 + 셀 단위 스마트 병합 + 오프라인 다중 홀 동기화 지원)
+// Ultra-fast safe merge save for scores & memos (single batch read + contiguous row write + cell-level smart merge + multi-hole offline sync)
 function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHoles, longDriveHoles, dirtyNoteHoles, ticket) {
     var lock = LockService.getScriptLock();
-    lock.waitLock(15000); // 동시 저장 대기를 위해 15초 락 대기
+    lock.waitLock(15000); // Wait up to 15 seconds for script lock to serialize concurrent saves
 
     try {
-        // 🔢 번호표 검사: 같은 폰이 이미 더 최신 번호를 저장했다면, 늦게 도착한 이 옛 요청은 시트에 쓰지 않음
+        // Sequence ticket check: if this device already saved a newer sequence number, ignore this delayed stale request
         var isStaleTicket = false;
         if (ticket && ticket.device && Number(ticket.seq) > 0) {
             try {
@@ -830,9 +830,9 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
                 if (Number(ticket.seq) <= Number(seqCache.get(seqKey) || 0)) {
                     isStaleTicket = true;
                 } else {
-                    seqCache.put(seqKey, String(ticket.seq), 21600); // 6시간 기억
+                    seqCache.put(seqKey, String(ticket.seq), 21600); // Remember sequence number for 6 hours
                 }
-            } catch (ce) { } // 캐시 오류 시 번호표 검사만 건너뛰고 저장은 정상 진행
+            } catch (ce) { } // If cache fails, skip ticket check and proceed with normal save
         }
         if (isStaleTicket) {
             return { success: true, stale: true, message: "이미 더 최신 저장이 반영되어 있습니다." };
@@ -845,7 +845,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
         var numPlayers = scoreData ? scoreData.length : 0;
         if (numPlayers === 0) return { success: false, message: "저장할 데이터가 없습니다." };
 
-        // activeHole이 단일 숫자이거나 배열(오프라인 임시저장 홀 포함)일 때 모두 대응
+        // Support activeHole as either a single hole number or an array of holes (including offline pending holes)
         var activeIdxMap = {};
         var hasSpecificActiveHoles = false;
         if (Array.isArray(activeHole)) {
@@ -861,7 +861,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
             hasSpecificActiveHoles = true;
         }
 
-        // 1. 시트 전체(1행~최소30행, A열~S열)를 단 1번만 읽기
+        // 1. Read the entire sheet block (rows 1..max(lastRow,30), cols A..S) in a single call
         var maxRow = Math.max(sheet.getLastRow(), 30);
         var allValues = sheet.getRange(1, 1, maxRow, 19).getValues();
         var memoRow = findMemoRowFromValues(allValues, groupName);
@@ -872,7 +872,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
         var newBirdies = [];
         var canceledBirdies = [];
 
-        // 2. 메모리 상에서 각 선수의 기존 점수와 신규 점수 셀 단위 병합 + 신규 버디(-1)/이글(-2) 감지
+        // 2. Cell-level in-memory merge between existing and incoming scores + detect new Birdies(-1) / Eagles(-2)
         for (var p = 0; p < numPlayers; p++) {
             var playerData = scoreData[p];
             var targetRow = (playerData && playerData.rowNumber) ? Number(playerData.rowNumber) : (3 + p);
@@ -885,7 +885,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
             var incomingScores = (playerData && playerData.scores) ? playerData.scores : playerData;
             var existingRow = (allValues[targetRow - 1]) ? allValues[targetRow - 1].slice(1, 19) : new Array(18).fill("");
 
-            // 해당 기기에서 실제로 터치해 변경한 홀 목록(dirtyHoles) 확인 (구버전 호출 시 기존 activeHole 방식으로 폴백)
+            // Check dirtyHoles touched on this device (falls back to activeHole mode for legacy callers)
             var playerDirtyMap = null;
             if (playerData && Array.isArray(playerData.dirtyHoles)) {
                 playerDirtyMap = {};
@@ -909,7 +909,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
                 var isCellDirty = (playerDirtyMap !== null) ? !!playerDirtyMap[h] : isActiveHole;
 
                 if (isActiveHole && isCellDirty) {
-                    // 👉 현재 기기에서 직접 터치하여 입력/수정한 선수 칸: 신규 값 또는 선택 취소("") 즉시 반영
+                    // Cells explicitly touched/edited on this device: apply new value or cleared value ("") immediately
                     if (hasIncoming) {
                         var numIn = Number(incoming);
                         mergedRow.push(numIn);
@@ -917,7 +917,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
                         mergedRow.push("");
                     }
                 } else {
-                    // 👉 건드리지 않은 선수 칸 또는 그 외 홀: 동반자 입력값 보존을 위해 기존 시트 점수 최우선 유지
+                    // Untouched player cells or other holes: preserve existing sheet score to protect companions' concurrent edits
                     if (hasExisting) {
                         mergedRow.push(Number(existing));
                     } else if (playerDirtyMap === null && hasIncoming) {
@@ -928,7 +928,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
                 }
             }
 
-            // 해당 선수의 병합된 전체 홀 점수를 기준으로 현재 저장한 홀의 버디(-1)/이글(-2)/연속파(3·4·5연속 파) 감지
+            // Based on merged full-round scores for this player, detect Birdie(-1) / Eagle(-2) / Par Streak (3, 4, 5 in a row) on saved holes
             if (playerName) {
                 for (var ahIdx = 0; ahIdx < 18; ahIdx++) {
                     var isHoleAct = !hasSpecificActiveHoles || !!activeIdxMap[ahIdx];
@@ -983,7 +983,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
             mergedScores.push(mergedRow);
         }
 
-        // 2-1. 홀파미션(우리 조 전원 파(0) 이하 세이브!) 성공 여부 감지 및 취소 처리
+        // 2-1. Detect All-Par Mission (all players in group <= 0 on hole) success or cancellation
         if (numPlayers > 0) {
             var playersListStr = groupPlayerNames.join("·");
             for (var mh = 0; mh < 18; mh++) {
@@ -1018,7 +1018,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
             }
         }
 
-        // 3. 선수 행 번호가 연속(예: 3,4,5행 또는 3,4,5,6행)이면 단 1번의 setValues로 일괄 저장, 불연속이면 개별 행 저장
+        // 3. Write all player rows in a single setValues call if contiguous (e.g. rows 3..6), or row-by-row if non-contiguous
         var isContiguous = true;
         for (var rIdx = 1; rIdx < targetRows.length; rIdx++) {
             if (targetRows[rIdx] !== targetRows[rIdx - 1] + 1) {
@@ -1035,7 +1035,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
             }
         }
 
-        // 4. A열에서 찾은 "메모" 행 안전 병합 및 저장 (동반자 간 동시 니어/롱기 입력 시 선수 단위로 스마트 병합)
+        // 4. Safely merge and save the 'Memo' row (per-player smart 3-way merge for concurrent Near/Long entries)
         var mergedNotes = new Array(18).fill("");
         if (notesData && Array.isArray(notesData) && notesData.length === 18) {
             var existingNotes = allValues[memoRow - 1].slice(1, 19);
@@ -1072,7 +1072,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
                     mergedNotes[nh] = exNote !== "" ? exNote : (dirtyNoteMap === null ? inNote : "");
                 }
             }
-            // 5. 메모가 실제로 변경된 홀에 대해서만 메모 행 쓰기 및 "니어/롱기" 탭에 자동 기록 (점수만 저장 시 불필요한 시트 I/O 생략)
+            // 5. Write memo row & sync 'Near/Long' tab only when memos actually changed (skip extra sheet I/O on score-only saves)
             if (hasNoteToSync || dirtyNoteMap === null) {
                 sheet.getRange(memoRow, 2, 1, 18).setValues([mergedNotes]);
 
@@ -1090,7 +1090,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
             }
         }
 
-        // 6. 전체 참가자 공유 버디/이글/홀파미션/연속파 공지 피드 갱신 및 정합성 검증
+        // 6. Update and reconcile shared Birdie / Eagle / All-Par Mission / Par-Streak broadcast feed
         var updatedFeed = updateBirdieFeed(newBirdies, canceledBirdies, ss);
         var verifyPlayers = [];
         for (var vp = 0; vp < numPlayers; vp++) {
@@ -1117,10 +1117,10 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
 }
 
 var BIRDIE_FEED_KEY = "BIRDIE_FEED_V1";
-var BIRDIE_RETENTION_MS = 14 * 60 * 60 * 1000; // 14시간 보관 (당일 라운드 내 모든 기록 유지)
-var BIRDIE_MAX_ITEMS = 160; // 28명 18홀 전원 버디/연속파/홀파미션 기록을 앞부분 삭제 없이 모두 보존
+var BIRDIE_RETENTION_MS = 14 * 60 * 60 * 1000; // Retain feed items for 14 hours (keeps all records throughout tournament day)
+var BIRDIE_MAX_ITEMS = 160; // Preserve up to 160 items so all Birdie / Par-Streak / All-Par records for 28 players across 18 holes are kept
 
-// PropertiesService 9KB(9,216B) 한계 방지를 위한 초경량 배열 직렬화/역직렬화 (항목당 약 170B -> 45B로 73% 압축)
+// Compact array serialization (~45B vs ~170B per item, 73% smaller) to stay well within PropertiesService 9KB limit
 function packBirdieFeedItem(ev) {
     var tCode = "B";
     if (ev.type === "EAGLE") tCode = "E";
@@ -1183,7 +1183,7 @@ function formatBirdieTimeServer(ts) {
     return (hh < 10 ? "0" + hh : String(hh)) + ":" + (mm < 10 ? "0" + mm : String(mm));
 }
 
-// 공지 객체를 "니어/롱기" 탭 K2 셀 아래에 기록할 한 줄 텍스트로 변환
+// Format a broadcast event object into a single-line string stored below cell K2 on the 'Near/Long' tab
 function formatBirdieSheetLine(ev) {
     if (!ev) return "";
     var tStr = ev.timeStr ? String(ev.timeStr) : formatBirdieTimeServer(ev.ts);
@@ -1204,7 +1204,7 @@ function formatBirdieSheetLine(ev) {
     return prefix + "버디(-1) - " + String(ev.player || "");
 }
 
-// "니어/롱기" 탭 K2 셀 아래의 한 줄 텍스트를 공지 객체로 역변환
+// Parse a single-line string from column K of the 'Near/Long' tab back into a broadcast event object
 function parseBirdieSheetLine(cellText, rowIdx, cachedMap) {
     var str = (cellText !== null && cellText !== undefined) ? String(cellText).trim() : "";
     if (!str) return null;
@@ -1285,7 +1285,7 @@ function saveBirdieFeedToCacheAndProps(list) {
     } catch (ce) { }
 }
 
-// 특정 홀(0-indexed)까지의 연속 파(0) 개수 계산
+// Count consecutive Pars (0) ending at holeIdx (0-indexed)
 function calcPlayerParStreakAtHole(scoresArray, holeIdx) {
     if (!Array.isArray(scoresArray) || holeIdx < 0 || holeIdx >= scoresArray.length) return 0;
     var streak = 0;
@@ -1301,7 +1301,7 @@ function calcPlayerParStreakAtHole(scoresArray, holeIdx) {
     return streak;
 }
 
-// 전체 참가자 공용 실시간 속보 팝업용 목록 조회 (CacheService 우선 조회로 시트 부하 제로)
+// Read shared live broadcast feed for popup banners (queries CacheService first for zero sheet load)
 function getBirdieFeed() {
     try {
         var now = Date.now();
@@ -1340,7 +1340,7 @@ function getBirdieFeed() {
     }
 }
 
-// [🏆 명예의 전당] 버튼 클릭 시 "니어/롱기" 탭 K2 셀 아래 내용을 직접 읽어와 반환 (K열 삭제 시 캐시도 즉시 초기화)
+// Read Hall of Fame feed directly from column K (below K2) of 'Near/Long' tab (clears cache if column K was manually cleared)
 function getHallOfFameFeed(ssOpt) {
     try {
         var ss = ssOpt || getTargetSpreadsheet();
@@ -1368,7 +1368,7 @@ function getHallOfFameFeed(ssOpt) {
             }
         }
 
-        // 시트의 K2 아래 내용과 메모리 캐시가 다르면(예: 시트에서 직접 지운 경우) 캐시도 K열 기준으로 즉시 동기화
+        // If column K differs from memory cache (e.g. manually edited/deleted in sheet), sync cache to column K immediately
         if (sheetItems.length !== cachedList.length) {
             var syncCacheList = [];
             for (var s = 0; s < sheetItems.length; s++) {
@@ -1385,7 +1385,7 @@ function getHallOfFameFeed(ssOpt) {
     }
 }
 
-// 시트에서 직접 점수를 지웠을 때(대회 전 테스트 데이터 삭제 등) 해당 조의 유령 공지 자동 정리
+// Automatically clean up ghost feed items for a group if scores were manually cleared directly in the sheet
 function reconcileGroupBirdieFeed(groupName, players, ssOpt, preloadedFeed) {
     try {
         var feed = Array.isArray(preloadedFeed) ? preloadedFeed : getBirdieFeed();
@@ -1461,7 +1461,7 @@ function reconcileGroupBirdieFeed(groupName, players, ssOpt, preloadedFeed) {
     }
 }
 
-// 신규 버디(-1)/이글(-2)/홀파미션(전원 0 이하) 추가 및 점수 수정 취소 반영 + "니어/롱기" 탭 K2 셀 아래 동기화
+// Add new Birdie(-1)/Eagle(-2)/All-Par Mission events, remove canceled ones on score edits, and sync column K of 'Near/Long' tab
 function updateBirdieFeed(newBirdies, canceledBirdies, ssOpt) {
     try {
         var hasNew = Array.isArray(newBirdies) && newBirdies.length > 0;
@@ -1471,7 +1471,7 @@ function updateBirdieFeed(newBirdies, canceledBirdies, ssOpt) {
             return cachedFiltered;
         }
 
-        // 캐시된 기존 기록의 슬롯(조_홀_선수) 및 ID 맵 구성
+        // Build lookup maps by slot (group_hole_player) and event ID from cached feed
         var cachedMap = {};
         var currentBySlot = {};
         for (var i = 0; i < cachedFiltered.length; i++) {
@@ -1483,7 +1483,7 @@ function updateBirdieFeed(newBirdies, canceledBirdies, ssOpt) {
             }
         }
 
-        // 실제로 추가/수정되거나 취소될 공지가 있는지 0.005초 만에 먼저 검사 (일반 파/보기 저장 시 불필요한 K열 시트 I/O 완벽 차단)
+        // Fast pre-check (~0.005s) whether any feed item actually changed (avoids unnecessary column K sheet I/O on normal Par/Bogey saves)
         var hasEffectiveChange = false;
         if (hasNew) {
             for (var nIdx = 0; nIdx < newBirdies.length; nIdx++) {
@@ -1513,7 +1513,7 @@ function updateBirdieFeed(newBirdies, canceledBirdies, ssOpt) {
 
         var now = Date.now();
 
-        // "니어/롱기" 탭 K2 아래의 현재 기록을 읽어 기준 목록으로 삼음 (시트에서 수동 삭제한 기록이 부활하지 않도록 보장)
+        // Read current lines below K2 in 'Near/Long' tab as source of truth (ensures manually deleted lines in sheet do not resurrect)
         var nearSheet = null;
         var origSheetKLen = 0;
         var filtered = [];
@@ -1544,7 +1544,7 @@ function updateBirdieFeed(newBirdies, canceledBirdies, ssOpt) {
             filtered = cachedFiltered;
         }
 
-        // 버디/이글/홀파미션이었다가 점수가 수정되어 조건이 깨진 경우 공지 목록 및 K열에서 제거
+        // Remove feed entries from list and column K when a score edit breaks a previous Birdie/Eagle/All-Par condition
         if (hasCanceled) {
             for (var c = 0; c < canceledBirdies.length; c++) {
                 var cb = canceledBirdies[c];
@@ -1554,7 +1554,7 @@ function updateBirdieFeed(newBirdies, canceledBirdies, ssOpt) {
             }
         }
 
-        // 새로 저장된 버디(-1) / 이글(-2) / 홀파미션 / 연속파 시간순 추가 (동반자 추가 저장 시 기존 동일 기록은 최초 시각 유지하여 중복 공지 차단)
+        // Append newly saved Birdie(-1) / Eagle(-2) / All-Par / Par-Streak events chronologically (keep original timestamp on duplicate saves)
         if (hasNew) {
             for (var n = 0; n < newBirdies.length; n++) {
                 var nb = newBirdies[n];
@@ -1563,7 +1563,7 @@ function updateBirdieFeed(newBirdies, canceledBirdies, ssOpt) {
                 var existingTs = 0;
                 var existingTimeStr = "";
 
-                // 동일 조·동일 홀·동일 선수(또는 __ALL_PAR__)의 기존 항목이 있으면 교체하되, 동일 기록이면 최초 발생 시각 유지
+                // Replace existing entry for same group/hole/player (or __ALL_PAR__), preserving original timestamp if achievement type is unchanged
                 filtered = filtered.filter(function (ev) {
                     var isSameSlot = (ev.group === nb.group && Number(ev.hole) === Number(nb.hole) && ev.player === nb.player);
                     if (isSameSlot && ev.id === deterministicId && ev.type === evType && Number(ev.ts) > 0) {
@@ -1593,7 +1593,7 @@ function updateBirdieFeed(newBirdies, canceledBirdies, ssOpt) {
             filtered = filtered.slice(filtered.length - BIRDIE_MAX_ITEMS);
         }
 
-        // "니어/롱기" 탭 K2 셀 아래에 순차 기록 (점수 수정 취소로 줄어든 행은 빈칸으로 깔끔히 지움)
+        // Write updated feed sequentially below K2 in 'Near/Long' tab (pad trailing rows with blanks when items shrink)
         if (nearSheet) {
             try {
                 var writeKLen = Math.max(filtered.length, origSheetKLen);
@@ -1619,7 +1619,7 @@ function updateBirdieFeed(newBirdies, canceledBirdies, ssOpt) {
     }
 }
 
-// 숫자 문자열의 정수부를 최소 2자리(예: "6" -> "06", "11" -> "11")로 포맷팅 (문자열 정렬 시 자릿수 역전 방지)
+// Zero-pad integer part to at least 2 digits (e.g. "6" -> "06") so lexicographical sorting matches numeric order
 function padTwoDigits(valStr) {
     var s = (valStr !== undefined && valStr !== null && String(valStr).trim() !== "") ? String(valStr).trim() : "0";
     var parts = s.split(".");
@@ -1629,7 +1629,7 @@ function padTwoDigits(valStr) {
     return parts.join(".");
 }
 
-// 홀 메모 문자열을 쉼표(,) 단위로 분리하여 선수별(P:이름) 또는 일반 텍스트(T:내용) 세그먼트 배열로 변환
+// Split hole memo string by comma (,) into player segments (P:name) or plain text segments (T:text)
 function parseNoteSegments(noteStr) {
     var list = [];
     if (!noteStr) return list;
@@ -1662,15 +1662,15 @@ function parseNoteSegments(noteStr) {
     return list;
 }
 
-// 동반자 간 동시 니어/롱기/메모 입력 시 기존 동반자 기록이 증발하지 않도록 선수별/항목별 스마트 병합 (3-Way Merge)
+// Per-player / per-segment 3-way smart merge so concurrent Near/Long memo edits by groupmates never overwrite each other
 function mergeHoleNoteSmart(exNote, inNote, baseNote) {
     var ex = (exNote !== undefined && exNote !== null) ? String(exNote).trim() : "";
     var inp = (inNote !== undefined && inNote !== null) ? String(inNote).trim() : "";
     var hasBase = (baseNote !== undefined && baseNote !== null);
     var base = hasBase ? String(baseNote).trim() : "";
 
-    // 이 기기가 마지막으로 확인한 서버 메모(baseNote)와 현재 서버 메모(exNote)가 동일하면
-    // 다른 동반자가 중간에 끼어들어 수정/삭제한 적이 없으므로 사용자의 수정본(inNote)을 그대로 반영
+    // If the server memo last seen by this device (baseNote) equals the current server memo (exNote),
+    // no groupmate edited it in the meantime, so apply this user's input (inNote) directly
     if ((hasBase && ex === base) || (!hasBase && ex === "")) {
         return inp;
     }
@@ -1688,8 +1688,8 @@ function mergeHoleNoteSmart(exNote, inNote, baseNote) {
         baseMap[baseSegs[b].key] = baseSegs[b];
     }
 
-    // 사용자가 메모창을 비운 경우: 이 기기가 원래 알고 있던 항목(baseMap)은 삭제하되,
-    // 그 사이에 다른 동반자가 새로 추가한 항목(!baseMap)은 증발하지 않게 보호
+    // If the user cleared the memo: remove entries originally known to this device (baseMap),
+    // while preserving entries newly added in the meantime by other groupmates (!baseMap)
     if (inp === "") {
         if (!hasBase) return "";
         var keptOnClear = [];
@@ -1704,14 +1704,14 @@ function mergeHoleNoteSmart(exNote, inNote, baseNote) {
     var mergedList = [];
     var addedMap = {};
 
-    // 1) 서버에 이미 있던 항목(exSegs) 순회:
-    // - 이번 입력(inMap)에도 있으면(사용자가 수정했거나 그대로 둔 항목) 새 값으로 반영
-    // - 이번 입력에 없는데 이 기기가 원래 보고 있던 항목(baseMap)이면 이 기기 사용자가 삭제한 것이므로 제외
-    // - 이 기기가 몰랐던 항목(!baseMap, 다른 동반자가 동시에 새로 저장한 기록)이면 보존
+    // 1) Iterate over entries currently on the server (exSegs):
+    // - If also present in incoming input (inMap), update with incoming value (unless unchanged on this device)
+    // - If missing from incoming input but present in baseMap, this device deleted it -> omit
+    // - If unknown to baseMap (!baseMap, concurrently added by another groupmate) -> preserve
     for (var e = 0; e < exSegs.length; e++) {
         var eKey = exSegs[e].key;
         if (Object.prototype.hasOwnProperty.call(inMap, eKey)) {
-            // 이 폰이 손대지 않은 기록(옛 값 그대로)이면 서버의 최신 값 유지 → 다른 폰이 고친 값이 되돌아가지 않음
+            // If untouched on this phone (same as base value), keep latest server value so another phone's edit isn't reverted
             var untouched = hasBase && baseMap[eKey] && baseMap[eKey].text === inMap[eKey].text;
             mergedList.push(untouched ? exSegs[e].text : inMap[eKey].text);
             addedMap[eKey] = true;
@@ -1723,10 +1723,10 @@ function mergeHoleNoteSmart(exNote, inNote, baseNote) {
         }
     }
 
-    // 2) 현재 서버(exSegs)에는 없지만 이번 입력(inSegs)에 있는 항목 순회:
-    // - 만약 이 기기의 옛날 기준값(baseMap)에 똑같은 텍스트로 이미 있던 항목이 현재 서버(exSegs)에서 사라진 상태라면,
-    //   다른 동반자가 서버에서 방금 삭제한 기록이므로 다시 부활시키지 않고 제외!
-    // - 이 기기에서 새로 추가했거나 값을 직접 수정한 항목만 이어붙임
+    // 2) Iterate over entries present in incoming input (inSegs) but not currently on the server (exSegs):
+    // - If baseMap already had the exact same text and it is now gone from exSegs,
+    //   another groupmate just deleted it on the server -> do not resurrect it!
+    // - Append only entries newly added or explicitly modified on this device
     for (var n = 0; n < inSegs.length; n++) {
         var nKey = inSegs[n].key;
         if (!addedMap[nKey]) {
@@ -1741,7 +1741,7 @@ function mergeHoleNoteSmart(exNote, inNote, baseNote) {
     return mergedList.join(", ");
 }
 
-// 니어 메모 텍스트(예: "류성욱:[6]피트[11]인치")에서 선수명과 06'11" 포맷 거리 추출
+// Extract player name and 06'11" formatted distance from Near-Pin memo text
 function parseNearPinEntries(noteText) {
     var results = [];
     if (!noteText) return results;
@@ -1761,7 +1761,7 @@ function parseNearPinEntries(noteText) {
         var inchVal = padTwoDigits(inch !== "" ? inch : "0");
         var formattedDist = feetVal + "'" + inchVal + '"';
 
-        // 동일 홀 메모 내 같은 이름이 중복 적힌 경우 뒤에 적힌 최신 값으로 갱신
+        // If the same player name appears multiple times in the same hole memo, keep the latest value
         var existingIdx = -1;
         for (var i = 0; i < results.length; i++) {
             if (results[i].name === name) {
@@ -1778,7 +1778,7 @@ function parseNearPinEntries(noteText) {
     return results;
 }
 
-// 롱기스트 메모 텍스트(예: "류성욱: 핀까지 [35]야드")에서 선수명과 순수 숫자(35)만 추출
+// Extract player name and numeric remaining yards from Long-Drive memo text
 function parseLongDriveEntries(noteText) {
     var results = [];
     if (!noteText) return results;
@@ -1789,7 +1789,7 @@ function parseLongDriveEntries(noteText) {
 
     while ((match = regex.exec(str)) !== null) {
         var fullMatch = match[0] || "";
-        // 혹시 같은 메모 안에 "피트" 기록이 섞여 있으면 롱기에서 제외
+        // Ignore Near-Pin ('feet') segments if mixed in the same memo
         if (fullMatch.indexOf("피트") !== -1) continue;
 
         var name = match[1] ? String(match[1]).trim() : "";
@@ -1814,14 +1814,14 @@ function parseLongDriveEntries(noteText) {
     return results;
 }
 
-// "니어/롱기" 탭에 니어(A:B, C:D, E:F, G:H) 및 롱기스트(I:J)를 2행부터 순차 기록/수정/삭제 동기화
+// Sync Near-Pin (A:B, C:D, E:F, G:H) and Long-Drive (I:J) entries starting at row 2 of the 'Near/Long' tab
 function syncNearPinToSheet(ss, mergedNotes, activeIdxMap, hasSpecificActiveHoles, groupPlayersMap, nearPinHoles, longDriveHoles) {
     try {
         var nearList = (Array.isArray(nearPinHoles) && nearPinHoles.length > 0) ? nearPinHoles : [3, 7, 11, 14];
         var longList = (Array.isArray(longDriveHoles) && longDriveHoles.length > 0) ? longDriveHoles : [5];
         var eventHoleCols = [];
 
-        // 1. 니어핀 홀 매핑: 1번째->A:B(1), 2번째->C:D(3), 3번째->E:F(5), 4번째->G:H(7)
+        // 1. Near-Pin hole column mapping: 1st->A:B(1), 2nd->C:D(3), 3rd->E:F(5), 4th->G:H(7)
         for (var idx = 0; idx < nearList.length; idx++) {
             var hNum = Number(nearList[idx]);
             if (hNum >= 1 && hNum <= 18) {
@@ -1833,20 +1833,20 @@ function syncNearPinToSheet(ss, mergedNotes, activeIdxMap, hasSpecificActiveHole
             }
         }
 
-        // 2. 롱기스트 홀 매핑: I:J열(colStart = 9)부터 기록 (nearList가 4개 이하면 9열 고정, 그 이상이면 이어서 배치)
+        // 2. Long-Drive hole column mapping: starts at cols I:J (colStart = 9, or after Near columns if >4 Near holes)
         var longColBase = Math.max(nearList.length * 2 + 1, 9);
         for (var lIdx = 0; lIdx < longList.length; lIdx++) {
             var lhNum = Number(longList[lIdx]);
             if (lhNum >= 1 && lhNum <= 18) {
                 eventHoleCols.push({
                     hole: lhNum,
-                    colStart: longColBase + lIdx * 2, // I열(9): 이름, J열(10): 숫자
+                    colStart: longColBase + lIdx * 2, // Col I (9): Player Name, Col J (10): Remaining Yards
                     type: "long"
                 });
             }
         }
 
-        // 이번 저장 요청에 이벤트 홀(니어 또는 롱기)이 포함되어 있는지 먼저 확인
+        // Check first whether this save request includes any event hole (Near-Pin or Long-Drive)
         var activeEventHoles = [];
         for (var i = 0; i < eventHoleCols.length; i++) {
             var hIdx = eventHoleCols[i].hole - 1;
@@ -1885,7 +1885,7 @@ function syncNearPinToSheet(ss, mergedNotes, activeIdxMap, hasSpecificActiveHole
                 parsedMap[parsedEntries[p].name] = parsedEntries[p].dist;
             }
 
-            // 기존 시트의 해당 홀 컬럼(2행~)에서 유효한 [이름, 기록] 목록 추출
+            // Extract valid [name, record] rows from the corresponding hole columns (row 2+) in the sheet
             var existingList = [];
             var origMaxLen = 0;
             for (var r = 0; r < sheetData.length; r++) {
@@ -1898,7 +1898,7 @@ function syncNearPinToSheet(ss, mergedNotes, activeIdxMap, hasSpecificActiveHole
                     origMaxLen = r + 1;
                 }
                 if (exName !== "") {
-                    // 현재 저장 중인 조의 선수가 메모창에서 기록을 지운 경우 목록에서 제외
+                    // Exclude group members whose record was deleted from this hole's memo
                     if (groupPlayersMap && groupPlayersMap[exName] && !Object.prototype.hasOwnProperty.call(parsedMap, exName)) {
                         continue;
                     }
@@ -1906,7 +1906,7 @@ function syncNearPinToSheet(ss, mergedNotes, activeIdxMap, hasSpecificActiveHole
                 }
             }
 
-            // 새로 파싱된 기록 반영 (이미 있는 이름이면 기록 업데이트, 없으면 맨 아래 빈 행에 추가)
+            // Merge newly parsed entries (update distance if player exists, otherwise append at the bottom)
             for (var m = 0; m < parsedEntries.length; m++) {
                 var entry = parsedEntries[m];
                 var found = false;
@@ -1936,12 +1936,12 @@ function syncNearPinToSheet(ss, mergedNotes, activeIdxMap, hasSpecificActiveHole
             }
         }
     } catch (err) {
-        // "니어/롱기" 탭 동기화 중 예외가 발생하더라도 메인 스코어 저장은 정상 완료되도록 보호
+        // Protect main score save from failing even if an unexpected error occurs while syncing 'Near/Long' tab
     }
 }
 
 /**
- * 📊 [전광판] '니어/롱기' 탭의 기록을 읽기만 해서 돌려줌 (시트 수정 없음 · 락 없음 · 다른 기능과 무관)
+ * [Scoreboard] Read-only fetch of 'Near/Long' tab display values (no sheet writes, no lock, isolated from scoring)
  */
 function getEventBoardData() {
     var sheet = getTargetSpreadsheet().getSheetByName("니어/롱기");
@@ -1953,11 +1953,8 @@ function getEventBoardData() {
 }
 
 /**
- * github.io에서 iframe 없이 앱 전체 HTML(Index.html + CourseData.html)과 초기 조 목록을 한 번에 받아가기 위한 함수
-
-/**
  * ============================================================================
- * 🛠️ 총무용 관리자 API (admin.html 전용 — PIN 인증 보호)
+ * Admin API for Tournament Manager (admin.html — protected by PIN authentication)
  * ============================================================================
  */
 function extractSpreadsheetId(idOrUrl) {
@@ -2159,7 +2156,7 @@ function adminChangePin(oldPin, newPin) {
 }
 
 /**
- * GitHub Pages 정적 웹앱(index.html / admin.html) 전용 JSON API 엔드포인트
+ * JSON API endpoint for static GitHub Pages apps (index.html / admin.html)
  */
 function doPost(e) {
     try {

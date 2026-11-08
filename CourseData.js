@@ -1,8 +1,8 @@
 /* ============================================================================
- * [CourseData.js] 골프장 데이터베이스 통합 파일 (GitHub 직접 실행용)
+ * [CourseData.js] Unified Golf Course Database (GitHub Direct Execution)
  * ----------------------------------------------------------------------------
- * COURSE_CATALOG 안에 여러 골프장(wente, moffett, poppy_hills 등) 정보를 보관합니다.
- * index.html 및 admin.html에서 <script src="CourseData.js"></script>로 직접 로드됩니다.
+ * Stores course layouts, pars, tee yardages, and LiDAR data in COURSE_CATALOG (wente, moffett, poppy_hills).
+ * Loaded directly via <script src="CourseData.js"></script> in index.html and admin.html.
  * ============================================================================ */
 var COURSE_CATALOG = {
     // =======================================================================

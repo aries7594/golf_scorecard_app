@@ -384,7 +384,7 @@
   </div>
 
   <div class="container">
-    <!-- 0. 백엔드 연결 & 현재 연결된 시트 상태 -->
+    <!-- 0. Backend Connection & Current Active Sheet Status -->
     <div class="card">
       <div class="card-title">
         <span>🔌 구글 시트 엔진 연결 및 현재 대회 상태</span>
@@ -417,7 +417,7 @@
       </div>
     </div>
 
-    <!-- 1. 대회 기본 정보 및 골프장 설정 -->
+    <!-- 1. Tournament General Settings & Course Selection -->
     <div class="card">
       <div class="card-title">
         <span>① 대회 기본 정보 및 골프장 선택</span>
@@ -519,7 +519,7 @@
       </details>
     </div>
 
-    <!-- 2. 참석자 명단 & 핸디 입력 (엑셀 붙여넣기 + 파일 업로드 + 실시간 표 편집) -->
+    <!-- 2. Player Roster & Handicap Input (Excel Paste + File Upload + Live Table Editor) -->
     <div class="card">
       <div class="card-title">
         <span>② 참석자 명단 &amp; 핸디 등록 (엑셀 복사/붙여넣기)</span>
@@ -557,7 +557,7 @@
       <div id="groupsEditorGrid" class="groups-grid"></div>
     </div>
 
-    <!-- 3. 구글 시트 자동 생성 & 관리 실행 -->
+    <!-- 3. Google Sheet Auto-Generation & Management Actions -->
     <div class="card">
       <div class="card-title">
         <span>③ 구글 시트 자동 생성 및 대회 반영</span>
@@ -841,9 +841,9 @@
     }
 
     /**
-     * 엑셀/구글시트에서 복사한 [조 | 이름 | 핸디] 텍스트 파싱
-     * - 조 번호 셀이 병합되어 2~4행의 첫 칸이 비어있는 탭(\t이름\t핸디) 형태를 완벽하게 인식!
-     * - 조 번호 없이 [이름 | 핸디] 2열만 붙여넣으면 자동으로 4명씩 1조, 2조...로 편성!
+     * Parse [Group | Name | Handicap] text copied from Excel / Google Sheets
+     * - Recognizes merged group number cells where rows 2..4 start with a leading tab (\tName\tHandicap).
+     * - If only 2 columns [Name | Handicap] are pasted without group numbers, auto-groups by 4 players (Group 1, Group 2...).
      */
     function parseRosterTextToGroups(rawText) {
       var lines = String(rawText || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
@@ -886,7 +886,7 @@
         parsedRows.push(cols.map(function (c) { return String(c || "").trim(); }));
       }
 
-      // 엑셀 시트 왼쪽에 빈 여백 열(예: A열을 비우고 B열부터 표 작성)이 있는 경우 여백 열만 자동 제거
+      // Automatically strip empty left margin columns when an Excel table starts at column B/C instead of column A
       var minNonEmptyCol = Infinity;
       for (var rCheck = 0; rCheck < parsedRows.length; rCheck++) {
         for (var cCheck = 0; cCheck < parsedRows[rCheck].length; cCheck++) {
@@ -903,7 +903,7 @@
       for (var i = 0; i < parsedRows.length; i++) {
         var trimmedCols = parsedRows[i];
 
-        // 헤더 행 자동 건너뛰기 (예: ['', '이름', '핸디'] 또는 ['조', '이름', '핸디'] 또는 ['Team', '이름', ...])
+        // Automatically skip header row (e.g. ['', 'Name', 'Handicap'] or ['Group', 'Name', 'Handicap'])
         var joinedHeader = trimmedCols.join("|");
         if (/(^|\|)(이름|성명|선수|name)(\||$)/i.test(joinedHeader) && /(핸디|handicap|hcp|조|team)/i.test(joinedHeader)) {
           continue;
@@ -924,16 +924,16 @@
             ungroupedPlayers.push({ name: nameCell, handicap: hcpCell });
           }
         } else if (trimmedCols.length === 2) {
-          // 1) 첫 칸이 조 번호이고 둘째 칸이 이름인 경우 (핸디 생략): "1\t김순곤"
+          // 1) Col 1 is group number and Col 2 is player name (handicap omitted)
           if (/^\d+\s*조?$/.test(trimmedCols[0]) && !/^\d+(\.\d+)?$/.test(trimmedCols[1])) {
             currentGroup = normalizeGroupLabel(trimmedCols[0]);
             hasExplicitGroup = true;
             addPlayerToGroup(currentGroup, trimmedCols[1], "");
           } else if (hasExplicitGroup && currentGroup) {
-            // 2) 이전 줄에서 조 번호가 지정된 상태에서 "이춘우\t18" 형태로 들어온 경우
+            // 2) Group number was already set on an earlier row, followed by 'Name\tHandicap'
             addPlayerToGroup(currentGroup, trimmedCols[0], trimmedCols[1]);
           } else {
-            // 3) 조 컬럼 없이 [이름 | 핸디]만 있는 명단
+            // 3) 2-column roster [Name | Handicap] with no group column
             ungroupedPlayers.push({ name: trimmedCols[0], handicap: trimmedCols[1] });
           }
         } else if (trimmedCols.length === 1 && trimmedCols[0]) {
@@ -973,13 +973,13 @@
       showToast("✅ " + parsed.length + "개 조 · 총 " + totalP + "명 명단과 핸디가 세팅되었습니다!");
     }
 
-    // 내장 브라우저 DecompressionStream으로 외부 라이브러리 없이 .xlsx 파일 직접 파싱
+    // Parse .xlsx files directly in browser using built-in DecompressionStream with zero external libraries
     async function parseXlsxFileBuffer(arrayBuffer) {
       var bytes = new Uint8Array(arrayBuffer);
       var view = new DataView(arrayBuffer);
       var files = {};
 
-      // End of Central Directory 탐색
+      // Locate ZIP End of Central Directory (EOCD)
       var eocdPos = -1;
       for (var i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
         if (view.getUint32(i, true) === 0x06054b50) {
@@ -1034,7 +1034,7 @@
         }
       }
 
-      // 만약 기존 대회 결과 시트('1조', '2조'...) 형식이면 조별 시트에서 이름+핸디 추출, 아니면 첫 시트 표 파싱
+      // If workbook has group tabs (Group 1, Group 2...), extract names + handicaps from group tabs; otherwise parse first sheet table
       var wbDoc = domParser.parseFromString(files["xl/workbook.xml"], "application/xml");
       var relDoc = domParser.parseFromString(files["xl/_rels/workbook.xml.rels"], "application/xml");
       var relMap = {};
@@ -1093,7 +1093,7 @@
       }
       if (groupSheetsFound.length > 0) return groupSheetsFound;
 
-      // 일반 명단 시트([조 | 이름 | 핸디])인 경우 첫 번째 시트를 탭 텍스트로 변환해 파싱
+      // Standard roster sheet ([Group | Name | Handicap]): convert first worksheet matrix to TSV and parse
       var firstRId = sheetNodes[0].getAttribute("r:id") || sheetNodes[0].getAttribute("id");
       var firstMatrix = extractSheetMatrix(files[relMap[firstRId]]);
       var tsvLines = firstMatrix.map(function (r) { return r.join("\t"); }).join("\n");
@@ -1247,7 +1247,7 @@
         subTxt.textContent = "아래 [🚀 새 대회 구글 시트 자동 생성 & 대회 오픈] 버튼을 누르면 즉시 시트가 생성됩니다.";
       }
 
-      // 히스토리 렌더링
+      // Render recently created/connected sheet history
       var histWrap = document.getElementById("historyListWrap");
       histWrap.innerHTML = "";
       if (data && Array.isArray(data.history) && data.history.length > 0) {
