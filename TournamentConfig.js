@@ -8,7 +8,7 @@
  *    created in Google Drive using TOURNAMENT_CONFIG and the default groups roster below.
  * ============================================================================ */
 
-var GAS_BACKEND_URL = "";
+var GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwTbkSVy5HW52Wt5OvM7dvr2ZZdWiq5E7--Sf_ecPAsukT9UZy80FZed0jQ7XoA2kDQ/exec";
 
 var TOURNAMENT_CONFIG = {
   // 0. Unique tournament identifier (editable for static setup; managed automatically when using admin.html)
