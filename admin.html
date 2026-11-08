@@ -4,18 +4,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>🛠️ 골프대회 개설 &amp; 관리 콘솔</title>
+  <title>골프대회 관리 콘솔</title>
   <style>
     :root {
       --primary: #800020;
-      --primary-dark: #5a0016;
+      --primary-dark: #4d0013;
       --secondary: #003876;
       --bg: #f4f6f9;
       --card: #ffffff;
       --border: #dde2ea;
       --text: #1f2937;
       --muted: #6b7280;
-      --ok: #1b7f3b;
     }
 
     * {
@@ -24,72 +23,59 @@
 
     body {
       margin: 0;
-      padding: 0 0 60px 0;
+      padding: 24px 0 60px 0;
       font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.45;
     }
 
-    .topbar {
-      background: linear-gradient(135deg, #990026 0%, #800020 65%, #4d0013 100%);
-      color: #fff;
-      padding: 16px 20px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .topbar-inner {
-      max-width: 1020px;
-      margin: 0 auto;
+    /* Top Header Row matching layout: Big Mode/Tournament Title on left + Past List button on right */
+    .page-header-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
       flex-wrap: wrap;
+      padding: 4px 2px 2px 2px;
     }
 
-    .topbar h1 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -0.3px;
-    }
-
-    .topbar-links {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .topbar-btn {
+    .page-mode-banner {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 7px 13px;
-      border-radius: 9px;
-      background: rgba(255, 255, 255, 0.16);
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
+      gap: 10px;
+      padding: 10px 22px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #ff9f1c 0%, #f5820d 100%);
+      color: #111827;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      box-shadow: 0 3px 10px rgba(245, 130, 13, 0.22);
+      border: 2px solid #d97706;
     }
 
-    .topbar-btn:hover {
-      background: rgba(255, 255, 255, 0.26);
+    .page-mode-banner.is-existing {
+      background: linear-gradient(135deg, #0b5ed7 0%, #003876 100%);
+      color: #ffffff;
+      border-color: #002855;
+      box-shadow: 0 3px 10px rgba(0, 56, 118, 0.22);
     }
 
-    .container {
-      max-width: 1020px;
-      margin: 18px auto;
-      padding: 0 14px;
+    .header-actions {
       display: flex;
-      flex-direction: column;
-      gap: 16px;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .card {
@@ -131,7 +117,6 @@
       display: none;
       flex-direction: column;
       gap: 10px;
-      margin-top: 12px;
     }
 
     .link-row {
@@ -170,6 +155,11 @@
       .grid-2,
       .grid-3 {
         grid-template-columns: 1fr;
+      }
+
+      .page-mode-banner {
+        font-size: 20px;
+        padding: 9px 16px;
       }
     }
 
@@ -267,8 +257,8 @@
     }
 
     .btn-sm {
-      padding: 6px 11px;
-      font-size: 12.5px;
+      padding: 7px 12px;
+      font-size: 13px;
       border-radius: 8px;
     }
 
@@ -277,14 +267,25 @@
       border: 1.5px dashed #94a3b8;
       border-radius: 12px;
       padding: 14px;
-      margin-bottom: 14px;
+    }
+
+    .empty-roster-guide {
+      margin-top: 12px;
+      padding: 20px 14px;
+      border-radius: 12px;
+      background: #fcfcfd;
+      border: 1.5px dashed #e2e8f0;
+      text-align: center;
+      color: #64748b;
+      font-size: 13.5px;
+      font-weight: 600;
     }
 
     .groups-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
       gap: 12px;
-      margin-top: 10px;
+      margin-top: 12px;
     }
 
     .group-edit-card {
@@ -346,28 +347,75 @@
       align-items: center;
     }
 
-    .tournament-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 12px;
+    /* Modal Popup for Past Tournaments List */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.52);
+      z-index: 5000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
     }
 
-    .tournament-row {
+    .modal-panel {
+      width: 100%;
+      max-width: 620px;
+      max-height: 82vh;
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.28);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 900;
+      color: #0f172a;
+    }
+
+    .modal-body {
+      padding: 14px 18px 18px 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .past-item-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      padding: 11px 13px;
-      border-radius: 11px;
+      padding: 12px 14px;
+      border-radius: 12px;
       background: #f8fafc;
       border: 1.5px solid #e2e8f0;
-      flex-wrap: wrap;
+      cursor: pointer;
+      transition: border-color 0.12s ease, background 0.12s ease;
     }
 
-    .tournament-row.active-edit {
+    .past-item-row:hover {
+      background: #eff6ff;
+      border-color: #60a5fa;
+    }
+
+    .past-item-row.active-item {
       background: #fff0f3;
-      border-color: #f59f00;
+      border-color: var(--primary);
     }
 
     .slug-pill {
@@ -377,8 +425,22 @@
       background: #e0f2fe;
       color: #0369a1;
       font-family: monospace;
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 800;
+      margin-left: 6px;
+    }
+
+    .footer-tools {
+      text-align: right;
+      font-size: 12px;
+      color: #94a3b8;
+      padding: 0 4px;
+    }
+
+    .footer-tools a {
+      color: #64748b;
+      text-decoration: underline;
+      cursor: pointer;
     }
 
     #toast {
@@ -403,67 +465,43 @@
 </head>
 
 <body>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <h1 id="pageTopHeading">🛠️ 골프대회 개설 &amp; 통합 관리 콘솔</h1>
-      <div class="topbar-links">
-        <a href="index.html" id="topPreviewLink" target="_blank" class="topbar-btn">⛳ 참가자 앱 열기</a>
+  <div class="container">
+    <!-- Top Header: Mode / Selected Tournament Title on Left + Past Tournament List Button on Right -->
+    <div class="page-header-row">
+      <div class="page-mode-banner" id="pageModeBanner">신규 대회 생성</div>
+      <div class="header-actions">
+        <button type="button" class="btn btn-outline btn-sm" id="backToNewBtn" onclick="startFreshTournamentForm()" style="display:none;">
+          ➕ 신규 대회 생성으로 전환
+        </button>
+        <button type="button" class="btn btn-blue" id="openPastListBtn" onclick="openPastTournamentsModal()">
+          📂 예전 대회 목록 불러오기
+        </button>
       </div>
     </div>
-  </div>
 
-  <div class="container">
-    <!-- 0. Authentication & Multi-Tournament Dashboard (Master Mode vs Single-Club Manager Mode) -->
-    <div class="card">
-      <div class="card-title">
-        <span id="authCardTitle">🔐 마스터 인증 및 개설된 전체 대회 목록</span>
-        <span class="badge" id="modeRoleBadge">마스터 콘솔</span>
+    <!-- Issued / Active Tournament Share Links Box (shown when a tournament is created or loaded) -->
+    <div id="issuedLinksBox" class="issued-links-box">
+      <div style="font-size:14.5px; font-weight:900; color:#166534;" id="issuedBannerTitle">
+        ✅ 대회 전용 링크
       </div>
-
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <input type="password" id="adminPinInput" value="2026" placeholder="비밀번호(PIN) 입력"
-          style="width:170px; padding:9px 11px; border:1.5px solid #cbd5e1; border-radius:9px; font-size:14px;">
-        <button type="button" class="btn btn-blue btn-sm" id="authLoadBtn" onclick="onAuthLoadClick()">
-          🔄 대회 목록 불러오기
-        </button>
-        <button type="button" class="btn btn-outline btn-sm" id="newFormResetBtn" onclick="startFreshTournamentForm()">
-          ➕ 새 대회 만들기 (입력창 초기화)
-        </button>
-        <button type="button" class="btn btn-outline btn-sm" id="changeMasterPinBtn" onclick="promptChangeMasterPin()">
-          🔑 마스터 PIN 변경
-        </button>
-      </div>
-
-
-      <!-- Issued links banner for currently created or loaded tournament -->
-      <div id="issuedLinksBox" class="issued-links-box">
-        <div style="font-size:14.5px; font-weight:900; color:#166534;" id="issuedBannerTitle">
-          ✅ 대회 전용 링크가 준비되었습니다!
+      <div class="link-row">
+        <div>
+          <div style="font-size:11.5px; font-weight:800; color:#15803d;">📱 참가자 공유용 전용 링크</div>
+          <div class="link-url" id="participantShareUrlText"></div>
         </div>
-        <div class="link-row">
-          <div>
-            <div style="font-size:11.5px; font-weight:800; color:#15803d;">📱 참가자 카톡방 공유용 전용 링크</div>
-            <div class="link-url" id="participantShareUrlText"></div>
-          </div>
-          <div style="display:flex; gap:6px;">
-            <button type="button" class="btn btn-green btn-sm" onclick="copyTextById('participantShareUrlText', '참가자 전용 링크')">📋 링크 복사</button>
-            <a id="participantShareOpenBtn" href="#" target="_blank" class="btn btn-outline btn-sm">열기 ↗</a>
-          </div>
-        </div>
-        <div class="link-row">
-          <div>
-            <div style="font-size:11.5px; font-weight:800; color:#4b5563;">📊 연결된 구글 스프레드시트 ('결과'·'Stat' 자동 집계)</div>
-            <div class="link-url" id="sheetResultUrlText" style="font-size:12px;"></div>
-          </div>
-          <div>
-            <a id="sheetResultOpenBtn" href="#" target="_blank" class="btn btn-outline btn-sm">📊 구글 시트 열기 ↗</a>
-          </div>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn btn-green btn-sm" onclick="copyTextById('participantShareUrlText', '참가자 전용 링크')">📋 링크 복사</button>
+          <a id="participantShareOpenBtn" href="#" target="_blank" class="btn btn-outline btn-sm">앱 열기 ↗</a>
         </div>
       </div>
-
-      <!-- Master Tournament List -->
-      <div id="masterTournamentListSection" style="margin-top:12px;">
-        <div id="tournamentListWrap" class="tournament-list"></div>
+      <div class="link-row">
+        <div>
+          <div style="font-size:11.5px; font-weight:800; color:#4b5563;">📊 연결된 구글 시트 ('결과'·'Stat' 자동 집계)</div>
+          <div class="link-url" id="sheetResultUrlText" style="font-size:12px;"></div>
+        </div>
+        <div>
+          <a id="sheetResultOpenBtn" href="#" target="_blank" class="btn btn-outline btn-sm">📊 구글 시트 열기 ↗</a>
+        </div>
       </div>
     </div>
 
@@ -471,13 +509,13 @@
     <div class="card">
       <div class="card-title">
         <span id="formSectionTitle">① 대회 기본 정보 설정</span>
-        <span class="badge" id="editingStateBadge">신규 대회 개설 모드</span>
+        <span class="badge" id="editingStateBadge">신규 대회 개설 모드 (코드 자동생성)</span>
       </div>
 
       <div class="grid-2">
         <div class="field">
           <label for="tournamentNameInput">🏆 대회 이름 (배너 · 상단 타이틀 · 구글 시트명 공통)</label>
-          <input type="text" id="tournamentNameInput" placeholder="예: 2027년 송정배 골프대회">
+          <input type="text" id="tournamentNameInput" placeholder="예: 2027년 봄 골프대회">
         </div>
         <div class="field">
           <label for="defaultTeeSelect">코스맵 기본 티박스</label>
@@ -493,7 +531,7 @@
       <div class="grid-3" style="margin-top:12px;">
         <div class="field">
           <label for="courseSelect">골프장 선택 (1~18홀 Par &amp; 코스맵 자동 연동)</label>
-          <select id="courseSelect" onchange="onCourseSelectChange()"></select>
+          <select id="courseSelect" onchange="onCourseSelectChange(true)"></select>
           <span class="hint" id="courseParPreview"></span>
         </div>
         <div class="field">
@@ -541,7 +579,7 @@
           </div>
           <div class="field">
             <label for="afterPartyInput">뒷풀이 장소 안내 (HTML 가능 · 구글맵 링크 시 핀 아이콘 자동 표시)</label>
-            <textarea id="afterPartyInput" rows="2"></textarea>
+            <textarea id="afterPartyInput" rows="2" placeholder="예: 뒷풀이: 식당이름 (<a href='구글맵링크' target='_blank'>주소</a>)"></textarea>
           </div>
           <div class="field">
             <label for="copyrightInput">하단 저작권 문구</label>
@@ -551,7 +589,7 @@
       </details>
     </div>
 
-    <!-- 2. Player Roster & Handicap Input -->
+    <!-- 2. Player Roster & Handicap Input (Starts Blank by Default!) -->
     <div class="card">
       <div class="card-title">
         <span>② 참석자 명단 &amp; 핸디 등록 (엑셀 복사/붙여넣기)</span>
@@ -586,13 +624,16 @@
         </div>
       </div>
 
-      <div id="groupsEditorGrid" class="groups-grid"></div>
+      <div id="emptyRosterGuide" class="empty-roster-guide">
+        아직 등록된 참석자가 없습니다. 위 칸에 엑셀 명단을 붙여넣고 <b>[조 편성 자동 세팅]</b>을 누르거나 <b>[+ 새 조 추가]</b>를 눌러주세요.
+      </div>
+      <div id="groupsEditorGrid" class="groups-grid" style="display:none;"></div>
     </div>
 
-    <!-- 3. Create / Update / Reset Actions -->
+    <!-- 3. Create / Save / Reset Actions -->
     <div class="card">
       <div class="card-title">
-        <span>③ 대회 생성 및 저장 실행</span>
+        <span id="actionCardTitle">③ 대회 생성 및 저장 실행</span>
       </div>
 
       <div class="action-bar">
@@ -600,26 +641,32 @@
           🚀 새 대회 구글 시트 자동 생성 &amp; 전용 링크 발급
         </button>
         <button type="button" class="btn btn-green" id="saveConfigOnlyBtn" onclick="saveConfigOnly()" style="display:none;">
-          ✏️ 시트는 유지하고 공지/설정만 즉시 저장
+          ✏️ 시트는 유지하고 설정/공지만 저장
         </button>
         <button type="button" class="btn btn-danger" id="resetScoresBtn" onclick="resetTournamentScores()" style="display:none;">
-          🧹 이 대회 테스트 점수 초기화
+          🧹 테스트 점수 초기화
+        </button>
+        <button type="button" class="btn btn-danger" id="deleteTournamentBtn" onclick="deleteCurrentLoadedTournament()" style="display:none;">
+          🗑️ 이 대회 목록에서 삭제
         </button>
       </div>
-      <div class="hint" style="margin-top:10px;">
-        💡 각 대회마다 독립된 구글 시트와 고유 링크(<code>?t=대회코드</code>)가 발급되어, 같은 날 여러 대회를 동시에 개최해도 100% 분리 운영됩니다.
-      </div>
+    </div>
 
-      <details id="connectExistingDetails" style="margin-top:14px;">
-        <summary style="cursor:pointer; font-weight:800; font-size:12.5px; color:#64748b;">
-          🔗 이미 만들어둔 기존 구글 시트 URL/ID에 대회 코드 연결하기 (고급)
-        </summary>
-        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-          <input type="text" id="existingSheetInput" placeholder="연결할 구글 시트 URL 또는 Spreadsheet ID 붙여넣기"
-            style="flex:1; min-width:240px; padding:8px 11px; border:1.5px solid #cbd5e1; border-radius:9px; font-size:13.5px;">
-          <button type="button" class="btn btn-outline btn-sm" onclick="connectSlugToExistingSheet()">🔗 위 대회 코드에 이 시트 연결</button>
-        </div>
-      </details>
+    <div class="footer-tools">
+      <a onclick="promptChangeMasterPin()">🔑 관리자 PIN 변경</a>
+    </div>
+  </div>
+
+  <!-- Past Tournaments Modal Popup -->
+  <div class="modal-backdrop" id="pastTournamentsModal" onclick="onModalBackdropClick(event)">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h2>📂 예전 대회 목록 선택</h2>
+        <button type="button" class="btn btn-outline btn-sm" onclick="closePastTournamentsModal()">✕ 닫기</button>
+      </div>
+      <div class="modal-body" id="pastTournamentsListBody">
+        <div style="text-align:center; padding:24px; color:#64748b;">⏳ 대회 목록을 불러오는 중입니다...</div>
+      </div>
     </div>
   </div>
 
@@ -628,27 +675,22 @@
   <script src="TournamentConfig.js"></script>
   <script src="CourseData.js"></script>
   <script>
-    var GAS_URL_STORAGE_KEY = "golf_gas_api_url_v1";
-
+    var PIN_STORAGE_KEY = "golf_master_pin_v2";
     var editingExistingSlug = "";
+    var editingExistingTitle = "";
     var editorGroups = [];
     var toastTimer = null;
 
-    function normalizeSlugClient(raw) {
-      if (raw === undefined || raw === null || String(raw).trim() === "undefined") return "";
-      return String(raw || "")
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9_-]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 48);
+    function getSavedMasterPin() {
+      try {
+        var p = localStorage.getItem(PIN_STORAGE_KEY);
+        if (p && p.trim()) return p.trim();
+      } catch (e) { }
+      return "2026";
     }
 
-    function generateClientSlug() {
-      var chars = "abcdefghjkmnpqrstuvwxyz23456789";
-      var out = "";
-      for (var i = 0; i < 6; i++) out += chars.charAt(Math.floor(Math.random() * chars.length));
-      return out;
+    function setSavedMasterPin(pin) {
+      try { localStorage.setItem(PIN_STORAGE_KEY, String(pin || "").trim()); } catch (e) { }
     }
 
     function getAppBaseDirUrl() {
@@ -682,16 +724,6 @@
       }
     }
 
-    function copyRawText(txt, label) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(function () {
-          showToast("📋 " + label + "가 복사되었습니다!\n" + txt);
-        });
-      } else {
-        prompt(label + " 복사:", txt);
-      }
-    }
-
     function getApiUrl() {
       try {
         var params = new URLSearchParams(window.location.search || "");
@@ -704,45 +736,70 @@
       return "";
     }
 
-    function getPinValue() {
-      return (document.getElementById("adminPinInput").value || "").trim();
-    }
-
-    function callAdminApi(fnName, args) {
+    // Automatically retry with PIN prompt if default PIN was changed by admin
+    function callAdminApiWithPin(fnName, buildArgsFn) {
       var url = getApiUrl();
       if (!url) {
-        return Promise.reject(new Error("백엔드 엔진 URL이 설정되지 않았습니다."));
+        return Promise.reject(new Error("TournamentConfig.js에 GAS_BACKEND_URL이 설정되지 않았습니다."));
       }
+      var pin = getSavedMasterPin();
       return fetch(url, {
         method: "POST",
         redirect: "follow",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ fn: fnName, args: args || [] })
+        body: JSON.stringify({ fn: fnName, args: buildArgsFn(pin) })
       })
         .then(function (r) { return r.json(); })
         .then(function (res) {
           if (res && res.ok) return res.data;
-          throw new Error((res && res.error) ? res.error : "서버 오류");
+          var errMsg = (res && res.error) ? String(res.error) : "서버 오류";
+          if (errMsg.indexOf("PIN") !== -1 || errMsg.indexOf("비밀번호") !== -1) {
+            var entered = prompt("관리자 비밀번호(PIN)를 입력해주세요:");
+            if (!entered || !entered.trim()) throw new Error(errMsg);
+            setSavedMasterPin(entered.trim());
+            return fetch(url, {
+              method: "POST",
+              redirect: "follow",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({ fn: fnName, args: buildArgsFn(entered.trim()) })
+            })
+              .then(function (r2) { return r2.json(); })
+              .then(function (res2) {
+                if (res2 && res2.ok) return res2.data;
+                throw new Error((res2 && res2.error) ? res2.error : "비밀번호가 올바르지 않습니다.");
+              });
+          }
+          throw new Error(errMsg);
         });
     }
 
     function refreshEditingModeUI() {
+      var banner = document.getElementById("pageModeBanner");
+      var backNewBtn = document.getElementById("backToNewBtn");
       var createBtn = document.getElementById("createSheetBtn");
       var saveCfgBtn = document.getElementById("saveConfigOnlyBtn");
       var resetBtn = document.getElementById("resetScoresBtn");
+      var delBtn = document.getElementById("deleteTournamentBtn");
       var badge = document.getElementById("editingStateBadge");
       var secTitle = document.getElementById("formSectionTitle");
 
       if (editingExistingSlug) {
-        badge.textContent = "기존 대회 편집 중 (?t=" + editingExistingSlug + ")";
+        banner.textContent = "⛳ " + (editingExistingTitle || editingExistingSlug);
+        banner.classList.add("is-existing");
+        backNewBtn.style.display = "inline-flex";
+        badge.textContent = "저장된 대회 조회·수정 모드 (?t=" + editingExistingSlug + ")";
         badge.style.background = "#e0f2fe";
         badge.style.color = "#0369a1";
         badge.style.borderColor = "#7dd3fc";
-        secTitle.textContent = "① 선택된 대회 설정 및 명단 편집";
-        createBtn.textContent = "🔄 변경된 명단으로 이 대회 구글 시트 다시 생성";
+        secTitle.textContent = "① 대회 정보 확인 및 수정";
+        createBtn.textContent = "🔄 변경된 명단으로 이 대회 시트 다시 생성";
         saveCfgBtn.style.display = "inline-flex";
         resetBtn.style.display = "inline-flex";
+        delBtn.style.display = "inline-flex";
       } else {
+        banner.textContent = "신규 대회 생성";
+        banner.classList.remove("is-existing");
+        backNewBtn.style.display = "none";
         badge.textContent = "신규 대회 개설 모드 (코드 자동생성)";
         badge.style.background = "#fff0f3";
         badge.style.color = "#800020";
@@ -751,6 +808,7 @@
         createBtn.textContent = "🚀 새 대회 구글 시트 자동 생성 & 전용 링크 발급";
         saveCfgBtn.style.display = "none";
         resetBtn.style.display = "none";
+        delBtn.style.display = "none";
       }
     }
 
@@ -758,12 +816,11 @@
       var box = document.getElementById("issuedLinksBox");
       var pUrl = buildParticipantUrl(slug);
       document.getElementById("issuedBannerTitle").textContent =
-        "✅ [" + (sheetTitle || slug) + "] 전용 링크가 즉시 발급되었습니다!";
+        "✅ [" + (sheetTitle || slug) + "] 대회 전용 링크 및 구글 시트";
       document.getElementById("participantShareUrlText").textContent = pUrl;
       document.getElementById("participantShareOpenBtn").href = pUrl;
       document.getElementById("sheetResultUrlText").textContent = resultsUrl || "";
       document.getElementById("sheetResultOpenBtn").href = resultsUrl || "#";
-      document.getElementById("topPreviewLink").href = pUrl;
       box.style.display = "flex";
     }
 
@@ -801,10 +858,10 @@
       if (Array.isArray(cObj.holes) && cObj.holes.length === 18) {
         return cObj.holes.map(function (h) { return Number(h.par) || 4; });
       }
-      return [4, 4, 3, 4, 5, 4, 3, 5, 4, 4, 3, 5, 4, 3, 5, 4, 4, 4];
+      return [4, 4, 3, 4, 5, 4, 3, 5, 4, 4, 3, 5, 4, 3, 5, 4, 3, 5, 4, 4, 4].slice(0, 18);
     }
 
-    function onCourseSelectChange() {
+    function onCourseSelectChange(autoFillIfNew) {
       var pars = getSelectedCoursePars();
       var sum = pars.reduce(function (a, b) { return a + b; }, 0);
       var cObj = getSelectedCourseObj();
@@ -812,6 +869,15 @@
       var recNear = (cObj.nearPinHoles || []).join(", ") || "-";
       document.getElementById("courseParPreview").textContent =
         "Par " + sum + " (" + pars.join(",") + ") · 추천 장타: " + recLong + "H / 추천 니어: " + recNear + "H";
+
+      if (autoFillIfNew && !editingExistingSlug) {
+        if (Array.isArray(cObj.longDriveHoles)) {
+          document.getElementById("longHolesInput").value = cObj.longDriveHoles.join(", ");
+        }
+        if (Array.isArray(cObj.nearPinHoles)) {
+          document.getElementById("nearHolesInput").value = cObj.nearPinHoles.join(", ");
+        }
+      }
     }
 
     function fillRecommendedEventHoles() {
@@ -822,7 +888,7 @@
       if (Array.isArray(cObj.nearPinHoles)) {
         document.getElementById("nearHolesInput").value = cObj.nearPinHoles.join(", ");
       }
-      showToast("선택한 골프장의 기본 추천 이벤트 홀을 채웠습니다.");
+      showToast("선택한 골프장의 추천 장타·니어 홀 번호를 입력했습니다.");
     }
 
     function normalizeGroupsForEditor(rawGroups) {
@@ -846,7 +912,18 @@
 
     function renderGroupsEditor() {
       var grid = document.getElementById("groupsEditorGrid");
+      var emptyGuide = document.getElementById("emptyRosterGuide");
       grid.innerHTML = "";
+
+      if (editorGroups.length === 0) {
+        grid.style.display = "none";
+        emptyGuide.style.display = "block";
+        updateRosterBadgeCount();
+        return;
+      }
+
+      emptyGuide.style.display = "none";
+      grid.style.display = "grid";
 
       editorGroups.forEach(function (grp, gi) {
         var card = document.createElement("div");
@@ -958,8 +1035,6 @@
 
     /**
      * Parse [Group | Name | Handicap] text copied from Excel / Google Sheets
-     * - Recognizes merged group number cells where rows 2..4 start with a leading tab (\tName\tHandicap).
-     * - Strips empty leading margin columns automatically (e.g. tables starting at Column B).
      */
     function parseRosterTextToGroups(rawText) {
       var lines = String(rawText || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
@@ -1234,19 +1309,29 @@
       ev.target.value = "";
     }
 
-    function populateFormFromConfig(cfg, groupsOpt) {
+    // Populate form either for brand-new tournament (isNewDefault=true -> blank title & blank roster)
+    // or for a loaded past tournament (isNewDefault=false -> saved title, settings, and roster)
+    function populateFormFromConfig(cfg, groupsOpt, isNewDefault) {
       cfg = cfg || {};
-      var unifiedName = String(cfg.heroTitle || cfg.sheetTitle || cfg.tournamentTitle || "")
-        .replace(/^[⛳🏆🎯\s]+/, "")
-        .trim();
+      var unifiedName = isNewDefault
+        ? ""
+        : String(cfg.heroTitle || cfg.sheetTitle || cfg.tournamentTitle || "").replace(/^[⛳🏆🎯\s]+/, "").trim();
       document.getElementById("tournamentNameInput").value = unifiedName;
 
       var courseSel = document.getElementById("courseSelect");
       if (cfg.courseKey) courseSel.value = cfg.courseKey;
-      onCourseSelectChange();
+      onCourseSelectChange(false);
 
-      document.getElementById("longHolesInput").value = (cfg.longDriveHoles || []).join(", ");
-      document.getElementById("nearHolesInput").value = (cfg.nearPinHoles || []).join(", ");
+      var cObj = getSelectedCourseObj();
+      var longArr = (Array.isArray(cfg.longDriveHoles) && cfg.longDriveHoles.length > 0)
+        ? cfg.longDriveHoles
+        : (cObj.longDriveHoles || []);
+      var nearArr = (Array.isArray(cfg.nearPinHoles) && cfg.nearPinHoles.length > 0)
+        ? cfg.nearPinHoles
+        : (cObj.nearPinHoles || []);
+
+      document.getElementById("longHolesInput").value = longArr.join(", ");
+      document.getElementById("nearHolesInput").value = nearArr.join(", ");
       document.getElementById("defaultTeeSelect").value = cfg.defaultTeeKey || "white";
 
       document.getElementById("noticeTitleInput").value = cfg.noticeTitle || "📢 경기 진행 안내";
@@ -1255,22 +1340,26 @@
       document.getElementById("teeBannerTitleInput").value = cfg.teeBannerTitle || "";
       document.getElementById("teeBannerSubInput").value = cfg.teeBannerSubHtml || "";
       document.getElementById("eventBannerSubInput").value = cfg.eventBannerSubHtml || "";
-      document.getElementById("afterPartyInput").value = cfg.afterPartyHtml || "";
+      document.getElementById("afterPartyInput").value = isNewDefault ? "" : (cfg.afterPartyHtml || "");
       document.getElementById("copyrightInput").value = cfg.copyrightHtml || "";
+      document.getElementById("rosterPasteInput").value = "";
 
-      var grpSource = (Array.isArray(groupsOpt) && groupsOpt.length > 0) ? groupsOpt : (cfg.groups || []);
-      editorGroups = normalizeGroupsForEditor(grpSource);
+      if (isNewDefault) {
+        editorGroups = [];
+      } else {
+        var grpSource = (Array.isArray(groupsOpt) && groupsOpt.length > 0) ? groupsOpt : (cfg.groups || []);
+        editorGroups = normalizeGroupsForEditor(grpSource);
+      }
       renderGroupsEditor();
     }
 
     function startFreshTournamentForm() {
       editingExistingSlug = "";
+      editingExistingTitle = "";
       var baseCfg = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
-      populateFormFromConfig(baseCfg, baseCfg.groups || []);
+      populateFormFromConfig(baseCfg, [], true);
       document.getElementById("issuedLinksBox").style.display = "none";
       refreshEditingModeUI();
-      renderMasterTournamentListHighlight();
-      showToast("➕ 새 대회 입력 양식이 준비되었습니다.");
     }
 
     function collectCleanedGroups() {
@@ -1295,10 +1384,10 @@
     function collectConfigFromForm(slug) {
       var cleanName = document.getElementById("tournamentNameInput").value
         .replace(/^[⛳🏆🎯\s]+/, "")
-        .trim() || "골프대회 스코어보드";
-      var sheetTitle = cleanName;
-      var heroTitle = cleanName;
-      var tournamentTitle = "⛳ " + cleanName;
+        .trim();
+      var sheetTitle = cleanName || "골프대회 스코어보드";
+      var heroTitle = sheetTitle;
+      var tournamentTitle = "⛳ " + sheetTitle;
       var noticeLines = document.getElementById("noticeItemsInput").value
         .split(/\r?\n/)
         .map(function (s) { return s.trim(); })
@@ -1311,7 +1400,7 @@
         tournamentTitle: tournamentTitle,
         heroTitle: heroTitle,
         longDriveHoles: parseIntList(document.getElementById("longHolesInput").value),
-        nearPinHoles: parseIntList(document.getElementById("nearPinHolesInput") ? document.getElementById("nearPinHolesInput").value : document.getElementById("nearHolesInput").value),
+        nearPinHoles: parseIntList(document.getElementById("nearHolesInput").value),
         defaultTeeKey: document.getElementById("defaultTeeSelect").value || "white",
         noticeTitle: document.getElementById("noticeTitleInput").value.trim() || "📢 경기 진행 안내",
         noticeLeadHtml: document.getElementById("noticeLeadInput").value.trim(),
@@ -1321,74 +1410,9 @@
         eventBannerSubHtml: document.getElementById("eventBannerSubInput").value.trim(),
         afterPartyHtml: document.getElementById("afterPartyInput").value.trim(),
         copyrightHtml: document.getElementById("copyrightInput").value.trim(),
-        firstTeeTime: "", 
+        firstTeeTime: "",
         groups: collectCleanedGroups()
       };
-    }
-
-    var cachedTournamentList = [];
-
-    function renderMasterTournamentListHighlight() {
-      renderMasterTournamentList(cachedTournamentList);
-    }
-
-    function renderMasterTournamentList(list) {
-      cachedTournamentList = Array.isArray(list) ? list : [];
-      var wrap = document.getElementById("tournamentListWrap");
-      wrap.innerHTML = "";
-
-      if (cachedTournamentList.length === 0) {
-        wrap.innerHTML = '<div style="font-size:13px; color:#64748b; padding:8px 2px;">아직 개설된 대회가 없습니다. 아래에서 첫 대회를 생성해 보세요!</div>';
-        return;
-      }
-
-      cachedTournamentList.forEach(function (item) {
-        var row = document.createElement("div");
-        row.className = "tournament-row" + (editingExistingSlug === item.slug ? " active-edit" : "");
-
-        var left = document.createElement("div");
-        left.innerHTML =
-          "<div style='font-weight:800; font-size:14.5px;'>" + (item.sheetTitle || item.slug) + " <span class='slug-pill'>?t=" + item.slug + "</span></div>" +
-          "<div style='font-size:12px; color:#64748b; margin-top:2px;'>골프장: " + (item.courseKey || "-") + "</div>";
-
-        var right = document.createElement("div");
-        right.style.display = "flex";
-        right.style.gap = "6px";
-        right.style.flexWrap = "wrap";
-
-        var copyPBtn = document.createElement("button");
-        copyPBtn.type = "button";
-        copyPBtn.className = "btn btn-green btn-sm";
-        copyPBtn.textContent = "📋 참가자 링크 복사";
-        copyPBtn.onclick = function () { copyRawText(buildParticipantUrl(item.slug), "'" + (item.sheetTitle || item.slug) + "' 참가자 링크"); };
-
-        var sheetA = document.createElement("a");
-        sheetA.href = item.resultsUrl || "#";
-        sheetA.target = "_blank";
-        sheetA.className = "btn btn-outline btn-sm";
-        sheetA.textContent = "📊 시트";
-
-        var editBtn = document.createElement("button");
-        editBtn.type = "button";
-        editBtn.className = "btn btn-outline btn-sm";
-        editBtn.textContent = "✏️ 편집";
-        editBtn.onclick = function () { loadSingleTournamentIntoForm(item.slug); };
-
-        var delBtn = document.createElement("button");
-        delBtn.type = "button";
-        delBtn.className = "btn btn-danger btn-sm";
-        delBtn.textContent = "삭제";
-        delBtn.onclick = function () { deleteTournamentSlug(item.slug); };
-
-        right.appendChild(copyPBtn);
-        right.appendChild(sheetA);
-        right.appendChild(editBtn);
-        right.appendChild(delBtn);
-
-        row.appendChild(left);
-        row.appendChild(right);
-        wrap.appendChild(row);
-      });
     }
 
     function syncSlugLocalCache(slug, cfg, sheetId) {
@@ -1398,31 +1422,74 @@
       } catch (e) { }
     }
 
-    function onAuthLoadClick() {
-      loadMasterTournamentList();
+    // Past Tournaments Modal Handlers
+    function onModalBackdropClick(ev) {
+      if (ev.target && ev.target.id === "pastTournamentsModal") {
+        closePastTournamentsModal();
+      }
     }
 
-    function loadMasterTournamentList() {
-      callAdminApi("adminListTournaments", [getPinValue()])
+    function closePastTournamentsModal() {
+      document.getElementById("pastTournamentsModal").style.display = "none";
+    }
+
+    function openPastTournamentsModal() {
+      var modal = document.getElementById("pastTournamentsModal");
+      var body = document.getElementById("pastTournamentsListBody");
+      modal.style.display = "flex";
+      body.innerHTML = '<div style="text-align:center; padding:24px; color:#64748b; font-weight:700;">⏳ 예전 대회 목록을 불러오는 중입니다...</div>';
+
+      callAdminApiWithPin("adminListTournaments", function (pin) { return [pin]; })
         .then(function (data) {
-          renderMasterTournamentList(data.tournaments || []);
-          showToast("✅ 전체 대회 목록(" + (data.tournaments || []).length + "개)을 불러왔습니다.");
+          var list = (data && Array.isArray(data.tournaments)) ? data.tournaments : [];
+          if (list.length === 0) {
+            body.innerHTML = '<div style="text-align:center; padding:28px 16px; color:#64748b; font-weight:700;">아직 저장된 예전 대회가 없습니다.</div>';
+            return;
+          }
+          body.innerHTML = "";
+          list.forEach(function (item) {
+            var row = document.createElement("div");
+            row.className = "past-item-row" + (editingExistingSlug === item.slug ? " active-item" : "");
+            row.onclick = function () {
+              closePastTournamentsModal();
+              loadSingleTournamentIntoForm(item.slug);
+            };
+
+            var dateText = item.createdAt ? String(item.createdAt).slice(0, 10) : "";
+            var left = document.createElement("div");
+            left.innerHTML =
+              "<div style='font-weight:900; font-size:15px; color:#0f172a;'>" +
+              (item.sheetTitle || item.slug) +
+              "<span class='slug-pill'>?t=" + item.slug + "</span></div>" +
+              "<div style='font-size:12.5px; color:#64748b; margin-top:3px;'>골프장: <b>" + (item.courseKey || "-") + "</b>" +
+              (dateText ? (" · 생성일: " + dateText) : "") + "</div>";
+
+            var selectBadge = document.createElement("span");
+            selectBadge.className = "btn btn-blue btn-sm";
+            selectBadge.textContent = "불러오기 ➔";
+
+            row.appendChild(left);
+            row.appendChild(selectBadge);
+            body.appendChild(row);
+          });
         })
         .catch(function (err) {
-          showToast("❌ 목록 불러오기 실패: " + err.message, 4500);
+          body.innerHTML = '<div style="text-align:center; padding:24px; color:#c92a2a; font-weight:700;">❌ 불러오기 실패: ' + err.message + '</div>';
         });
     }
 
     function loadSingleTournamentIntoForm(slug) {
-      callAdminApi("adminGetTournament", [slug, getPinValue()])
+      showToast("⏳ 대회 정보를 불러오는 중...");
+      callAdminApiWithPin("adminGetTournament", function (pin) { return [slug, pin]; })
         .then(function (data) {
           editingExistingSlug = data.slug;
-          populateFormFromConfig(data.config || {}, data.groups || []);
+          editingExistingTitle = data.sheetTitle || (data.config && data.config.sheetTitle) || data.slug;
+          populateFormFromConfig(data.config || {}, data.groups || [], false);
           refreshEditingModeUI();
-          showIssuedLinksBanner(data.slug, data.resultsUrl, data.sheetTitle);
-          renderMasterTournamentListHighlight();
+          showIssuedLinksBanner(data.slug, data.resultsUrl, editingExistingTitle);
           syncSlugLocalCache(data.slug, data.config, data.sheetId);
-          showToast("✅ [" + (data.sheetTitle || data.slug) + "] 대회 정보를 불러왔습니다.");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          showToast("✅ [" + editingExistingTitle + "] 대회 내용을 불러왔습니다.");
         })
         .catch(function (err) {
           showToast("❌ 대회 불러오기 실패: " + err.message, 4500);
@@ -1430,9 +1497,15 @@
     }
 
     function createOrRebuildTournamentSheet() {
+      var nameVal = document.getElementById("tournamentNameInput").value.trim();
+      if (!nameVal) {
+        showToast("⚠️ 대회 이름을 먼저 입력해주세요!");
+        document.getElementById("tournamentNameInput").focus();
+        return;
+      }
       var groups = collectCleanedGroups();
       if (groups.length === 0) {
-        showToast("⚠️ 최소 1개 조 이상의 참석자 명단을 입력해주세요.");
+        showToast("⚠️ 참석자 명단이 비어 있습니다. 명단을 붙여넣고 [조 편성 자동 세팅]을 눌러주세요!");
         return;
       }
       var isRebuild = Boolean(editingExistingSlug);
@@ -1451,27 +1524,29 @@
       btn.disabled = true;
       btn.textContent = "⏳ 구글 시트 및 전용 링크 생성 중... (약 5~10초)";
 
-      callAdminApi("adminCreateTournament", [
-        getPinValue(),
-        {
-          slug: rawSlug,
-          allowOverwrite: isRebuild,
-          managerPin: "",
-          config: cfg,
-          groups: groups,
-          pars: getSelectedCoursePars()
-        }
-      ])
+      callAdminApiWithPin("adminCreateTournament", function (pin) {
+        return [
+          pin,
+          {
+            slug: rawSlug,
+            allowOverwrite: isRebuild,
+            managerPin: "",
+            config: cfg,
+            groups: groups,
+            pars: getSelectedCoursePars()
+          }
+        ];
+      })
         .then(function (res) {
           if (!res || !res.slug) {
-            throw new Error("구글 Apps Script에 아직 이전 버전 코드가 실행 중입니다! script.google.com에서 새 Code.gs를 붙여넣고 [배포] -> [배포 관리] -> 연필 아이콘(수정) -> 버전: [새 버전]으로 배포해주세요.");
+            throw new Error("구글 Apps Script에 아직 이전 버전 코드가 실행 중입니다.");
           }
           editingExistingSlug = res.slug;
+          editingExistingTitle = res.sheetTitle || cfg.sheetTitle;
           refreshEditingModeUI();
-          showIssuedLinksBanner(res.slug, res.resultsUrl, res.sheetTitle);
+          showIssuedLinksBanner(res.slug, res.resultsUrl, editingExistingTitle);
           syncSlugLocalCache(res.slug, res.config || cfg, res.sheetId);
-          loadMasterTournamentList();
-          showToast("🎉 대회 구글 시트와 전용 링크(?t=" + res.slug + ")가 즉시 발급되었습니다!", 5000);
+          showToast("🎉 [" + editingExistingTitle + "] 구글 시트와 전용 링크가 발급되었습니다!", 5000);
           window.scrollTo({ top: 0, behavior: "smooth" });
         })
         .catch(function (err) {
@@ -1487,12 +1562,13 @@
       var slug = editingExistingSlug;
       if (!slug) return;
       var cfg = collectConfigFromForm(slug);
-      callAdminApi("adminUpdateTournamentConfig", [slug, getPinValue(), cfg, ""])
+      callAdminApiWithPin("adminUpdateTournamentConfig", function (pin) { return [slug, pin, cfg, ""]; })
         .then(function (res) {
-          showIssuedLinksBanner(slug, res.resultsUrl, cfg.sheetTitle);
+          editingExistingTitle = cfg.sheetTitle;
+          refreshEditingModeUI();
+          showIssuedLinksBanner(slug, res.resultsUrl, editingExistingTitle);
           syncSlugLocalCache(slug, cfg, res.sheetId);
-          loadMasterTournamentList();
-          showToast("✅ 시트는 그대로 유지하고 [" + cfg.sheetTitle + "] 공지·설정이 즉시 저장되었습니다!");
+          showToast("✅ 시트는 그대로 유지하고 [" + editingExistingTitle + "] 설정이 저장되었습니다!");
         })
         .catch(function (err) {
           showToast("❌ 설정 저장 실패: " + err.message, 4500);
@@ -1502,10 +1578,10 @@
     function resetTournamentScores() {
       var slug = editingExistingSlug;
       if (!slug) return;
-      if (!confirm("⚠️ 선택된 대회의 모든 홀 점수와 니어/롱기 기록을 깨끗하게 비울까요?\n(선수 이름, 핸디, 수식은 그대로 보존됩니다.)")) {
+      if (!confirm("⚠️ [" + (editingExistingTitle || slug) + "] 대회의 모든 홀 점수와 니어/롱기 기록을 비울까요?\n(선수 이름, 핸디, 수식은 그대로 보존됩니다.)")) {
         return;
       }
-      callAdminApi("adminResetTournamentScores", [slug, getPinValue()])
+      callAdminApiWithPin("adminResetTournamentScores", function (pin) { return [slug, pin]; })
         .then(function () {
           showToast("🧹 테스트 점수와 니어/롱기 기록이 모두 초기화되었습니다!");
         })
@@ -1514,69 +1590,43 @@
         });
     }
 
-    function deleteTournamentSlug(slug) {
-      if (!confirm("목록에서 [?t=" + slug + "] 대회 링크를 비활성화(삭제)할까요?\n(구글 드라이브의 시트 파일 자체는 안전하게 보존됩니다.)")) {
+    function deleteCurrentLoadedTournament() {
+      var slug = editingExistingSlug;
+      if (!slug) return;
+      if (!confirm("[" + (editingExistingTitle || slug) + "] 대회를 목록에서 삭제할까요?\n(구글 드라이브의 시트 파일 자체는 안전하게 보존됩니다.)")) {
         return;
       }
-      callAdminApi("adminDeleteTournament", [getPinValue(), slug])
+      callAdminApiWithPin("adminDeleteTournament", function (pin) { return [pin, slug]; })
         .then(function () {
-          if (editingExistingSlug === slug) {
-            startFreshTournamentForm();
-          }
-          loadMasterTournamentList();
-          showToast("🗑️ 대회가 목록에서 제거되었습니다.");
+          startFreshTournamentForm();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          showToast("🗑️ 대회가 목록에서 삭제되어 신규 대회 생성 모드로 돌아왔습니다.");
         })
         .catch(function (err) {
           showToast("❌ 삭제 실패: " + err.message, 4500);
         });
     }
 
-    function connectSlugToExistingSheet() {
-      var idOrUrl = document.getElementById("existingSheetInput").value.trim();
-      if (!idOrUrl) {
-        showToast("⚠️ 연결할 구글 시트 URL 또는 ID를 입력해주세요.");
-        return;
-      }
-      var slug = editingExistingSlug || "";
-      var cfg = collectConfigFromForm(slug);
-      callAdminApi("adminConnectExistingSheet", [getPinValue(), slug, idOrUrl, cfg, ""])
-        .then(function (res) {
-          editingExistingSlug = res.slug;
-          if (res.groups && res.groups.length > 0) {
-            editorGroups = normalizeGroupsForEditor(res.groups);
-            renderGroupsEditor();
-          }
-          refreshEditingModeUI();
-          showIssuedLinksBanner(res.slug, res.resultsUrl, res.sheetTitle);
-          loadMasterTournamentList();
-          showToast("✅ 기존 구글 시트에 새 전용 링크(?t=" + res.slug + ")가 연결되었습니다!");
-        })
-        .catch(function (err) {
-          showToast("❌ 시트 연결 실패: " + err.message, 4500);
-        });
-    }
-
     function promptChangeMasterPin() {
-      var nextPin = prompt("새로 사용할 마스터 비밀번호(PIN, 4자리 이상)를 입력하세요:");
+      var curPin = prompt("현재 관리자 비밀번호(PIN)를 입력하세요:", getSavedMasterPin());
+      if (!curPin) return;
+      var nextPin = prompt("새로 사용할 관리자 비밀번호(PIN, 4자리 이상)를 입력하세요:");
       if (!nextPin) return;
-      callAdminApi("adminChangeMasterPin", [getPinValue(), nextPin])
+      setSavedMasterPin(curPin.trim());
+      callAdminApiWithPin("adminChangeMasterPin", function () { return [curPin.trim(), nextPin.trim()]; })
         .then(function () {
-          document.getElementById("adminPinInput").value = nextPin.trim();
-          showToast("🔑 마스터 비밀번호(PIN)가 변경되었습니다!");
+          setSavedMasterPin(nextPin.trim());
+          showToast("🔑 관리자 비밀번호(PIN)가 변경되었습니다!");
         })
         .catch(function (err) {
           showToast("❌ PIN 변경 실패: " + err.message, 4500);
         });
     }
 
+    // Boot directly into clean 'New Tournament Creation' mode with empty title and empty roster
     (function initAdminConsole() {
       populateCourseDropdown();
-      var baseCfg = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
-      populateFormFromConfig(baseCfg, baseCfg.groups || []);
-      refreshEditingModeUI();
-      if (getApiUrl()) {
-        loadMasterTournamentList();
-      }
+      startFreshTournamentForm();
     })();
   </script>
 </body>
