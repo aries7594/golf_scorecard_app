@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>🛠️ 총무 대회 설정 &amp; 구글 시트 자동 생성</title>
+  <style>
+    :root {
+      --primary: #800020;
+      --primary-dark: #5a0016;
+      --secondary: #003876;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --border: #dde2ea;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --ok: #1b7f3b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0 0 60px 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .topbar {
+      background: linear-gradient(135deg, #990026 0%, #800020 65%, #4d0013 100%);
+      color: #fff;
+      padding: 16px 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-inner {
+      max-width: 980px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .topbar-links {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .topbar-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 13px;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .topbar-btn:hover {
+      background: rgba(255, 255, 255, 0.26);
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 18px auto;
+      padding: 0 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+
+    .card-title {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #fff0f3;
+      color: var(--primary);
+      border: 1px solid #f5c2cb;
+    }
+
+    .status-banner {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 12px;
+      padding: 13px 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .status-banner.empty {
+      background: #fff9db;
+      border-color: #fcc419;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 680px) {
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .field label {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #374151;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 9px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: none;
+      transition: transform 0.06s ease, opacity 0.15s ease;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(180deg, #9e0028 0%, #800020 100%);
+      color: #fff;
+      border-bottom: 3px solid #4d0013;
+    }
+
+    .btn-blue {
+      background: linear-gradient(180deg, #0b5ed7 0%, #003876 100%);
+      color: #fff;
+      border-bottom: 3px solid #002248;
+    }
+
+    .btn-green {
+      background: linear-gradient(180deg, #2b9348 0%, #1b7f3b 100%);
+      color: #fff;
+      border-bottom: 3px solid #125427;
+    }
+
+    .btn-outline {
+      background: #fff;
+      color: #374151;
+      border: 1.5px solid #cbd5e1;
+    }
+
+    .btn-danger {
+      background: #fff5f5;
+      color: #c92a2a;
+      border: 1.5px solid #ffc9c9;
+    }
+
+    .btn-sm {
+      padding: 6px 11px;
+      font-size: 12.5px;
+      border-radius: 8px;
+    }
+
+    .paste-box {
+      background: #f8fafc;
+      border: 1.5px dashed #94a3b8;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .groups-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .group-edit-card {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fcfcfd;
+    }
+
+    .group-edit-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      gap: 6px;
+    }
+
+    .group-edit-head input {
+      width: 90px;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--primary);
+      padding: 5px 8px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 7px;
+    }
+
+    .player-row {
+      display: grid;
+      grid-template-columns: 1fr 68px 28px;
+      gap: 6px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+
+    .player-row input {
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      font-size: 13.5px;
+      width: 100%;
+    }
+
+    .player-del-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      border: 1px solid #fecaca;
+      background: #fff5f5;
+      color: #dc2626;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 11px;
+      border-radius: 9px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      font-size: 13px;
+      flex-wrap: wrap;
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(17, 24, 39, 0.94);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      z-index: 9999;
+      display: none;
+      max-width: 92vw;
+      text-align: center;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      white-space: pre-line;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <h1>🛠️ 총무 대회 설정 &amp; 구글 시트 자동 생성</h1>
+      <div class="topbar-links">
+        <a href="index.html" class="topbar-btn">⛳ 참가자용 스코어 앱 열기</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- 0. 백엔드 연결 & 현재 연결된 시트 상태 -->
+    <div class="card">
+      <div class="card-title">
+        <span>🔌 구글 시트 엔진 연결 및 현재 대회 상태</span>
+        <span class="badge" id="connBadge">확인 전</span>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:12px;">
+        <div class="field">
+          <label for="gasUrlInput">Apps Script 엔진 웹앱 URL (1회 배포 주소)</label>
+          <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+          <span class="hint">TournamentConfig.js의 GAS_BACKEND_URL에 적어두면 모든 기기에 자동 적용됩니다.</span>
+        </div>
+        <div class="field">
+          <label for="adminPinInput">총무 비밀번호 (PIN)</label>
+          <div style="display:flex; gap:8px;">
+            <input type="password" id="adminPinInput" value="2026" placeholder="기본값: 2026" style="max-width:160px;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="loadServerStatus()">🔄 현재 시트/설정 불러오기</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="promptChangePin()">🔑 PIN 변경</button>
+          </div>
+          <span class="hint">기본 PIN은 <b>2026</b>입니다.</span>
+        </div>
+      </div>
+
+      <div id="sheetStatusBanner" class="status-banner empty">
+        <div>
+          <div style="font-weight:800; font-size:14.5px;" id="statusMainText">아직 서버 상태를 불러오지 않았거나 생성된 구글 시트가 없습니다.</div>
+          <div style="font-size:12.5px; color:#4b5563; margin-top:2px;" id="statusSubText">아래에서 참석자 명단을 확인한 뒤 [🚀 새 대회 구글 시트 자동 생성] 버튼을 눌러주세요.</div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;" id="statusBtnWrap"></div>
+      </div>
+    </div>
+
+    <!-- 1. 대회 기본 정보 및 골프장 설정 -->
+    <div class="card">
+      <div class="card-title">
+        <span>① 대회 기본 정보 및 골프장 선택</span>
+      </div>
+
+      <div class="grid-3">
+        <div class="field">
+          <label for="sheetTitleInput">생성될 구글 시트 파일명</label>
+          <input type="text" id="sheetTitleInput" placeholder="예: 2026년 회장배">
+        </div>
+        <div class="field">
+          <label for="tournamentTitleInput">앱 상단 바 타이틀</label>
+          <input type="text" id="tournamentTitleInput" placeholder="예: ⛳ 2026 회장배 가을 골프대회">
+        </div>
+        <div class="field">
+          <label for="heroTitleInput">첫 화면 메인 배너 타이틀</label>
+          <input type="text" id="heroTitleInput" placeholder="예: 2026 회장배 가을 골프대회">
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-top:12px;">
+        <div class="field">
+          <label for="courseSelect">골프장 선택 (1~18홀 Par &amp; 코스맵 자동 연동)</label>
+          <select id="courseSelect" onchange="onCourseSelectChange()"></select>
+          <span class="hint" id="courseParPreview"></span>
+        </div>
+        <div class="field">
+          <label for="longHolesInput">장타(Long Drive) 홀 번호</label>
+          <input type="text" id="longHolesInput" placeholder="예: 8">
+          <span class="hint">여러 홀이면 쉼표(,)로 구분</span>
+        </div>
+        <div class="field">
+          <label for="nearHolesInput">니어(Near Pin) 홀 번호</label>
+          <input type="text" id="nearHolesInput" placeholder="예: 3, 7, 11, 14">
+          <span class="hint"><a href="#" onclick="fillRecommendedEventHoles(); return false;">선택한 골프장 추천 홀 자동 입력</a></span>
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-top:12px;">
+        <div class="field">
+          <label for="defaultTeeSelect">코스맵 기본 티박스</label>
+          <select id="defaultTeeSelect">
+            <option value="white">White (화이트티)</option>
+            <option value="blue">Blue (블루티)</option>
+            <option value="red">Red (레드티)</option>
+            <option value="black">Black (블랙티)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="firstTeeTimeInput">1조 첫 티타임 (비우면 숨김)</label>
+          <input type="text" id="firstTeeTimeInput" placeholder="예: 11:30">
+        </div>
+        <div class="field">
+          <label for="teeIntervalInput">조별 티타임 간격 (분)</label>
+          <input type="number" id="teeIntervalInput" placeholder="예: 8" min="1" max="30">
+        </div>
+      </div>
+
+      <details style="margin-top:14px;">
+        <summary style="cursor:pointer; font-weight:800; font-size:13.5px; color:var(--secondary);">
+          📢 경기 진행 공지사항 · 티박스 로컬룰 · 뒷풀이 장소 편집 (클릭하여 펼치기)
+        </summary>
+        <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+          <div class="grid-2">
+            <div class="field">
+              <label for="noticeTitleInput">공지 카드 제목</label>
+              <input type="text" id="noticeTitleInput">
+            </div>
+            <div class="field">
+              <label for="teeBannerTitleInput">티박스 로컬룰 제목</label>
+              <input type="text" id="teeBannerTitleInput">
+            </div>
+          </div>
+          <div class="field">
+            <label for="noticeLeadInput">공지 상단 강조 문구 (HTML 사용 가능)</label>
+            <textarea id="noticeLeadInput" rows="2"></textarea>
+          </div>
+          <div class="field">
+            <label for="noticeItemsInput">공지 체크리스트 항목 (한 줄에 하나씩 입력)</label>
+            <textarea id="noticeItemsInput" rows="6"></textarea>
+          </div>
+          <div class="field">
+            <label for="teeBannerSubInput">티박스 로컬룰 상세 문구 (HTML 가능)</label>
+            <input type="text" id="teeBannerSubInput">
+          </div>
+          <div class="field">
+            <label for="eventBannerSubInput">장타/니어 안내 문구 (HTML 가능)</label>
+            <textarea id="eventBannerSubInput" rows="2"></textarea>
+          </div>
+          <div class="field">
+            <label for="afterPartyInput">뒷풀이 장소 안내 (HTML 가능 · 구글맵 링크 시 핀 아이콘 자동 표시)</label>
+            <textarea id="afterPartyInput" rows="2"></textarea>
+          </div>
+          <div class="field">
+            <label for="copyrightInput">하단 저작권 문구</label>
+            <input type="text" id="copyrightInput">
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- 2. 참석자 명단 & 핸디 입력 (엑셀 붙여넣기 + 파일 업로드 + 실시간 표 편집) -->
+    <div class="card">
+      <div class="card-title">
+        <span>② 참석자 명단 &amp; 핸디 등록 (엑셀 복사/붙여넣기)</span>
+        <span class="badge" id="rosterCountBadge">0개 조 · 0명</span>
+      </div>
+
+      <div class="paste-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+          <div style="font-size:13.5px; font-weight:800; color:#1e293b;">
+            📋 엑셀/시트의 <code>[조 | 이름 | 핸디]</code> 표를 드래그해 복사(Ctrl+C)한 뒤 아래에 붙여넣기(Ctrl+V) 하세요!
+          </div>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+              📂 엑셀(.xlsx/.csv) 파일 불러오기
+              <input type="file" id="xlsxFileInput" accept=".xlsx,.csv,.tsv,.txt" style="display:none;" onchange="handleRosterFileUpload(event)">
+            </label>
+          </div>
+        </div>
+        <textarea id="rosterPasteInput" rows="5"
+          style="width:100%; padding:10px; border:1.5px solid #cbd5e1; border-radius:9px; font-size:13px; font-family:monospace;"
+          placeholder="예시 (엑셀에서 조 번호가 병합되어 아래 칸이 비어 있어도 자동 인식됩니다!):
+	이름	핸디
+1	김순곤	18
+	이춘우	18
+	류성욱	10
+	정재헌	18
+2	류제니	28
+	정혜연	36"></textarea>
+        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-blue btn-sm" onclick="applyPastedRoster()">✨ 붙여넣은 명단으로 조 편성 자동 세팅</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="addEmptyGroup()">+ 새 조 추가</button>
+        </div>
+      </div>
+
+      <div id="groupsEditorGrid" class="groups-grid"></div>
+    </div>
+
+    <!-- 3. 구글 시트 자동 생성 & 관리 실행 -->
+    <div class="card">
+      <div class="card-title">
+        <span>③ 구글 시트 자동 생성 및 대회 반영</span>
+      </div>
+
+      <div class="action-bar">
+        <button type="button" class="btn btn-primary" id="createSheetBtn" onclick="createNewTournamentSheet()">
+          🚀 새 대회 구글 시트 자동 생성 &amp; 대회 오픈
+        </button>
+        <button type="button" class="btn btn-green" onclick="updateConfigWithoutNewSheet()">
+          ✏️ 시트는 유지하고 공지/설정만 즉시 반영
+        </button>
+        <button type="button" class="btn btn-outline" onclick="downloadTournamentConfigJs()">
+          💾 TournamentConfig.js 파일 다운로드
+        </button>
+        <button type="button" class="btn btn-danger" onclick="resetCurrentSheetScores()">
+          🧹 현재 시트 테스트 점수 초기화
+        </button>
+      </div>
+      <div class="hint" style="margin-top:10px;">
+        💡 <b>[🚀 새 대회 구글 시트 자동 생성]</b>을 누르면 내 구글 드라이브에 <code>1조~N조</code>, <code>결과</code>, <code>니어/롱기</code>, <code>Stat</code> 탭과 모든 수식·핸디·배경색이 세팅된 새 시트가 만들어지고 참가자 앱에 즉시 연결됩니다.
+      </div>
+
+      <details style="margin-top:16px;">
+        <summary style="cursor:pointer; font-weight:800; font-size:13px; color:#475569;">
+          🔗 기존 구글 시트 URL/ID 직접 연결 및 최근 생성 시트 이력 보기
+        </summary>
+        <div style="margin-top:10px;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="existingSheetInput" placeholder="구글 시트 URL 또는 Spreadsheet ID 붙여넣기"
+              style="flex:1; min-width:240px; padding:8px 11px; border:1.5px solid #cbd5e1; border-radius:9px; font-size:13.5px;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="connectExistingSheet()">🔗 이 시트로 연결 전환</button>
+          </div>
+          <div id="historyListWrap" class="history-list"></div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="TournamentConfig.js"></script>
+  <script src="CourseData.js"></script>
+  <script>
+    var GAS_URL_STORAGE_KEY = "golf_gas_api_url_v1";
+    var CACHED_REMOTE_CFG_KEY = "golf_active_tournament_cfg_v1";
+    var CACHED_SCOPE_KEY = "golf_active_sheet_scope_v1";
+
+    var editorGroups = [];
+    var toastTimer = null;
+
+    function showToast(msg, ms) {
+      var el = document.getElementById("toast");
+      el.textContent = msg;
+      el.style.display = "block";
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () {
+        el.style.display = "none";
+      }, ms || 3500);
+    }
+
+    function getApiUrl() {
+      var v = (document.getElementById("gasUrlInput").value || "").trim();
+      if (v) {
+        try { localStorage.setItem(GAS_URL_STORAGE_KEY, v); } catch (e) { }
+      }
+      return v;
+    }
+
+    function getAdminPin() {
+      return (document.getElementById("adminPinInput").value || "").trim();
+    }
+
+    function callAdminApi(fnName, args) {
+      var url = getApiUrl();
+      if (!url) {
+        return Promise.reject(new Error("먼저 상단에 Apps Script 엔진 웹앱 URL을 입력해주세요."));
+      }
+      return fetch(url, {
+        method: "POST",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ fn: fnName, args: args || [] })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          if (res && res.ok) return res.data;
+          throw new Error((res && res.error) ? res.error : "서버 오류");
+        });
+    }
+
+    function parseIntList(str) {
+      return String(str || "")
+        .split(/[,\s]+/)
+        .map(function (s) { return parseInt(s, 10); })
+        .filter(function (n) { return !isNaN(n) && n >= 1 && n <= 18; });
+    }
+
+    function populateCourseDropdown() {
+      var sel = document.getElementById("courseSelect");
+      sel.innerHTML = "";
+      var catalog = (typeof COURSE_CATALOG !== "undefined" && COURSE_CATALOG) ? COURSE_CATALOG : {};
+      var seen = {};
+      Object.keys(catalog).forEach(function (k) {
+        var c = catalog[k];
+        if (!c || !c.key || seen[c.key]) return;
+        seen[c.key] = true;
+        var opt = document.createElement("option");
+        opt.value = c.key;
+        opt.textContent = (c.name || c.key) + " (" + c.key + ")";
+        sel.appendChild(opt);
+      });
+    }
+
+    function getSelectedCourseObj() {
+      var key = document.getElementById("courseSelect").value;
+      var catalog = (typeof COURSE_CATALOG !== "undefined" && COURSE_CATALOG) ? COURSE_CATALOG : {};
+      return catalog[key] || catalog[Object.keys(catalog)[0]] || {};
+    }
+
+    function getSelectedCoursePars() {
+      var cObj = getSelectedCourseObj();
+      if (Array.isArray(cObj.holes) && cObj.holes.length === 18) {
+        return cObj.holes.map(function (h) { return Number(h.par) || 4; });
+      }
+      return [4, 4, 3, 4, 5, 4, 3, 5, 4, 4, 3, 5, 4, 3, 5, 4, 4, 4];
+    }
+
+    function onCourseSelectChange() {
+      var pars = getSelectedCoursePars();
+      var sum = pars.reduce(function (a, b) { return a + b; }, 0);
+      var cObj = getSelectedCourseObj();
+      var recLong = (cObj.longDriveHoles || []).join(", ") || "-";
+      var recNear = (cObj.nearPinHoles || []).join(", ") || "-";
+      document.getElementById("courseParPreview").textContent =
+        "Par " + sum + " (" + pars.join(",") + ") · 추천 장타: " + recLong + "H / 추천 니어: " + recNear + "H";
+    }
+
+    function fillRecommendedEventHoles() {
+      var cObj = getSelectedCourseObj();
+      if (Array.isArray(cObj.longDriveHoles)) {
+        document.getElementById("longHolesInput").value = cObj.longDriveHoles.join(", ");
+      }
+      if (Array.isArray(cObj.nearPinHoles)) {
+        document.getElementById("nearHolesInput").value = cObj.nearPinHoles.join(", ");
+      }
+      showToast("선택한 골프장의 기본 추천 이벤트 홀을 채웠습니다.");
+    }
+
+    function normalizeGroupsForEditor(rawGroups) {
+      if (!Array.isArray(rawGroups)) return [];
+      return rawGroups.map(function (g, idx) {
+        var gName = String((g && g.name) || ((idx + 1) + "조")).trim();
+        if (gName.indexOf("조") === -1) gName += "조";
+        var pList = Array.isArray(g && g.players) ? g.players : [];
+        return {
+          name: gName,
+          players: pList.map(function (p) {
+            if (typeof p === "string") return { name: p, handicap: "" };
+            return {
+              name: String((p && p.name) || "").trim(),
+              handicap: (p && p.handicap !== undefined && p.handicap !== null && p.handicap !== "") ? Number(p.handicap) : ""
+            };
+          })
+        };
+      });
+    }
+
+    function renderGroupsEditor() {
+      var grid = document.getElementById("groupsEditorGrid");
+      grid.innerHTML = "";
+      var totalPlayers = 0;
+
+      editorGroups.forEach(function (grp, gi) {
+        var card = document.createElement("div");
+        card.className = "group-edit-card";
+
+        var head = document.createElement("div");
+        head.className = "group-edit-head";
+
+        var gInput = document.createElement("input");
+        gInput.type = "text";
+        gInput.value = grp.name;
+        gInput.onchange = function () { editorGroups[gi].name = gInput.value.trim() || ((gi + 1) + "조"); };
+
+        var btnWrap = document.createElement("div");
+        btnWrap.style.display = "flex";
+        btnWrap.style.gap = "4px";
+
+        var addPBtn = document.createElement("button");
+        addPBtn.type = "button";
+        addPBtn.className = "btn btn-outline btn-sm";
+        addPBtn.textContent = "+ 선수";
+        addPBtn.onclick = function () {
+          editorGroups[gi].players.push({ name: "", handicap: "" });
+          renderGroupsEditor();
+        };
+
+        var delGBtn = document.createElement("button");
+        delGBtn.type = "button";
+        delGBtn.className = "btn btn-danger btn-sm";
+        delGBtn.textContent = "조 삭제";
+        delGBtn.onclick = function () {
+          editorGroups.splice(gi, 1);
+          renderGroupsEditor();
+        };
+
+        btnWrap.appendChild(addPBtn);
+        btnWrap.appendChild(delGBtn);
+        head.appendChild(gInput);
+        head.appendChild(btnWrap);
+        card.appendChild(head);
+
+        grp.players.forEach(function (pl, pi) {
+          if (pl.name && pl.name.trim()) totalPlayers++;
+          var row = document.createElement("div");
+          row.className = "player-row";
+
+          var nameIn = document.createElement("input");
+          nameIn.type = "text";
+          nameIn.placeholder = "선수 이름";
+          nameIn.value = pl.name || "";
+          nameIn.oninput = function () {
+            editorGroups[gi].players[pi].name = nameIn.value;
+            updateRosterBadgeCount();
+          };
+
+          var hcpIn = document.createElement("input");
+          hcpIn.type = "number";
+          hcpIn.placeholder = "핸디";
+          hcpIn.value = (pl.handicap !== "" && pl.handicap !== null && pl.handicap !== undefined) ? pl.handicap : "";
+          hcpIn.oninput = function () {
+            var v = hcpIn.value.trim();
+            editorGroups[gi].players[pi].handicap = v === "" ? "" : Number(v);
+          };
+
+          var delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.className = "player-del-btn";
+          delBtn.title = "선수 삭제";
+          delBtn.textContent = "✕";
+          delBtn.onclick = function () {
+            editorGroups[gi].players.splice(pi, 1);
+            renderGroupsEditor();
+          };
+
+          row.appendChild(nameIn);
+          row.appendChild(hcpIn);
+          row.appendChild(delBtn);
+          card.appendChild(row);
+        });
+
+        grid.appendChild(card);
+      });
+
+      updateRosterBadgeCount();
+    }
+
+    function updateRosterBadgeCount() {
+      var pCount = 0;
+      editorGroups.forEach(function (g) {
+        (g.players || []).forEach(function (p) {
+          if (p && String(p.name || "").trim()) pCount++;
+        });
+      });
+      document.getElementById("rosterCountBadge").textContent = editorGroups.length + "개 조 · " + pCount + "명";
+    }
+
+    function addEmptyGroup() {
+      var nextNum = editorGroups.length + 1;
+      editorGroups.push({
+        name: nextNum + "조",
+        players: [
+          { name: "", handicap: "" },
+          { name: "", handicap: "" },
+          { name: "", handicap: "" },
+          { name: "", handicap: "" }
+        ]
+      });
+      renderGroupsEditor();
+    }
+
+    /**
+     * 엑셀/구글시트에서 복사한 [조 | 이름 | 핸디] 텍스트 파싱
+     * - 조 번호 셀이 병합되어 2~4행의 첫 칸이 비어있는 탭(\t이름\t핸디) 형태를 완벽하게 인식!
+     * - 조 번호 없이 [이름 | 핸디] 2열만 붙여넣으면 자동으로 4명씩 1조, 2조...로 편성!
+     */
+    function parseRosterTextToGroups(rawText) {
+      var lines = String(rawText || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+      var groupsMap = {};
+      var groupOrder = [];
+      var currentGroup = "";
+      var hasExplicitGroup = false;
+      var ungroupedPlayers = [];
+
+      function normalizeGroupLabel(rawG) {
+        var s = String(rawG || "").trim();
+        if (!s) return "";
+        if (/^\d+$/.test(s)) return s + "조";
+        if (/^\d+\s*조$/.test(s)) return s.replace(/\s+/g, "");
+        return s;
+      }
+
+      function addPlayerToGroup(gName, pName, hcpRaw) {
+        var cleanName = String(pName || "").trim();
+        if (!cleanName) return;
+        var hcpNum = "";
+        var cleanHcp = String(hcpRaw !== undefined && hcpRaw !== null ? hcpRaw : "").replace(/[^0-9.-]/g, "").trim();
+        if (cleanHcp !== "" && !isNaN(Number(cleanHcp))) {
+          hcpNum = Number(cleanHcp);
+        }
+        if (!groupsMap[gName]) {
+          groupsMap[gName] = [];
+          groupOrder.push(gName);
+        }
+        groupsMap[gName].push({ name: cleanName, handicap: hcpNum });
+      }
+
+      var parsedRows = [];
+      for (var pIdx = 0; pIdx < lines.length; pIdx++) {
+        var rawLine = lines[pIdx];
+        if (!rawLine || !rawLine.trim()) continue;
+        var cols = rawLine.indexOf("\t") !== -1
+          ? rawLine.split("\t")
+          : (rawLine.indexOf(",") !== -1 ? rawLine.split(",") : rawLine.trim().split(/\s{2,}|\s+/));
+        parsedRows.push(cols.map(function (c) { return String(c || "").trim(); }));
+      }
+
+      // 엑셀 시트 왼쪽에 빈 여백 열(예: A열을 비우고 B열부터 표 작성)이 있는 경우 여백 열만 자동 제거
+      var minNonEmptyCol = Infinity;
+      for (var rCheck = 0; rCheck < parsedRows.length; rCheck++) {
+        for (var cCheck = 0; cCheck < parsedRows[rCheck].length; cCheck++) {
+          if (parsedRows[rCheck][cCheck] !== "") {
+            if (cCheck < minNonEmptyCol) minNonEmptyCol = cCheck;
+            break;
+          }
+        }
+      }
+      if (minNonEmptyCol > 0 && minNonEmptyCol !== Infinity) {
+        parsedRows = parsedRows.map(function (r) { return r.slice(minNonEmptyCol); });
+      }
+
+      for (var i = 0; i < parsedRows.length; i++) {
+        var trimmedCols = parsedRows[i];
+
+        // 헤더 행 자동 건너뛰기 (예: ['', '이름', '핸디'] 또는 ['조', '이름', '핸디'] 또는 ['Team', '이름', ...])
+        var joinedHeader = trimmedCols.join("|");
+        if (/(^|\|)(이름|성명|선수|name)(\||$)/i.test(joinedHeader) && /(핸디|handicap|hcp|조|team)/i.test(joinedHeader)) {
+          continue;
+        }
+
+        if (trimmedCols.length >= 3) {
+          var gCell = trimmedCols[0];
+          var nameCell = trimmedCols[1];
+          var hcpCell = trimmedCols[2];
+          if (gCell !== "") {
+            currentGroup = normalizeGroupLabel(gCell);
+            hasExplicitGroup = true;
+          }
+          if (!nameCell) continue;
+          if (currentGroup) {
+            addPlayerToGroup(currentGroup, nameCell, hcpCell);
+          } else {
+            ungroupedPlayers.push({ name: nameCell, handicap: hcpCell });
+          }
+        } else if (trimmedCols.length === 2) {
+          // 1) 첫 칸이 조 번호이고 둘째 칸이 이름인 경우 (핸디 생략): "1\t김순곤"
+          if (/^\d+\s*조?$/.test(trimmedCols[0]) && !/^\d+(\.\d+)?$/.test(trimmedCols[1])) {
+            currentGroup = normalizeGroupLabel(trimmedCols[0]);
+            hasExplicitGroup = true;
+            addPlayerToGroup(currentGroup, trimmedCols[1], "");
+          } else if (hasExplicitGroup && currentGroup) {
+            // 2) 이전 줄에서 조 번호가 지정된 상태에서 "이춘우\t18" 형태로 들어온 경우
+            addPlayerToGroup(currentGroup, trimmedCols[0], trimmedCols[1]);
+          } else {
+            // 3) 조 컬럼 없이 [이름 | 핸디]만 있는 명단
+            ungroupedPlayers.push({ name: trimmedCols[0], handicap: trimmedCols[1] });
+          }
+        } else if (trimmedCols.length === 1 && trimmedCols[0]) {
+          if (/^\d+\s*조$/.test(trimmedCols[0])) {
+            currentGroup = normalizeGroupLabel(trimmedCols[0]);
+            hasExplicitGroup = true;
+          } else if (currentGroup) {
+            addPlayerToGroup(currentGroup, trimmedCols[0], "");
+          } else {
+            ungroupedPlayers.push({ name: trimmedCols[0], handicap: "" });
+          }
+        }
+      }
+
+      if (!hasExplicitGroup && ungroupedPlayers.length > 0) {
+        for (var u = 0; u < ungroupedPlayers.length; u++) {
+          var autoG = (Math.floor(u / 4) + 1) + "조";
+          addPlayerToGroup(autoG, ungroupedPlayers[u].name, ungroupedPlayers[u].handicap);
+        }
+      }
+
+      return groupOrder.map(function (gName) {
+        return { name: gName, players: groupsMap[gName] };
+      });
+    }
+
+    function applyPastedRoster() {
+      var raw = document.getElementById("rosterPasteInput").value;
+      var parsed = parseRosterTextToGroups(raw);
+      if (parsed.length === 0) {
+        showToast("⚠️ 인식된 참석자 명단이 없습니다. 엑셀 표를 붙여넣어 주세요.");
+        return;
+      }
+      editorGroups = parsed;
+      renderGroupsEditor();
+      var totalP = parsed.reduce(function (s, g) { return s + g.players.length; }, 0);
+      showToast("✅ " + parsed.length + "개 조 · 총 " + totalP + "명 명단과 핸디가 세팅되었습니다!");
+    }
+
+    // 내장 브라우저 DecompressionStream으로 외부 라이브러리 없이 .xlsx 파일 직접 파싱
+    async function parseXlsxFileBuffer(arrayBuffer) {
+      var bytes = new Uint8Array(arrayBuffer);
+      var view = new DataView(arrayBuffer);
+      var files = {};
+
+      // End of Central Directory 탐색
+      var eocdPos = -1;
+      for (var i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+        if (view.getUint32(i, true) === 0x06054b50) {
+          eocdPos = i;
+          break;
+        }
+      }
+      if (eocdPos < 0) throw new Error("유효한 .xlsx 파일이 아닙니다.");
+      var cdEntries = view.getUint16(eocdPos + 10, true);
+      var cdOffset = view.getUint32(eocdPos + 16, true);
+
+      var ptr = cdOffset;
+      var decoder = new TextDecoder("utf-8");
+      for (var e = 0; e < cdEntries; e++) {
+        if (view.getUint32(ptr, true) !== 0x02014b50) break;
+        var method = view.getUint16(ptr + 10, true);
+        var compSize = view.getUint32(ptr + 20, true);
+        var nameLen = view.getUint16(ptr + 28, true);
+        var extraLen = view.getUint16(ptr + 30, true);
+        var commentLen = view.getUint16(ptr + 32, true);
+        var localOffset = view.getUint32(ptr + 42, true);
+        var name = decoder.decode(bytes.subarray(ptr + 46, ptr + 46 + nameLen));
+        ptr += 46 + nameLen + extraLen + commentLen;
+
+        var lNameLen = view.getUint16(localOffset + 26, true);
+        var lExtraLen = view.getUint16(localOffset + 28, true);
+        var dataStart = localOffset + 30 + lNameLen + lExtraLen;
+        var rawSlice = bytes.subarray(dataStart, dataStart + compSize);
+
+        if (method === 0) {
+          files[name] = decoder.decode(rawSlice);
+        } else if (method === 8 && typeof DecompressionStream !== "undefined") {
+          var ds = new DecompressionStream("deflate-raw");
+          var writer = ds.writable.getWriter();
+          writer.write(rawSlice);
+          writer.close();
+          var buf = await new Response(ds.readable).arrayBuffer();
+          files[name] = decoder.decode(buf);
+        }
+      }
+
+      var domParser = new DOMParser();
+      var sharedStrings = [];
+      if (files["xl/sharedStrings.xml"]) {
+        var sstDoc = domParser.parseFromString(files["xl/sharedStrings.xml"], "application/xml");
+        var siNodes = sstDoc.getElementsByTagName("si");
+        for (var s = 0; s < siNodes.length; s++) {
+          var tNodes = siNodes[s].getElementsByTagName("t");
+          var acc = "";
+          for (var ti = 0; ti < tNodes.length; ti++) acc += tNodes[ti].textContent || "";
+          sharedStrings.push(acc);
+        }
+      }
+
+      // 만약 기존 대회 결과 시트('1조', '2조'...) 형식이면 조별 시트에서 이름+핸디 추출, 아니면 첫 시트 표 파싱
+      var wbDoc = domParser.parseFromString(files["xl/workbook.xml"], "application/xml");
+      var relDoc = domParser.parseFromString(files["xl/_rels/workbook.xml.rels"], "application/xml");
+      var relMap = {};
+      var relNodes = relDoc.getElementsByTagName("Relationship");
+      for (var ri = 0; ri < relNodes.length; ri++) {
+        relMap[relNodes[ri].getAttribute("Id")] = "xl/" + relNodes[ri].getAttribute("Target").replace(/^\/+/, "");
+      }
+
+      function extractSheetMatrix(xmlText) {
+        var doc = domParser.parseFromString(xmlText, "application/xml");
+        var rowNodes = doc.getElementsByTagName("row");
+        var matrix = [];
+        for (var r = 0; r < rowNodes.length; r++) {
+          var cNodes = rowNodes[r].getElementsByTagName("c");
+          var rowArr = [];
+          for (var c = 0; c < cNodes.length; c++) {
+            var ref = cNodes[c].getAttribute("r") || "";
+            var colLetters = ref.replace(/[0-9]/g, "");
+            var colIdx = 0;
+            for (var ci = 0; ci < colLetters.length; ci++) {
+              colIdx = colIdx * 26 + (colLetters.charCodeAt(ci) - 64);
+            }
+            colIdx = Math.max(0, colIdx - 1);
+            var cType = cNodes[c].getAttribute("t") || "";
+            var vNode = cNodes[c].getElementsByTagName("v")[0];
+            var val = vNode ? vNode.textContent : "";
+            if (cType === "s" && val !== "") val = sharedStrings[parseInt(val, 10)] || "";
+            while (rowArr.length <= colIdx) rowArr.push("");
+            rowArr[colIdx] = val;
+          }
+          matrix.push(rowArr);
+        }
+        return matrix;
+      }
+
+      var sheetNodes = wbDoc.getElementsByTagName("sheet");
+      var groupSheetsFound = [];
+      for (var sh = 0; sh < sheetNodes.length; sh++) {
+        var shName = sheetNodes[sh].getAttribute("name") || "";
+        var rId = sheetNodes[sh].getAttribute("r:id") || sheetNodes[sh].getAttribute("id") || "";
+        var targetPath = relMap[rId];
+        if (shName.indexOf("조") !== -1 && shName.indexOf("결과") === -1 && files[targetPath]) {
+          var mat = extractSheetMatrix(files[targetPath]);
+          var pls = [];
+          for (var mr = 2; mr < Math.min(mat.length, 10); mr++) {
+            var pName = (mat[mr][0] || "").trim();
+            if (!pName || pName === "홀파미션" || pName === "메모") {
+              if (pName === "홀파미션") break;
+              continue;
+            }
+            var hcpV = mat[mr][20];
+            pls.push({ name: pName, handicap: (hcpV !== undefined && hcpV !== "" && !isNaN(Number(hcpV))) ? Number(hcpV) : "" });
+          }
+          if (pls.length > 0) groupSheetsFound.push({ name: shName, players: pls });
+        }
+      }
+      if (groupSheetsFound.length > 0) return groupSheetsFound;
+
+      // 일반 명단 시트([조 | 이름 | 핸디])인 경우 첫 번째 시트를 탭 텍스트로 변환해 파싱
+      var firstRId = sheetNodes[0].getAttribute("r:id") || sheetNodes[0].getAttribute("id");
+      var firstMatrix = extractSheetMatrix(files[relMap[firstRId]]);
+      var tsvLines = firstMatrix.map(function (r) { return r.join("\t"); }).join("\n");
+      document.getElementById("rosterPasteInput").value = tsvLines;
+      return parseRosterTextToGroups(tsvLines);
+    }
+
+    async function handleRosterFileUpload(ev) {
+      var file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      try {
+        if (/\.xlsx$/i.test(file.name)) {
+          var buf = await file.arrayBuffer();
+          var groups = await parseXlsxFileBuffer(buf);
+          if (groups.length > 0) {
+            editorGroups = groups;
+            renderGroupsEditor();
+            var cnt = groups.reduce(function (s, g) { return s + g.players.length; }, 0);
+            showToast("✅ '" + file.name + "'에서 " + groups.length + "개 조 · " + cnt + "명 명단을 불러왔습니다!");
+          } else {
+            showToast("⚠️ 엑셀 파일에서 명단을 찾지 못했습니다.");
+          }
+        } else {
+          var txt = await file.text();
+          document.getElementById("rosterPasteInput").value = txt;
+          applyPastedRoster();
+        }
+      } catch (err) {
+        showToast("❌ 파일 읽기 오류: " + err.message);
+      }
+      ev.target.value = "";
+    }
+
+    function populateFormFromConfig(cfg, groupsOpt) {
+      cfg = cfg || {};
+      document.getElementById("sheetTitleInput").value = cfg.sheetTitle || cfg.heroTitle || "2026년 회장배";
+      document.getElementById("tournamentTitleInput").value = cfg.tournamentTitle || "";
+      document.getElementById("heroTitleInput").value = cfg.heroTitle || "";
+
+      var courseSel = document.getElementById("courseSelect");
+      if (cfg.courseKey) courseSel.value = cfg.courseKey;
+      onCourseSelectChange();
+
+      document.getElementById("longHolesInput").value = (cfg.longDriveHoles || []).join(", ");
+      document.getElementById("nearHolesInput").value = (cfg.nearPinHoles || []).join(", ");
+      document.getElementById("defaultTeeSelect").value = cfg.defaultTeeKey || "white";
+      document.getElementById("firstTeeTimeInput").value = cfg.firstTeeTime !== undefined ? cfg.firstTeeTime : "";
+      document.getElementById("teeIntervalInput").value = cfg.teeIntervalMin !== undefined ? cfg.teeIntervalMin : 8;
+
+      document.getElementById("noticeTitleInput").value = cfg.noticeTitle || "📢 경기 진행 안내";
+      document.getElementById("noticeLeadInput").value = cfg.noticeLeadHtml || "";
+      document.getElementById("noticeItemsInput").value = Array.isArray(cfg.noticeItems) ? cfg.noticeItems.join("\n") : "";
+      document.getElementById("teeBannerTitleInput").value = cfg.teeBannerTitle || "";
+      document.getElementById("teeBannerSubInput").value = cfg.teeBannerSubHtml || "";
+      document.getElementById("eventBannerSubInput").value = cfg.eventBannerSubHtml || "";
+      document.getElementById("afterPartyInput").value = cfg.afterPartyHtml || "";
+      document.getElementById("copyrightInput").value = cfg.copyrightHtml || "";
+
+      var grpSource = (Array.isArray(groupsOpt) && groupsOpt.length > 0) ? groupsOpt : (cfg.groups || []);
+      editorGroups = normalizeGroupsForEditor(grpSource);
+      renderGroupsEditor();
+    }
+
+    function collectCleanedGroups() {
+      var out = [];
+      editorGroups.forEach(function (g, idx) {
+        var gName = String(g.name || ((idx + 1) + "조")).trim();
+        if (gName.indexOf("조") === -1) gName += "조";
+        var pls = [];
+        (g.players || []).forEach(function (p) {
+          var n = String((p && p.name) || "").trim();
+          if (!n) return;
+          var h = (p.handicap !== "" && p.handicap !== null && p.handicap !== undefined && !isNaN(Number(p.handicap)))
+            ? Number(p.handicap)
+            : "";
+          pls.push({ name: n, handicap: h });
+        });
+        if (pls.length > 0) out.push({ name: gName, players: pls });
+      });
+      return out;
+    }
+
+    function collectConfigFromForm() {
+      var sheetTitle = document.getElementById("sheetTitleInput").value.trim() || "골프대회 스코어보드";
+      var heroTitle = document.getElementById("heroTitleInput").value.trim() || sheetTitle;
+      var tournamentTitle = document.getElementById("tournamentTitleInput").value.trim() || ("⛳ " + heroTitle);
+      var noticeLines = document.getElementById("noticeItemsInput").value
+        .split(/\r?\n/)
+        .map(function (s) { return s.trim(); })
+        .filter(Boolean);
+
+      return {
+        tournamentId: "t_" + Date.now(),
+        courseKey: document.getElementById("courseSelect").value,
+        sheetTitle: sheetTitle,
+        tournamentTitle: tournamentTitle,
+        heroTitle: heroTitle,
+        longDriveHoles: parseIntList(document.getElementById("longHolesInput").value),
+        nearPinHoles: parseIntList(document.getElementById("nearHolesInput").value),
+        defaultTeeKey: document.getElementById("defaultTeeSelect").value || "white",
+        noticeTitle: document.getElementById("noticeTitleInput").value.trim() || "📢 경기 진행 안내",
+        noticeLeadHtml: document.getElementById("noticeLeadInput").value.trim(),
+        noticeItems: noticeLines,
+        teeBannerTitle: document.getElementById("teeBannerTitleInput").value.trim(),
+        teeBannerSubHtml: document.getElementById("teeBannerSubInput").value.trim(),
+        eventBannerSubHtml: document.getElementById("eventBannerSubInput").value.trim(),
+        afterPartyHtml: document.getElementById("afterPartyInput").value.trim(),
+        copyrightHtml: document.getElementById("copyrightInput").value.trim(),
+        firstTeeTime: document.getElementById("firstTeeTimeInput").value.trim(),
+        teeIntervalMin: Number(document.getElementById("teeIntervalInput").value) || 8,
+        groups: collectCleanedGroups()
+      };
+    }
+
+    function renderActiveSheetBanner(data) {
+      var banner = document.getElementById("sheetStatusBanner");
+      var badge = document.getElementById("connBadge");
+      var mainTxt = document.getElementById("statusMainText");
+      var subTxt = document.getElementById("statusSubText");
+      var btnWrap = document.getElementById("statusBtnWrap");
+      btnWrap.innerHTML = "";
+
+      if (data && data.sheetId) {
+        banner.classList.remove("empty");
+        badge.textContent = "✅ 시트 연결됨";
+        badge.style.background = "#dcfce7";
+        badge.style.color = "#166534";
+        badge.style.borderColor = "#86efac";
+        mainTxt.textContent = "현재 운영 중인 구글 시트: " + (data.sheetTitle || (data.config && data.config.sheetTitle) || data.sheetId);
+        subTxt.textContent = "Sheet ID: " + data.sheetId;
+
+        var openSheetA = document.createElement("a");
+        openSheetA.href = data.resultsUrl || data.sheetUrl;
+        openSheetA.target = "_blank";
+        openSheetA.rel = "noopener";
+        openSheetA.className = "btn btn-green btn-sm";
+        openSheetA.textContent = "📊 구글 시트('결과' 탭) 열기";
+
+        var openAppA = document.createElement("a");
+        openAppA.href = "index.html";
+        openAppA.target = "_blank";
+        openAppA.className = "btn btn-blue btn-sm";
+        openAppA.textContent = "📱 참가자 스코어 앱 열기";
+
+        btnWrap.appendChild(openSheetA);
+        btnWrap.appendChild(openAppA);
+      } else {
+        banner.classList.add("empty");
+        badge.textContent = "시트 미생성";
+        mainTxt.textContent = "엔진 연결 완료! 아직 생성된 대회 구글 시트가 없습니다.";
+        subTxt.textContent = "아래 [🚀 새 대회 구글 시트 자동 생성 & 대회 오픈] 버튼을 누르면 즉시 시트가 생성됩니다.";
+      }
+
+      // 히스토리 렌더링
+      var histWrap = document.getElementById("historyListWrap");
+      histWrap.innerHTML = "";
+      if (data && Array.isArray(data.history) && data.history.length > 0) {
+        data.history.forEach(function (h) {
+          var row = document.createElement("div");
+          row.className = "history-item";
+          var info = document.createElement("div");
+          info.innerHTML = "<b>" + (h.title || h.sheetId) + "</b> <span style='color:#64748b; font-size:12px;'>(" + (h.createdAt ? h.createdAt.slice(0, 16).replace("T", " ") : "") + ")</span>";
+          var actions = document.createElement("div");
+          actions.style.display = "flex";
+          actions.style.gap = "6px";
+
+          var linkBtn = document.createElement("a");
+          linkBtn.href = h.resultsUrl || ("https://docs.google.com/spreadsheets/d/" + h.sheetId + "/edit");
+          linkBtn.target = "_blank";
+          linkBtn.className = "btn btn-outline btn-sm";
+          linkBtn.textContent = "시트 열기";
+
+          var useBtn = document.createElement("button");
+          useBtn.type = "button";
+          useBtn.className = "btn btn-outline btn-sm";
+          useBtn.textContent = (data.sheetId === h.sheetId) ? "현재 사용 중" : "이 시트로 전환";
+          useBtn.disabled = (data.sheetId === h.sheetId);
+          useBtn.onclick = function () {
+            document.getElementById("existingSheetInput").value = h.sheetId;
+            connectExistingSheet();
+          };
+
+          actions.appendChild(linkBtn);
+          actions.appendChild(useBtn);
+          row.appendChild(info);
+          row.appendChild(actions);
+          histWrap.appendChild(row);
+        });
+      }
+    }
+
+    function syncLocalBrowserCache(cfg, sheetId) {
+      try {
+        if (cfg) localStorage.setItem(CACHED_REMOTE_CFG_KEY, JSON.stringify(cfg));
+        if (sheetId) localStorage.setItem(CACHED_SCOPE_KEY, String(sheetId));
+      } catch (e) { }
+    }
+
+    function loadServerStatus() {
+      callAdminApi("adminGetStatus", [getAdminPin()])
+        .then(function (data) {
+          renderActiveSheetBanner(data);
+          if (data.config || (data.groups && data.groups.length > 0)) {
+            populateFormFromConfig(data.config || TOURNAMENT_CONFIG, data.groups);
+            syncLocalBrowserCache(data.config, data.sheetId);
+          }
+          showToast("✅ 서버에서 현재 대회 상태를 불러왔습니다.");
+        })
+        .catch(function (err) {
+          showToast("❌ 불러오기 실패: " + err.message, 4500);
+        });
+    }
+
+    function createNewTournamentSheet() {
+      var groups = collectCleanedGroups();
+      if (groups.length === 0) {
+        showToast("⚠️ 최소 1개 조 이상의 참석자 명단을 입력해주세요.");
+        return;
+      }
+      var cfg = collectConfigFromForm();
+      var totalP = groups.reduce(function (s, g) { return s + g.players.length; }, 0);
+      var ok = confirm(
+        "[" + cfg.sheetTitle + "] 구글 시트를 새로 자동 생성하고 대회를 오픈할까요?\n\n" +
+        "• 골프장: " + cfg.courseKey + "\n" +
+        "• 편성 인원: " + groups.length + "개 조 (총 " + totalP + "명)\n" +
+        "• 생성 탭: 1조~" + groups.length + "조, 결과, 니어/롱기, Stat"
+      );
+      if (!ok) return;
+
+      var btn = document.getElementById("createSheetBtn");
+      btn.disabled = true;
+      btn.textContent = "⏳ 구글 시트 및 수식 자동 생성 중... (약 5~10초)";
+
+      callAdminApi("adminCreateTournament", [
+        getAdminPin(),
+        {
+          config: cfg,
+          groups: groups,
+          pars: getSelectedCoursePars()
+        }
+      ])
+        .then(function (res) {
+          syncLocalBrowserCache(res.config || cfg, res.sheetId);
+          renderActiveSheetBanner(res);
+          showToast("🎉 새 대회 구글 시트가 생성되어 바로 연결되었습니다!", 5000);
+        })
+        .catch(function (err) {
+          showToast("❌ 시트 생성 실패: " + err.message, 5000);
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = "🚀 새 대회 구글 시트 자동 생성 & 대회 오픈";
+        });
+    }
+
+    function updateConfigWithoutNewSheet() {
+      var cfg = collectConfigFromForm();
+      callAdminApi("adminUpdateConfigOnly", [getAdminPin(), cfg])
+        .then(function (res) {
+          syncLocalBrowserCache(cfg, res.sheetId);
+          showToast("✅ 시트는 그대로 유지하고 대회 공지·설정이 즉시 반영되었습니다!");
+        })
+        .catch(function (err) {
+          showToast("❌ 설정 반영 실패: " + err.message, 4500);
+        });
+    }
+
+    function connectExistingSheet() {
+      var idOrUrl = document.getElementById("existingSheetInput").value.trim();
+      if (!idOrUrl) {
+        showToast("⚠️ 연결할 구글 시트 URL 또는 ID를 입력해주세요.");
+        return;
+      }
+      var cfg = collectConfigFromForm();
+      callAdminApi("adminConnectExistingSheet", [getAdminPin(), idOrUrl, cfg])
+        .then(function (res) {
+          syncLocalBrowserCache(res.config || cfg, res.sheetId);
+          renderActiveSheetBanner(res);
+          if (res.groups && res.groups.length > 0) {
+            editorGroups = normalizeGroupsForEditor(res.groups);
+            renderGroupsEditor();
+          }
+          showToast("✅ 선택한 구글 시트('" + (res.sheetTitle || res.sheetId) + "')로 전환되었습니다!");
+        })
+        .catch(function (err) {
+          showToast("❌ 시트 연결 실패: " + err.message, 4500);
+        });
+    }
+
+    function resetCurrentSheetScores() {
+      if (!confirm("⚠️ 현재 연결된 구글 시트의 모든 홀 점수와 니어/롱기 기록을 깨끗하게 비울까요?\n(선수 이름, 핸디, 수식은 그대로 보존됩니다.)")) {
+        return;
+      }
+      callAdminApi("adminResetScores", [getAdminPin()])
+        .then(function () {
+          showToast("🧹 현재 시트의 테스트 점수와 니어/롱기 기록이 모두 초기화되었습니다!");
+        })
+        .catch(function (err) {
+          showToast("❌ 초기화 실패: " + err.message, 4500);
+        });
+    }
+
+    function promptChangePin() {
+      var nextPin = prompt("새로 사용할 총무 비밀번호(PIN, 4자리 이상)를 입력하세요:");
+      if (!nextPin) return;
+      callAdminApi("adminChangePin", [getAdminPin(), nextPin])
+        .then(function () {
+          document.getElementById("adminPinInput").value = nextPin.trim();
+          showToast("🔑 총무 비밀번호(PIN)가 변경되었습니다!");
+        })
+        .catch(function (err) {
+          showToast("❌ PIN 변경 실패: " + err.message, 4500);
+        });
+    }
+
+    function downloadTournamentConfigJs() {
+      var cfg = collectConfigFromForm();
+      var apiUrl = getApiUrl();
+      var content =
+        "/* [TournamentConfig.js] GitHub 정적 기본 대회 설정 파일 */\n\n" +
+        "var GAS_BACKEND_URL = " + JSON.stringify(apiUrl) + ";\n\n" +
+        "var TOURNAMENT_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n";
+      var blob = new Blob([content], { type: "application/javascript;charset=utf-8" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "TournamentConfig.js";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast("💾 TournamentConfig.js 파일이 다운로드되었습니다. GitHub 저장소에 덮어쓰면 영구 반영됩니다.");
+    }
+
+    (function initAdminPage() {
+      populateCourseDropdown();
+      var initUrl = "";
+      try {
+        var params = new URLSearchParams(window.location.search || "");
+        initUrl = (params.get("api") || "").trim();
+      } catch (e) { }
+      if (!initUrl && typeof GAS_BACKEND_URL === "string" && GAS_BACKEND_URL.trim()) {
+        initUrl = GAS_BACKEND_URL.trim();
+      }
+      if (!initUrl) {
+        try { initUrl = (localStorage.getItem(GAS_URL_STORAGE_KEY) || "").trim(); } catch (e2) { }
+      }
+      document.getElementById("gasUrlInput").value = initUrl;
+
+      var baseCfg = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
+      populateFormFromConfig(baseCfg, baseCfg.groups || []);
+
+      if (initUrl) {
+        loadServerStatus();
+      }
+    })();
+  </script>
+</body>
+
+</html>
