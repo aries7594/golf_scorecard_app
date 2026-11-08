@@ -39,7 +39,7 @@
       gap: 16px;
     }
 
-    /* Top Header Row matching layout: Big Mode/Tournament Title on left + Past List button on right */
+    /* Top Header Row: Mode / Selected Tournament Title on left + Past List button on right */
     .page-header-row {
       display: flex;
       align-items: center;
@@ -145,15 +145,21 @@
       gap: 12px;
     }
 
-    .grid-3 {
+    .grid-4 {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 12px;
     }
 
-    @media (max-width: 680px) {
+    @media (max-width: 760px) {
+      .grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
       .grid-2,
-      .grid-3 {
+      .grid-4 {
         grid-template-columns: 1fr;
       }
 
@@ -340,6 +346,156 @@
       cursor: pointer;
     }
 
+    /* Section 3: Google Docs-style Rich Text Editor & Dynamic Footer Lines */
+    .gdoc-wrap {
+      border: 1.5px solid #94a3b8;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .gdoc-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      padding: 7px 10px;
+      background: #edf2fa;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .gdoc-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 30px;
+      height: 30px;
+      padding: 0 7px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #1f2937;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .gdoc-btn:hover {
+      background: #dce5f4;
+    }
+
+    .gdoc-select {
+      height: 30px;
+      padding: 0 8px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #1f2937;
+      cursor: pointer;
+    }
+
+    .gdoc-sep {
+      width: 1px;
+      height: 20px;
+      background: #cbd5e1;
+      margin: 0 3px;
+    }
+
+    .gdoc-color-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      height: 30px;
+      padding: 0 7px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+      position: relative;
+    }
+
+    .gdoc-color-label:hover {
+      background: #dce5f4;
+    }
+
+    .gdoc-color-label input[type="color"] {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+
+    .gdoc-editor {
+      min-height: 210px;
+      max-height: 440px;
+      overflow-y: auto;
+      padding: 16px 18px;
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: #111827;
+      outline: none;
+    }
+
+    .gdoc-editor:empty:before {
+      content: attr(data-placeholder);
+      color: #9ca3af;
+      pointer-events: none;
+    }
+
+    .gdoc-editor p {
+      margin: 0 0 6px 0;
+    }
+
+    .gdoc-editor ul,
+    .gdoc-editor ol {
+      margin: 4px 0 6px 22px;
+      padding: 0;
+    }
+
+    .gdoc-editor li {
+      margin-bottom: 3px;
+    }
+
+    .guide-meta-lines {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .guide-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 15.5px;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    .inline-meta-input {
+      padding: 7px 11px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      color: #1f2937;
+      background: #ffffff;
+    }
+
+    .inline-meta-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
+    }
+
     .action-bar {
       display: flex;
       flex-wrap: wrap;
@@ -505,7 +661,7 @@
       </div>
     </div>
 
-    <!-- 1. Tournament General Settings -->
+    <!-- 1. Basic Tournament Information -->
     <div class="card">
       <div class="card-title">
         <span id="formSectionTitle">① 대회 기본 정보 설정</span>
@@ -518,75 +674,45 @@
           <input type="text" id="tournamentNameInput" placeholder="예: 2027년 봄 골프대회">
         </div>
         <div class="field">
-          <label for="defaultTeeSelect">코스맵 기본 티박스</label>
-          <select id="defaultTeeSelect">
-            <option value="white">White (화이트티)</option>
-            <option value="blue">Blue (블루티)</option>
-            <option value="red">Red (레드티)</option>
-            <option value="black">Black (블랙티)</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="grid-3" style="margin-top:12px;">
-        <div class="field">
           <label for="courseSelect">골프장 선택 (1~18홀 Par &amp; 코스맵 자동 연동)</label>
           <select id="courseSelect" onchange="onCourseSelectChange(true)"></select>
           <span class="hint" id="courseParPreview"></span>
         </div>
+      </div>
+
+      <div class="grid-4" style="margin-top:12px;">
+        <div class="field">
+          <label for="menTeeSelect">남성 티위치</label>
+          <select id="menTeeSelect" onchange="syncGuideFooterUI()">
+            <option value="">미정 (3번에서 직접 입력)</option>
+            <option value="white" selected>화이트티 (White)</option>
+            <option value="blue">블루티 (Blue)</option>
+            <option value="black">블랙티 (Black)</option>
+            <option value="gold">골드티 (Gold)</option>
+            <option value="red">레드티 (Red)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="womenTeeSelect">여성 티위치</label>
+          <select id="womenTeeSelect" onchange="syncGuideFooterUI()">
+            <option value="">미정 (3번에서 직접 입력)</option>
+            <option value="red" selected>레드티 (Red)</option>
+            <option value="white">화이트티 (White)</option>
+            <option value="gold">골드티 (Gold)</option>
+            <option value="blue">블루티 (Blue)</option>
+          </select>
+        </div>
         <div class="field">
           <label for="longHolesInput">장타(Long Drive) 홀 번호</label>
-          <input type="text" id="longHolesInput" placeholder="예: 8">
-          <span class="hint">여러 홀이면 쉼표(,)로 구분</span>
+          <input type="text" id="longHolesInput" placeholder="미정 시 비워둠 (예: 8)" oninput="syncGuideFooterUI()">
+          <span class="hint">비워두면 3번에서 입력 가능</span>
         </div>
         <div class="field">
           <label for="nearHolesInput">니어(Near Pin) 홀 번호</label>
-          <input type="text" id="nearHolesInput" placeholder="예: 3, 7, 11, 14">
-          <span class="hint"><a href="#" onclick="fillRecommendedEventHoles(); return false;">선택한 골프장 추천 홀 자동 입력</a></span>
+          <input type="text" id="nearHolesInput" placeholder="미정 시 비워둠 (예: 3, 7, 11, 14)" oninput="syncGuideFooterUI()">
+          <span class="hint"><a href="#" onclick="fillRecommendedEventHoles(); return false;">골프장 추천 홀 자동 입력</a></span>
         </div>
       </div>
-
-      <details style="margin-top:14px;">
-        <summary style="cursor:pointer; font-weight:800; font-size:13.5px; color:var(--secondary);">
-          📢 경기 진행 공지사항 · 티박스 로컬룰 · 뒷풀이 장소 편집 (클릭하여 펼치기)
-        </summary>
-        <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
-          <div class="grid-2">
-            <div class="field">
-              <label for="noticeTitleInput">공지 카드 제목</label>
-              <input type="text" id="noticeTitleInput">
-            </div>
-            <div class="field">
-              <label for="teeBannerTitleInput">티박스 로컬룰 제목</label>
-              <input type="text" id="teeBannerTitleInput">
-            </div>
-          </div>
-          <div class="field">
-            <label for="noticeLeadInput">공지 상단 강조 문구 (HTML 사용 가능)</label>
-            <textarea id="noticeLeadInput" rows="2"></textarea>
-          </div>
-          <div class="field">
-            <label for="noticeItemsInput">공지 체크리스트 항목 (한 줄에 하나씩 입력)</label>
-            <textarea id="noticeItemsInput" rows="6"></textarea>
-          </div>
-          <div class="field">
-            <label for="teeBannerSubInput">티박스 로컬룰 상세 문구 (HTML 가능)</label>
-            <input type="text" id="teeBannerSubInput">
-          </div>
-          <div class="field">
-            <label for="eventBannerSubInput">장타/니어 안내 문구 (HTML 가능)</label>
-            <textarea id="eventBannerSubInput" rows="2"></textarea>
-          </div>
-          <div class="field">
-            <label for="afterPartyInput">뒷풀이 장소 안내 (HTML 가능 · 구글맵 링크 시 핀 아이콘 자동 표시)</label>
-            <textarea id="afterPartyInput" rows="2" placeholder="예: 뒷풀이: 식당이름 (<a href='구글맵링크' target='_blank'>주소</a>)"></textarea>
-          </div>
-          <div class="field">
-            <label for="copyrightInput">하단 저작권 문구</label>
-            <input type="text" id="copyrightInput">
-          </div>
-        </div>
-      </details>
     </div>
 
     <!-- 2. Player Roster & Handicap Input (Starts Blank by Default!) -->
@@ -630,10 +756,104 @@
       <div id="groupsEditorGrid" class="groups-grid" style="display:none;"></div>
     </div>
 
-    <!-- 3. Create / Save / Reset Actions -->
+    <!-- 3. Tournament Play Guide (Google Docs-style Rich Editor + Dynamic Linked Footer) -->
     <div class="card">
       <div class="card-title">
-        <span id="actionCardTitle">③ 대회 생성 및 저장 실행</span>
+        <span>③ 경기진행안내</span>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="insertSampleNoticeBody()">📄 기본 예시문 불러오기</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="clearNoticeEditor()">비우기</button>
+        </div>
+      </div>
+
+      <!-- Google Docs-style Rich Text Editor Box -->
+      <div class="gdoc-wrap">
+        <div class="gdoc-toolbar">
+          <button type="button" class="gdoc-btn" title="실행 취소" onmousedown="event.preventDefault()" onclick="execDocCmd('undo')">↶</button>
+          <button type="button" class="gdoc-btn" title="다시 실행" onmousedown="event.preventDefault()" onclick="execDocCmd('redo')">↷</button>
+          <div class="gdoc-sep"></div>
+
+          <select class="gdoc-select" id="gdocFontSize" title="글자 크기" onchange="applyDocFontSize(this.value)">
+            <option value="2">작게</option>
+            <option value="3" selected>보통 크기</option>
+            <option value="4">크게</option>
+            <option value="5">제목 크기</option>
+          </select>
+          <div class="gdoc-sep"></div>
+
+          <button type="button" class="gdoc-btn" title="굵게 (Ctrl+B)" onmousedown="event.preventDefault()" onclick="execDocCmd('bold')"><b>B</b></button>
+          <button type="button" class="gdoc-btn" title="기울임 (Ctrl+I)" onmousedown="event.preventDefault()" onclick="execDocCmd('italic')"><i>I</i></button>
+          <button type="button" class="gdoc-btn" title="밑줄 (Ctrl+U)" onmousedown="event.preventDefault()" onclick="execDocCmd('underline')"><u>U</u></button>
+          <button type="button" class="gdoc-btn" title="취소선" onmousedown="event.preventDefault()" onclick="execDocCmd('strikeThrough')"><s>S</s></button>
+          <div class="gdoc-sep"></div>
+
+          <label class="gdoc-color-label" title="글자 색상">
+            <span style="border-bottom:3px solid #c92a2a; line-height:1;">A</span>
+            <input type="color" value="#c92a2a" onchange="execDocCmd('foreColor', this.value)">
+          </label>
+          <label class="gdoc-color-label" title="형광펜 배경색">
+            <span style="background:#fef08a; padding:1px 4px; border-radius:3px; line-height:1;">🖍️</span>
+            <input type="color" value="#fef08a" onchange="execDocCmd('hiliteColor', this.value)">
+          </label>
+          <div class="gdoc-sep"></div>
+
+          <button type="button" class="gdoc-btn" title="글머리 기호 목록" onmousedown="event.preventDefault()" onclick="execDocCmd('insertUnorderedList')">• 목록</button>
+          <button type="button" class="gdoc-btn" title="번호 매기기 목록" onmousedown="event.preventDefault()" onclick="execDocCmd('insertOrderedList')">1. 목록</button>
+          <div class="gdoc-sep"></div>
+
+          <button type="button" class="gdoc-btn" title="왼쪽 정렬" onmousedown="event.preventDefault()" onclick="execDocCmd('justifyLeft')">좌정렬</button>
+          <button type="button" class="gdoc-btn" title="가운데 정렬" onmousedown="event.preventDefault()" onclick="execDocCmd('justifyCenter')">중앙</button>
+          <button type="button" class="gdoc-btn" title="서식 지우기" onmousedown="event.preventDefault()" onclick="execDocCmd('removeFormat')">서식제거</button>
+        </div>
+
+        <div id="noticeRichEditor" class="gdoc-editor" contenteditable="true"
+          data-placeholder="여기에 경기 진행 안내사항을 구글 문서처럼 자유롭게 입력하세요... (굵은 글씨, 색상, • 글머리표 등 사용 가능)"></div>
+      </div>
+
+      <!-- 3 Structured Footer Lines Directly Below the Editor Box -->
+      <div class="guide-meta-lines">
+        <!-- Line 1: Tee Positions (auto text if set in Section 1, editable input if unset) -->
+        <div class="guide-meta-row" id="guideTeeRow">
+          <span id="guideTeeStaticText">남성:화이트티, 여성:레드티</span>
+          <div id="guideTeeCustomWrap" style="display:none; align-items:center; gap:8px; flex:1; min-width:260px;">
+            <span>티위치:</span>
+            <input type="text" id="customTeeTextInput" class="inline-meta-input" style="flex:1; max-width:420px;"
+              placeholder="예: 남성:화이트티, 여성:레드티 (1, 10번홀 블루티)">
+          </div>
+        </div>
+
+        <!-- Line 2: Long Drive & Near Pin (auto text for fields set in Section 1, editable input for unset fields) -->
+        <div class="guide-meta-row" id="guideEventRow" style="gap:0;">
+          <span id="guideLongStaticPart"></span>
+          <span id="guideLongInputPart" style="display:none; align-items:center; gap:5px;">
+            장타:
+            <input type="text" id="sec3LongInput" class="inline-meta-input" style="width:100px;"
+              placeholder="예: 8" oninput="onSec3EventTyping('long', this.value)" onblur="syncGuideFooterUI()">번홀
+          </span>
+          <span id="guideEventComma" style="margin-right:6px;">,</span>
+          <span id="guideNearStaticPart"></span>
+          <span id="guideNearInputPart" style="display:none; align-items:center; gap:5px;">
+            니어:
+            <input type="text" id="sec3NearInput" class="inline-meta-input" style="width:150px;"
+              placeholder="예: 3, 7, 11, 14" oninput="onSec3EventTyping('near', this.value)" onblur="syncGuideFooterUI()">홀
+          </span>
+        </div>
+
+        <!-- Line 3: After-Party Venue & Address -->
+        <div class="guide-meta-row">
+          <span>뒷풀이:</span>
+          <input type="text" id="afterPartyPlaceInput" class="inline-meta-input" style="width:210px;"
+            placeholder="장소 (예: Canton Village)">
+          <input type="text" id="afterPartyAddrInput" class="inline-meta-input" style="flex:1; min-width:240px;"
+            placeholder="주소 입력 시 구글맵 자동 링크 (예: 1070 E Stanley Blvd, Livermore, CA)">
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Create / Save / Reset Actions -->
+    <div class="card">
+      <div class="card-title">
+        <span id="actionCardTitle">④ 대회 생성 및 저장 실행</span>
       </div>
 
       <div class="action-bar">
@@ -641,7 +861,7 @@
           🚀 새 대회 구글 시트 자동 생성 &amp; 전용 링크 발급
         </button>
         <button type="button" class="btn btn-green" id="saveConfigOnlyBtn" onclick="saveConfigOnly()" style="display:none;">
-          ✏️ 시트는 유지하고 설정/공지만 저장
+          ✏️ 시트는 유지하고 설정/경기진행안내만 저장
         </button>
         <button type="button" class="btn btn-danger" id="resetScoresBtn" onclick="resetTournamentScores()" style="display:none;">
           🧹 테스트 점수 초기화
@@ -681,6 +901,14 @@
     var editorGroups = [];
     var toastTimer = null;
 
+    var TEE_KOR_LABELS = {
+      white: "화이트티",
+      blue: "블루티",
+      black: "블랙티",
+      gold: "골드티",
+      red: "레드티"
+    };
+
     function getSavedMasterPin() {
       try {
         var p = localStorage.getItem(PIN_STORAGE_KEY);
@@ -710,6 +938,14 @@
       toastTimer = setTimeout(function () {
         el.style.display = "none";
       }, ms || 3500);
+    }
+
+    function escapeHtmlText(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
     }
 
     function copyTextById(elId, label) {
@@ -771,6 +1007,107 @@
           }
           throw new Error(errMsg);
         });
+    }
+
+    // Google Docs-style Rich Text Editor Commands
+    function execDocCmd(cmd, val) {
+      var ed = document.getElementById("noticeRichEditor");
+      ed.focus();
+      try {
+        document.execCommand("styleWithCSS", false, true);
+      } catch (e) { }
+      document.execCommand(cmd, false, val !== undefined ? val : null);
+    }
+
+    function applyDocFontSize(sizeVal) {
+      execDocCmd("fontSize", sizeVal);
+    }
+
+    function clearNoticeEditor() {
+      var ed = document.getElementById("noticeRichEditor");
+      ed.innerHTML = "";
+      ed.focus();
+    }
+
+    function insertSampleNoticeBody() {
+      var ed = document.getElementById("noticeRichEditor");
+      ed.innerHTML =
+        '<p>뒷조를 배려하여 최대한 신속하게, 모든 조가 <b>4시간 30분 이내</b> 완주하도록 적극 협조 부탁드립니다.</p>' +
+        '<ul>' +
+        '<li>9홀 2시간 10분 이내 완주 · 수시로 시간 체크</li>' +
+        '<li>공 찾는 데 2분 이상 소모하지 않기 / 그린에서 컨시드 적극 활용</li>' +
+        '<li>드라이버 티샷은 준비된 사람이 먼저 치기 (레디 골프)</li>' +
+        '<li>앞조가 시야에서 사라지지 않도록 간격 유지</li>' +
+        '<li><b>세컨샷:</b> 동반자 공 봐주기보다 자신의 샷 위치로 미리 이동</li>' +
+        '</ul>';
+      showToast("📄 기본 진행안내 예시 문구를 불러왔습니다. 자유롭게 수정하세요!");
+    }
+
+    function getCleanedEditorHtml() {
+      var ed = document.getElementById("noticeRichEditor");
+      var raw = (ed.innerHTML || "").trim();
+      var plain = (ed.textContent || "").trim();
+      if (!plain) return "";
+      return raw;
+    }
+
+    // Synchronize Section 3 footer lines dynamically from Section 1 selections
+    function syncGuideFooterUI() {
+      var mTee = document.getElementById("menTeeSelect").value;
+      var wTee = document.getElementById("womenTeeSelect").value;
+      var teeStatic = document.getElementById("guideTeeStaticText");
+      var teeCustomWrap = document.getElementById("guideTeeCustomWrap");
+
+      if (mTee || wTee) {
+        var teeParts = [];
+        if (mTee && TEE_KOR_LABELS[mTee]) teeParts.push("남성:" + TEE_KOR_LABELS[mTee]);
+        if (wTee && TEE_KOR_LABELS[wTee]) teeParts.push("여성:" + TEE_KOR_LABELS[wTee]);
+        teeStatic.textContent = teeParts.join(", ");
+        teeStatic.style.display = "inline";
+        teeCustomWrap.style.display = "none";
+      } else {
+        teeStatic.style.display = "none";
+        teeCustomWrap.style.display = "inline-flex";
+      }
+
+      var longList = parseIntList(document.getElementById("longHolesInput").value);
+      var nearList = parseIntList(document.getElementById("nearHolesInput").value);
+      var longStatic = document.getElementById("guideLongStaticPart");
+      var longInputWrap = document.getElementById("guideLongInputPart");
+      var nearStatic = document.getElementById("guideNearStaticPart");
+      var nearInputWrap = document.getElementById("guideNearInputPart");
+      var sec3Long = document.getElementById("sec3LongInput");
+      var sec3Near = document.getElementById("sec3NearInput");
+
+      if (longList.length > 0 && document.activeElement !== sec3Long) {
+        longStatic.textContent = "장타: " + longList.join(",") + "번홀";
+        longStatic.style.display = "inline";
+        longInputWrap.style.display = "none";
+        sec3Long.value = longList.join(", ");
+      } else if (longList.length === 0) {
+        longStatic.style.display = "none";
+        longInputWrap.style.display = "inline-flex";
+        if (document.activeElement !== sec3Long) sec3Long.value = "";
+      }
+
+      if (nearList.length > 0 && document.activeElement !== sec3Near) {
+        nearStatic.textContent = "니어: " + nearList.join(",") + "홀";
+        nearStatic.style.display = "inline";
+        nearInputWrap.style.display = "none";
+        sec3Near.value = nearList.join(", ");
+      } else if (nearList.length === 0) {
+        nearStatic.style.display = "none";
+        nearInputWrap.style.display = "inline-flex";
+        if (document.activeElement !== sec3Near) sec3Near.value = "";
+      }
+    }
+
+    function onSec3EventTyping(kind, val) {
+      if (kind === "long") {
+        document.getElementById("longHolesInput").value = val;
+      } else {
+        document.getElementById("nearHolesInput").value = val;
+      }
     }
 
     function refreshEditingModeUI() {
@@ -858,7 +1195,7 @@
       if (Array.isArray(cObj.holes) && cObj.holes.length === 18) {
         return cObj.holes.map(function (h) { return Number(h.par) || 4; });
       }
-      return [4, 4, 3, 4, 5, 4, 3, 5, 4, 4, 3, 5, 4, 3, 5, 4, 3, 5, 4, 4, 4].slice(0, 18);
+      return [4, 4, 3, 4, 5, 4, 3, 5, 4, 4, 3, 5, 4, 3, 5, 4, 4, 4];
     }
 
     function onCourseSelectChange(autoFillIfNew) {
@@ -878,6 +1215,7 @@
           document.getElementById("nearHolesInput").value = cObj.nearPinHoles.join(", ");
         }
       }
+      syncGuideFooterUI();
     }
 
     function fillRecommendedEventHoles() {
@@ -888,6 +1226,7 @@
       if (Array.isArray(cObj.nearPinHoles)) {
         document.getElementById("nearHolesInput").value = cObj.nearPinHoles.join(", ");
       }
+      syncGuideFooterUI();
       showToast("선택한 골프장의 추천 장타·니어 홀 번호를 입력했습니다.");
     }
 
@@ -1033,9 +1372,7 @@
       renderGroupsEditor();
     }
 
-    /**
-     * Parse [Group | Name | Handicap] text copied from Excel / Google Sheets
-     */
+    // Parse [Group | Name | Handicap] text copied from Excel / Google Sheets
     function parseRosterTextToGroups(rawText) {
       var lines = String(rawText || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
       var groupsMap = {};
@@ -1309,8 +1646,28 @@
       ev.target.value = "";
     }
 
-    // Populate form either for brand-new tournament (isNewDefault=true -> blank title & blank roster)
-    // or for a loaded past tournament (isNewDefault=false -> saved title, settings, and roster)
+    // Build clickable Google Maps HTML for after-party venue + address
+    function buildAfterPartyHtml(place, addr) {
+      var p = String(place || "").trim();
+      var a = String(addr || "").trim();
+      if (!p && !a) return "";
+      if (p && !a) {
+        return '뒷풀이: <span style="font-size:12px; font-weight:700; color:#451a03;">' + escapeHtmlText(p) + '</span>';
+      }
+      var href = /^https?:\/\//i.test(a)
+        ? a
+        : ("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((p ? p + ", " : "") + a));
+      var addrLabel = /^https?:\/\//i.test(a) ? (p || "지도 보기") : a;
+      if (p && /^https?:\/\//i.test(a)) {
+        return '뒷풀이: <span style="font-size:11.5px; font-weight:700; color:#451a03;"><a href="' + escapeHtmlText(href) + '" target="_blank" style="color:#003876; text-decoration:underline; font-weight:700;">' + escapeHtmlText(p) + '</a></span>';
+      }
+      return '뒷풀이: <span style="font-size:11.5px; font-weight:600; color:#451a03;">' +
+        (p ? (escapeHtmlText(p) + ' (') : '') +
+        '<a href="' + escapeHtmlText(href) + '" target="_blank" style="color:#003876; text-decoration:underline; font-weight:600;">' + escapeHtmlText(addrLabel) + '</a>' +
+        (p ? ')' : '') + '</span>';
+    }
+
+    // Populate form for brand-new tournament (isNewDefault=true) or loaded past tournament (isNewDefault=false)
     function populateFormFromConfig(cfg, groupsOpt, isNewDefault) {
       cfg = cfg || {};
       var unifiedName = isNewDefault
@@ -1323,34 +1680,59 @@
       onCourseSelectChange(false);
 
       var cObj = getSelectedCourseObj();
-      var longArr = (Array.isArray(cfg.longDriveHoles) && cfg.longDriveHoles.length > 0)
-        ? cfg.longDriveHoles
-        : (cObj.longDriveHoles || []);
-      var nearArr = (Array.isArray(cfg.nearPinHoles) && cfg.nearPinHoles.length > 0)
-        ? cfg.nearPinHoles
-        : (cObj.nearPinHoles || []);
-
-      document.getElementById("longHolesInput").value = longArr.join(", ");
-      document.getElementById("nearHolesInput").value = nearArr.join(", ");
-      document.getElementById("defaultTeeSelect").value = cfg.defaultTeeKey || "white";
-
-      document.getElementById("noticeTitleInput").value = cfg.noticeTitle || "📢 경기 진행 안내";
-      document.getElementById("noticeLeadInput").value = cfg.noticeLeadHtml || "";
-      document.getElementById("noticeItemsInput").value = Array.isArray(cfg.noticeItems) ? cfg.noticeItems.join("\n") : "";
-      document.getElementById("teeBannerTitleInput").value = cfg.teeBannerTitle || "";
-      document.getElementById("teeBannerSubInput").value = cfg.teeBannerSubHtml || "";
-      document.getElementById("eventBannerSubInput").value = cfg.eventBannerSubHtml || "";
-      document.getElementById("afterPartyInput").value = isNewDefault ? "" : (cfg.afterPartyHtml || "");
-      document.getElementById("copyrightInput").value = cfg.copyrightHtml || "";
-      document.getElementById("rosterPasteInput").value = "";
-
       if (isNewDefault) {
+        document.getElementById("menTeeSelect").value = "white";
+        document.getElementById("womenTeeSelect").value = "red";
+        document.getElementById("customTeeTextInput").value = "";
+        document.getElementById("longHolesInput").value = (cObj.longDriveHoles || []).join(", ");
+        document.getElementById("nearHolesInput").value = (cObj.nearPinHoles || []).join(", ");
+        document.getElementById("noticeRichEditor").innerHTML = "";
+        document.getElementById("afterPartyPlaceInput").value = "";
+        document.getElementById("afterPartyAddrInput").value = "";
         editorGroups = [];
       } else {
+        // Restore tee selections or custom tee text
+        var mKey = cfg.menTeeKey !== undefined ? cfg.menTeeKey : (cfg.defaultTeeKey || "");
+        var wKey = cfg.womenTeeKey !== undefined ? cfg.womenTeeKey : "";
+        if (cfg.menTeeKey === undefined && cfg.womenTeeKey === undefined && cfg.teeBannerTitle) {
+          if (cfg.teeBannerTitle.indexOf("화이트") !== -1 && cfg.teeBannerTitle.indexOf("레드") !== -1) {
+            mKey = "white";
+            wKey = "red";
+          } else {
+            mKey = "";
+            wKey = "";
+          }
+        }
+        document.getElementById("menTeeSelect").value = mKey;
+        document.getElementById("womenTeeSelect").value = wKey;
+        document.getElementById("customTeeTextInput").value = (!mKey && !wKey) ? (cfg.teeBannerTitle || "") : "";
+
+        document.getElementById("longHolesInput").value = (cfg.longDriveHoles || []).join(", ");
+        document.getElementById("nearHolesInput").value = (cfg.nearPinHoles || []).join(", ");
+
+        // Restore rich-text editor content (supports both new noticeBodyHtml and legacy noticeLeadHtml + noticeItems)
+        var ed = document.getElementById("noticeRichEditor");
+        if (cfg.noticeBodyHtml !== undefined) {
+          ed.innerHTML = cfg.noticeBodyHtml || "";
+        } else {
+          var legacyParts = [];
+          if (cfg.noticeLeadHtml) legacyParts.push("<p>" + cfg.noticeLeadHtml + "</p>");
+          if (Array.isArray(cfg.noticeItems) && cfg.noticeItems.length > 0) {
+            legacyParts.push("<ul>" + cfg.noticeItems.map(function (it) { return "<li>" + it + "</li>"; }).join("") + "</ul>");
+          }
+          ed.innerHTML = legacyParts.join("");
+        }
+
+        document.getElementById("afterPartyPlaceInput").value = cfg.afterPartyPlace || "";
+        document.getElementById("afterPartyAddrInput").value = cfg.afterPartyAddr || "";
+
         var grpSource = (Array.isArray(groupsOpt) && groupsOpt.length > 0) ? groupsOpt : (cfg.groups || []);
         editorGroups = normalizeGroupsForEditor(grpSource);
       }
+
+      document.getElementById("rosterPasteInput").value = "";
       renderGroupsEditor();
+      syncGuideFooterUI();
     }
 
     function startFreshTournamentForm() {
@@ -1388,10 +1770,22 @@
       var sheetTitle = cleanName || "골프대회 스코어보드";
       var heroTitle = sheetTitle;
       var tournamentTitle = "⛳ " + sheetTitle;
-      var noticeLines = document.getElementById("noticeItemsInput").value
-        .split(/\r?\n/)
-        .map(function (s) { return s.trim(); })
-        .filter(Boolean);
+
+      var mTee = document.getElementById("menTeeSelect").value;
+      var wTee = document.getElementById("womenTeeSelect").value;
+      var teeBannerTitle = "";
+      if (mTee || wTee) {
+        var tParts = [];
+        if (mTee && TEE_KOR_LABELS[mTee]) tParts.push("남성:" + TEE_KOR_LABELS[mTee]);
+        if (wTee && TEE_KOR_LABELS[wTee]) tParts.push("여성:" + TEE_KOR_LABELS[wTee]);
+        teeBannerTitle = tParts.join(", ");
+      } else {
+        teeBannerTitle = document.getElementById("customTeeTextInput").value.trim();
+      }
+
+      var afterPlace = document.getElementById("afterPartyPlaceInput").value.trim();
+      var afterAddr = document.getElementById("afterPartyAddrInput").value.trim();
+      var baseCfg = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
 
       return {
         tournamentId: slug,
@@ -1399,17 +1793,22 @@
         sheetTitle: sheetTitle,
         tournamentTitle: tournamentTitle,
         heroTitle: heroTitle,
+        menTeeKey: mTee,
+        womenTeeKey: wTee,
+        defaultTeeKey: mTee || wTee || "white",
         longDriveHoles: parseIntList(document.getElementById("longHolesInput").value),
         nearPinHoles: parseIntList(document.getElementById("nearHolesInput").value),
-        defaultTeeKey: document.getElementById("defaultTeeSelect").value || "white",
-        noticeTitle: document.getElementById("noticeTitleInput").value.trim() || "📢 경기 진행 안내",
-        noticeLeadHtml: document.getElementById("noticeLeadInput").value.trim(),
-        noticeItems: noticeLines,
-        teeBannerTitle: document.getElementById("teeBannerTitleInput").value.trim(),
-        teeBannerSubHtml: document.getElementById("teeBannerSubInput").value.trim(),
-        eventBannerSubHtml: document.getElementById("eventBannerSubInput").value.trim(),
-        afterPartyHtml: document.getElementById("afterPartyInput").value.trim(),
-        copyrightHtml: document.getElementById("copyrightInput").value.trim(),
+        noticeTitle: "📢 경기 진행 안내",
+        noticeBodyHtml: getCleanedEditorHtml(),
+        noticeLeadHtml: "",
+        noticeItems: [],
+        teeBannerTitle: teeBannerTitle,
+        teeBannerSubHtml: "",
+        eventBannerSubHtml: "",
+        afterPartyPlace: afterPlace,
+        afterPartyAddr: afterAddr,
+        afterPartyHtml: buildAfterPartyHtml(afterPlace, afterAddr),
+        copyrightHtml: baseCfg.copyrightHtml || "",
         firstTeeTime: "",
         groups: collectCleanedGroups()
       };
@@ -1568,7 +1967,7 @@
           refreshEditingModeUI();
           showIssuedLinksBanner(slug, res.resultsUrl, editingExistingTitle);
           syncSlugLocalCache(slug, cfg, res.sheetId);
-          showToast("✅ 시트는 그대로 유지하고 [" + editingExistingTitle + "] 설정이 저장되었습니다!");
+          showToast("✅ 시트는 그대로 유지하고 [" + editingExistingTitle + "] 설정 및 경기진행안내가 저장되었습니다!");
         })
         .catch(function (err) {
           showToast("❌ 설정 저장 실패: " + err.message, 4500);
@@ -1623,7 +2022,7 @@
         });
     }
 
-    // Boot directly into clean 'New Tournament Creation' mode with empty title and empty roster
+    // Boot directly into clean 'New Tournament Creation' mode
     (function initAdminConsole() {
       populateCourseDropdown();
       startFreshTournamentForm();

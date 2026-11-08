@@ -2577,6 +2577,20 @@
       color: #dee2e6;
       line-height: 1.5;
     }
+
+    #noticeLeadEl p {
+      margin: 0 0 4px 0;
+    }
+
+    #noticeLeadEl ul,
+    #noticeLeadEl ol {
+      margin: 4px 0 4px 18px;
+      padding: 0;
+    }
+
+    #noticeLeadEl li {
+      margin-bottom: 2px;
+    }
   </style>
 </head>
 
@@ -2617,11 +2631,11 @@
         <div class="notice-body" id="noticeBodyEl">
           <div id="noticeLeadEl"></div>
           <div class="notice-list" id="noticeListEl"></div>
-          <div style="margin-top:6px; padding-top:6px; border-top:1px dashed rgba(180,83,9,0.28);">
+          <div id="noticeFooterMetaWrap" style="margin-top:6px; padding-top:6px; border-top:1px dashed rgba(180,83,9,0.28);">
             <div class="quick-banner-title" id="quickTeeTitleEl"></div>
             <div class="quick-banner-sub" id="quickTeeSubEl" style="margin-top:1px; line-height:1.38; color:#451a03;">
             </div>
-            <div class="quick-banner-title" style="margin-top:4px;">장타: <span id="noticeLongHolesEl"></span>번홀, 니어:
+            <div class="quick-banner-title" id="quickEventMainLineEl" style="margin-top:4px;">장타: <span id="noticeLongHolesEl"></span>번홀, 니어:
               <span id="noticeNearHolesEl"></span>홀</div>
             <div class="quick-banner-sub" id="quickEventSubEl" style="margin-top:1px; line-height:1.38; color:#451a03;">
             </div>
@@ -3377,21 +3391,54 @@
         }
       }
       var noticeTitleEl = document.getElementById("noticeTitleEl");
-      if (noticeTitleEl && ACTIVE_COURSE.noticeTitle) noticeTitleEl.innerText = ACTIVE_COURSE.noticeTitle;
+      if (noticeTitleEl) noticeTitleEl.innerText = ACTIVE_COURSE.noticeTitle || "📢 경기 진행 안내";
       var noticeLeadEl = document.getElementById("noticeLeadEl");
-      if (noticeLeadEl && ACTIVE_COURSE.noticeLeadHtml) noticeLeadEl.innerHTML = ACTIVE_COURSE.noticeLeadHtml;
       var noticeListEl = document.getElementById("noticeListEl");
-      if (noticeListEl && Array.isArray(ACTIVE_COURSE.noticeItems)) {
-        noticeListEl.innerHTML = ACTIVE_COURSE.noticeItems.map(function (itemHtml) {
-          return "<div class=\"notice-item\"><span class=\"notice-chk\">✔</span><span>" + itemHtml + "</span></div>";
-        }).join("");
+      if (ACTIVE_COURSE.noticeBodyHtml !== undefined) {
+        if (noticeLeadEl) {
+          noticeLeadEl.innerHTML = ACTIVE_COURSE.noticeBodyHtml || "";
+          noticeLeadEl.style.display = ACTIVE_COURSE.noticeBodyHtml ? "block" : "none";
+        }
+        if (noticeListEl) {
+          noticeListEl.innerHTML = "";
+          noticeListEl.style.display = "none";
+        }
+      } else {
+        if (noticeLeadEl) {
+          noticeLeadEl.innerHTML = ACTIVE_COURSE.noticeLeadHtml || "";
+          noticeLeadEl.style.display = ACTIVE_COURSE.noticeLeadHtml ? "block" : "none";
+        }
+        if (noticeListEl) {
+          var nItems = Array.isArray(ACTIVE_COURSE.noticeItems) ? ACTIVE_COURSE.noticeItems : [];
+          noticeListEl.innerHTML = nItems.map(function (itemHtml) {
+            return "<div class=\"notice-item\"><span class=\"notice-chk\">✔</span><span>" + itemHtml + "</span></div>";
+          }).join("");
+          noticeListEl.style.display = nItems.length > 0 ? "block" : "none";
+        }
       }
       var quickTeeTitleEl = document.getElementById("quickTeeTitleEl");
-      if (quickTeeTitleEl && ACTIVE_COURSE.teeBannerTitle) quickTeeTitleEl.innerText = ACTIVE_COURSE.teeBannerTitle;
+      if (quickTeeTitleEl) {
+        quickTeeTitleEl.innerText = ACTIVE_COURSE.teeBannerTitle || "";
+        quickTeeTitleEl.style.display = ACTIVE_COURSE.teeBannerTitle ? "block" : "none";
+      }
       var quickTeeSubEl = document.getElementById("quickTeeSubEl");
-      if (quickTeeSubEl && ACTIVE_COURSE.teeBannerSubHtml) quickTeeSubEl.innerHTML = ACTIVE_COURSE.teeBannerSubHtml;
+      if (quickTeeSubEl) {
+        quickTeeSubEl.innerHTML = ACTIVE_COURSE.teeBannerSubHtml || "";
+        quickTeeSubEl.style.display = ACTIVE_COURSE.teeBannerSubHtml ? "block" : "none";
+      }
+      var quickEventMainLineEl = document.getElementById("quickEventMainLineEl");
+      if (quickEventMainLineEl) {
+        var evParts = [];
+        if (longDriveHoles.length > 0) evParts.push("장타: " + longDriveHoles.join(", ") + "번홀");
+        if (nearPinHoles.length > 0) evParts.push("니어: " + nearPinHoles.join(", ") + "홀");
+        quickEventMainLineEl.innerText = evParts.join(", ");
+        quickEventMainLineEl.style.display = evParts.length > 0 ? "block" : "none";
+      }
       var quickEventSubEl = document.getElementById("quickEventSubEl");
-      if (quickEventSubEl && ACTIVE_COURSE.eventBannerSubHtml) quickEventSubEl.innerHTML = ACTIVE_COURSE.eventBannerSubHtml;
+      if (quickEventSubEl) {
+        quickEventSubEl.innerHTML = ACTIVE_COURSE.eventBannerSubHtml || "";
+        quickEventSubEl.style.display = ACTIVE_COURSE.eventBannerSubHtml ? "block" : "none";
+      }
       var quickAfterPartyEl = document.getElementById("quickAfterPartyEl");
       if (quickAfterPartyEl) {
         if (ACTIVE_COURSE.afterPartyHtml) {
@@ -3402,10 +3449,6 @@
           quickAfterPartyEl.style.display = "none";
         }
       }
-      var noticeLongHolesEl = document.getElementById("noticeLongHolesEl");
-      if (noticeLongHolesEl) noticeLongHolesEl.innerText = longDriveHoles.join(", ");
-      var noticeNearHolesEl = document.getElementById("noticeNearHolesEl");
-      if (noticeNearHolesEl) noticeNearHolesEl.innerText = nearPinHoles.join(", ");
       var appCopyrightEl = document.getElementById("appCopyrightEl");
       if (appCopyrightEl) {
         appCopyrightEl.innerHTML = ACTIVE_COURSE.copyrightHtml || "";
