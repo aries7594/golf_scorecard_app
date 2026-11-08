@@ -3023,8 +3023,28 @@
     // - Dynamically applies latest server tournament settings created via admin.html.
     // =========================================================================
     var GAS_URL_STORAGE_KEY = "golf_gas_api_url_v1";
-    var CACHED_REMOTE_CFG_KEY = "golf_active_tournament_cfg_v1";
-    var CACHED_SCOPE_KEY = "golf_active_sheet_scope_v1";
+
+    function normalizeTournamentSlug(raw) {
+      return String(raw || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 48);
+    }
+
+    function resolveTournamentSlugFromUrl() {
+      try {
+        var params = new URLSearchParams(window.location.search || "");
+        return normalizeTournamentSlug(params.get("t") || params.get("tournament") || "");
+      } catch (e) {
+        return "";
+      }
+    }
+
+    var ACTIVE_TOURNAMENT_SLUG = resolveTournamentSlugFromUrl();
+    var CACHED_REMOTE_CFG_KEY = "golf_cfg_v2_" + (ACTIVE_TOURNAMENT_SLUG || "none");
+    var CACHED_SCOPE_KEY = "golf_scope_v2_" + (ACTIVE_TOURNAMENT_SLUG || "none");
 
     function resolveGasApiUrl() {
       try {
@@ -3046,8 +3066,11 @@
     }
 
     var GAS_API_URL = resolveGasApiUrl();
-    var ACTIVE_TOURNAMENT_SCOPE = "";
-    try { ACTIVE_TOURNAMENT_SCOPE = localStorage.getItem(CACHED_SCOPE_KEY) || ""; } catch (e) { }
+    var ACTIVE_TOURNAMENT_SCOPE = ACTIVE_TOURNAMENT_SLUG || "";
+    try {
+      var savedScope = localStorage.getItem(CACHED_SCOPE_KEY);
+      if (savedScope) ACTIVE_TOURNAMENT_SCOPE = savedScope;
+    } catch (e) { }
 
     (function autoEscapeKakaoInApp() {
       try {
@@ -3063,7 +3086,11 @@
       if (!apiUrl) {
         return Promise.reject(new Error("NO_GAS_API_URL"));
       }
-      var bodyStr = JSON.stringify({ fn: fnName, args: argsArray || [] });
+      var bodyStr = JSON.stringify({
+        fn: fnName,
+        t: ACTIVE_TOURNAMENT_SLUG,
+        args: argsArray || []
+      });
       var fetchOpts = {
         method: "POST",
         redirect: "follow",
@@ -3227,25 +3254,29 @@
     // Load tournament configuration and golf course catalog
     // - Course selection, notices, and event holes are managed via TournamentConfig / admin.html.
     // =========================================================================
+    var HAS_SLUG_CACHED_CFG = false;
     var T_CFG = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
-    try {
-      var cachedRemoteCfgRaw = localStorage.getItem(CACHED_REMOTE_CFG_KEY);
-      if (cachedRemoteCfgRaw) {
-        var cachedRemoteCfg = JSON.parse(cachedRemoteCfgRaw);
-        if (cachedRemoteCfg && typeof cachedRemoteCfg === "object") {
-          var mergedBootCfg = {};
-          for (var bk in T_CFG) {
-            if (Object.prototype.hasOwnProperty.call(T_CFG, bk)) mergedBootCfg[bk] = T_CFG[bk];
-          }
-          for (var rk in cachedRemoteCfg) {
-            if (Object.prototype.hasOwnProperty.call(cachedRemoteCfg, rk) && cachedRemoteCfg[rk] !== undefined) {
-              mergedBootCfg[rk] = cachedRemoteCfg[rk];
+    if (ACTIVE_TOURNAMENT_SLUG) {
+      try {
+        var cachedRemoteCfgRaw = localStorage.getItem(CACHED_REMOTE_CFG_KEY);
+        if (cachedRemoteCfgRaw) {
+          var cachedRemoteCfg = JSON.parse(cachedRemoteCfgRaw);
+          if (cachedRemoteCfg && typeof cachedRemoteCfg === "object") {
+            var mergedBootCfg = {};
+            for (var bk in T_CFG) {
+              if (Object.prototype.hasOwnProperty.call(T_CFG, bk)) mergedBootCfg[bk] = T_CFG[bk];
             }
+            for (var rk in cachedRemoteCfg) {
+              if (Object.prototype.hasOwnProperty.call(cachedRemoteCfg, rk) && cachedRemoteCfg[rk] !== undefined) {
+                mergedBootCfg[rk] = cachedRemoteCfg[rk];
+              }
+            }
+            T_CFG = mergedBootCfg;
+            HAS_SLUG_CACHED_CFG = true;
           }
-          T_CFG = mergedBootCfg;
         }
-      }
-    } catch (e) { }
+      } catch (e) { }
+    }
 
     var ALL_COURSES = (typeof COURSE_CATALOG !== "undefined" && COURSE_CATALOG) ? COURSE_CATALOG : {};
     var SELECTED_COURSE_KEY = (T_CFG.courseKey && ALL_COURSES[T_CFG.courseKey]) ? T_CFG.courseKey : (Object.keys(ALL_COURSES)[0] || "");
@@ -6479,25 +6510,63 @@
       return sc + "|" + nt;
     }
 
+    function submitPortalTournamentSlug(ev) {
+      if (ev) ev.preventDefault();
+      var input = document.getElementById("portalSlugInput");
+      var slug = normalizeTournamentSlug(input ? input.value : "");
+      if (!slug) {
+        showToast("⚠️ 대회 코드를 입력해주세요.");
+        return false;
+      }
+      var nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("t", slug);
+      window.location.href = nextUrl.toString();
+      return false;
+    }
+
     (function initInitialGroupList() {
-      function renderSetupRequiredCard() {
+      function setTournamentHeaderCardsVisible(show) {
+        var heroCard = document.querySelector(".golf-hero-card");
+        var noticeCard = document.querySelector(".notice-card");
+        if (heroCard) heroCard.style.display = show ? "" : "none";
+        if (noticeCard) noticeCard.style.display = show ? "" : "none";
+      }
+
+      function renderTournamentPortalCard(missingOrInvalidMsg) {
+        setTournamentHeaderCardsVisible(false);
+        document.title = "Golf ScoreCard";
         var quickGrid = document.getElementById("quickGroupGrid");
         if (!quickGrid) return;
+        var alertHtml = missingOrInvalidMsg
+          ? '<div style="background:#fff5f5; border:1px solid #ffc9c9; color:#c92a2a; border-radius:10px; padding:10px 12px; font-size:13px; font-weight:700; margin-bottom:14px;">' + missingOrInvalidMsg + '</div>'
+          : '';
         quickGrid.innerHTML =
-          '<div class="loading-notice" style="grid-column:1 / -1; background:#fff9db; border:1.5px solid #f59f00; border-radius:14px; padding:18px 14px; color:#5c3c00; line-height:1.55;">' +
-          '<div style="font-size:15px; font-weight:900; color:#800020; margin-bottom:6px;">⚙️ 구글 시트 백엔드 연결이 필요합니다</div>' +
-          '<div style="font-size:12.5px; margin-bottom:12px;">첫 실행 전 총무 설정 페이지에서 백엔드 엔진 URL을 연결하고 대회 시트를 자동 생성해주세요.</div>' +
-          '<a href="admin.html" style="display:inline-block; padding:10px 18px; border-radius:10px; background:#800020; color:#fff; font-weight:800; font-size:13.5px; text-decoration:none;">🛠️ 총무 대회 설정 (admin.html) 열기</a>' +
+          '<div style="grid-column:1 / -1; background:#ffffff; border:1.5px solid #e2e8f0; border-radius:18px; padding:26px 18px; text-align:center; box-shadow:0 6px 20px rgba(15,23,42,0.06); margin-top:16px;">' +
+          '<div style="font-size:34px; margin-bottom:6px;">⛳</div>' +
+          '<div style="font-size:19px; font-weight:900; color:#800020; margin-bottom:6px;">실시간 골프대회 스코어보드</div>' +
+          '<div style="font-size:13px; color:#4b5563; line-height:1.55; margin-bottom:16px;">카톡 등으로 전달받으신 <b>대회 전용 링크</b>로 접속하시거나,<br>안내받은 <b>대회 코드</b>를 아래에 입력해 주세요.</div>' +
+          alertHtml +
+          '<form onsubmit="return submitPortalTournamentSlug(event)" style="display:flex; gap:8px; justify-content:center; max-width:340px; margin:0 auto 16px auto;">' +
+          '<input id="portalSlugInput" type="text" placeholder="대회 코드 (예: 2026-fall)" value="' + (ACTIVE_TOURNAMENT_SLUG || "") + '" ' +
+          'style="flex:1; padding:11px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; font-weight:700; text-transform:lowercase;">' +
+          '<button type="submit" style="padding:11px 18px; border:none; border-radius:10px; background:linear-gradient(180deg,#9e0028 0%,#800020 100%); color:#fff; font-size:14px; font-weight:800; cursor:pointer; white-space:nowrap;">입장 ➔</button>' +
+          '</form>' +
+          '<div style="padding-top:12px; border-top:1px dashed #e2e8f0; font-size:12px; color:#64748b;">' +
+          '새 대회를 개설하시나요? <a href="admin.html" style="color:#003876; font-weight:800; text-decoration:underline;">🛠️ 대회 개설/관리 콘솔 (admin.html)</a>' +
+          '</div>' +
           '</div>';
       }
 
-      function buildFallbackSpec() {
-        var baseCfg = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : T_CFG;
-        return {
-          config: baseCfg,
-          groups: (baseCfg && Array.isArray(baseCfg.groups)) ? baseCfg.groups : [],
-          pars: getCourseOfficialPars()
-        };
+      function renderSetupRequiredCard() {
+        setTournamentHeaderCardsVisible(false);
+        var quickGrid = document.getElementById("quickGroupGrid");
+        if (!quickGrid) return;
+        quickGrid.innerHTML =
+          '<div class="loading-notice" style="grid-column:1 / -1; background:#fff9db; border:1.5px solid #f59f00; border-radius:14px; padding:18px 14px; color:#5c3c00; line-height:1.55; margin-top:14px;">' +
+          '<div style="font-size:15px; font-weight:900; color:#800020; margin-bottom:6px;">⚙️ 구글 시트 백엔드 연결이 필요합니다</div>' +
+          '<div style="font-size:12.5px; margin-bottom:12px;">관리자 설정 페이지에서 백엔드 엔진 URL을 연결하고 대회를 생성해주세요.</div>' +
+          '<a href="admin.html" style="display:inline-block; padding:10px 18px; border-radius:10px; background:#800020; color:#fff; font-weight:800; font-size:13.5px; text-decoration:none;">🛠️ 대회 관리 콘솔 (admin.html) 열기</a>' +
+          '</div>';
       }
 
       function runInit() {
@@ -6511,18 +6580,30 @@
           renderSetupRequiredCard();
           return;
         }
+        if (!ACTIVE_TOURNAMENT_SLUG) {
+          renderTournamentPortalCard("");
+          return;
+        }
+        if (!HAS_SLUG_CACHED_CFG) {
+          // Hide default static template banners until this slug's own config arrives (~0.2s)
+          setTournamentHeaderCardsVisible(false);
+        }
         google.script.run
           .withSuccessHandler(function (bundle) {
+            if (bundle && (bundle.missingSlug || bundle.notFound)) {
+              renderTournamentPortalCard("⚠️ 등록되지 않은 대회 코드입니다: <b>" + (ACTIVE_TOURNAMENT_SLUG || "") + "</b><br>전달받으신 대회 전용 링크를 다시 확인해 주세요.");
+              return;
+            }
+            setTournamentHeaderCardsVisible(true);
             if (bundle && typeof bundle === "object" && !Array.isArray(bundle)) {
+              var scopeId = bundle.sheetId || ACTIVE_TOURNAMENT_SLUG;
               if (bundle.config && typeof bundle.config === "object") {
                 try { localStorage.setItem(CACHED_REMOTE_CFG_KEY, JSON.stringify(bundle.config)); } catch (e) { }
-                rebuildActiveCourseVars(bundle.config, bundle.sheetId || "");
+                rebuildActiveCourseVars(bundle.config, scopeId);
                 applyCourseConfigUI();
-              } else if (bundle.sheetId) {
-                rebuildActiveCourseVars(T_CFG, bundle.sheetId);
-              }
-              if (bundle.autoCreated) {
-                showToast("✨ 새 대회 구글 시트가 자동으로 생성되었습니다!", 3500);
+              } else {
+                rebuildActiveCourseVars(T_CFG, scopeId);
+                applyCourseConfigUI();
               }
               populateGroups(bundle.groupList || []);
               return;
@@ -6531,17 +6612,9 @@
           })
           .withFailureHandler(function (err) {
             var msg = String((err && err.message) || err || "");
-            if (msg.indexOf("허용되지 않은 호출") !== -1) {
-              // Backward-compatible fallback for older backend deployments
-              google.script.run
-                .withSuccessHandler(populateGroups)
-                .withFailureHandler(function (e2) { showToast("조 목록 로드 실패: " + e2.message); })
-                .getGroupList();
-              return;
-            }
-            showToast("조 목록 로드 실패: " + msg);
+            showToast("대회 정보 로드 실패: " + msg);
           })
-          .getInitBundle(buildFallbackSpec());
+          .getInitBundle();
       }
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", runInit);

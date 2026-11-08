@@ -1,100 +1,282 @@
 /**
  * ============================================================================
- * [Code.gs] Standalone Google Sheet Auto-Generator & Score Storage Backend Engine
+ * [Code.gs] Multi-Tournament Google Sheet Auto-Generator & Score API Engine
  * ----------------------------------------------------------------------------
- * - Deploy once under your Google account (https://script.google.com) and reuse permanently.
- * - Zero lines of script are embedded inside individual tournament Google Sheets.
- * - Communicates via JSON API with the GitHub main app (index.html) and admin page (admin.html),
- *   automatically generating a Google Spreadsheet ('Group 1..N', 'Results', 'Near/Long', 'Stat') with the
- *   exact structure, formulas, and styling of the tournament template.
+ * - Deploy once under your Google account (https://script.google.com) and reuse for unlimited tournaments.
+ * - Each tournament gets its own unique slug URL (?t=slug), its own Google Spreadsheet,
+ *   and an optional per-tournament Manager PIN so club managers can only manage their own event.
+ * - Tournament metadata is indexed in a Master Registry Spreadsheet ('_GolfScoreCard_Master_Registry')
+ *   and full per-tournament config is stored in a hidden '_Config' sheet inside each tournament's
+ *   Google Spreadsheet (with CacheService RAM caching for instant response and zero storage ceiling).
  * ============================================================================
  */
 
 var GROUP_LIST_CACHE_TTL_SEC = 300;
-var DEFAULT_ADMIN_PIN = "2026";
-var PROP_ACTIVE_SHEET_ID = "ACTIVE_SHEET_ID_V1";
-var PROP_ACTIVE_SHEET_URL = "ACTIVE_SHEET_URL_V1";
-var PROP_ACTIVE_RESULTS_GID = "ACTIVE_RESULTS_GID_V1";
-var PROP_ACTIVE_TOURNAMENT_ID = "ACTIVE_TOURNAMENT_ID_V1";
-var PROP_ADMIN_PIN = "ADMIN_PIN_V1";
-var PROP_HISTORY_JSON = "TOURNAMENT_HISTORY_V1";
-var PROP_CFG_CHUNKS = "ACTIVE_CFG_CHUNKS_V1";
-var PROP_CFG_PREFIX = "ACTIVE_CFG_PART_";
+var REGISTRY_CACHE_TTL_SEC = 21600;
+var CONFIG_CACHE_TTL_SEC = 600;
+
+var DEFAULT_MASTER_PIN = "2026";
+var PROP_MASTER_PIN = "MASTER_ADMIN_PIN_V2";
+var PROP_REGISTRY_SHEET_ID = "MASTER_REGISTRY_SHEET_ID_V2";
+
+// Per-request execution context populated inside doPost(e)
+var CURRENT_REQ_SLUG = "";
+var CURRENT_REQ_SHEET_ID = "";
 
 function doGet() {
-    var state = readActiveStateMeta();
-    var msg = state.sheetUrl
-        ? "✅ Golf ScoreCard API Engine 정상 작동 중 (연결된 시트: " + state.sheetUrl + ")"
-        : "✅ Golf ScoreCard API Engine 정상 작동 중 (아직 생성된 대회 시트 없음 — GitHub 앱 또는 admin.html에서 자동 생성됩니다)";
-    return ContentService.createTextOutput(msg).setMimeType(ContentService.MimeType.TEXT);
+    return ContentService
+        .createTextOutput("Golf ScoreCard Multi-Tournament API Engine is running.")
+        .setMimeType(ContentService.MimeType.TEXT);
 }
 
-function getActiveSheetId() {
+function normalizeSlug(raw) {
+    return String(raw || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 48);
+}
+
+function generateRandomSlug() {
+    var chars = "abcdefghjkmnpqrstuvwxyz23456789";
+    var out = "";
+    for (var i = 0; i < 6; i++) {
+        out += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return out;
+}
+
+function getMasterPin() {
+    var props = PropertiesService.getScriptProperties();
+    return props.getProperty(PROP_MASTER_PIN) || DEFAULT_MASTER_PIN;
+}
+
+function verifyMasterPin(pin) {
+    if (String(pin || "").trim() !== String(getMasterPin()).trim()) {
+        throw new Error("마스터 비밀번호(PIN)가 올바르지 않습니다.");
+    }
+}
+
+function getOrCreateRegistrySpreadsheet() {
+    var props = PropertiesService.getScriptProperties();
+    var regId = props.getProperty(PROP_REGISTRY_SHEET_ID) || "";
+    var ss = null;
+    if (regId) {
+        try {
+            ss = SpreadsheetApp.openById(regId);
+        } catch (e) {
+            ss = null;
+        }
+    }
+    if (!ss) {
+        ss = SpreadsheetApp.create("_GolfScoreCard_Master_Registry");
+        var defaultSheets = ss.getSheets();
+        var sh = ss.insertSheet("Tournaments");
+        sh.getRange(1, 1, 1, 8).setValues([[
+            "slug", "sheetId", "sheetTitle", "courseKey", "managerPin", "resultsUrl", "createdAt", "updatedAt"
+        ]])
+            .setBackground("#1f2937")
+            .setFontColor("#ffffff")
+            .setFontWeight("bold");
+        sh.setFrozenRows(1);
+        for (var d = 0; d < defaultSheets.length; d++) {
+            try { ss.deleteSheet(defaultSheets[d]); } catch (de) { }
+        }
+        SpreadsheetApp.flush();
+        props.setProperty(PROP_REGISTRY_SHEET_ID, ss.getId());
+    }
+    var tSheet = ss.getSheetByName("Tournaments");
+    if (!tSheet) {
+        tSheet = ss.insertSheet("Tournaments");
+        tSheet.getRange(1, 1, 1, 8).setValues([[
+            "slug", "sheetId", "sheetTitle", "courseKey", "managerPin", "resultsUrl", "createdAt", "updatedAt"
+        ]]);
+    }
+    return tSheet;
+}
+
+function readAllRegistryRecords() {
+    var props = PropertiesService.getScriptProperties();
+    var regId = props.getProperty(PROP_REGISTRY_SHEET_ID) || "";
+    if (!regId) return [];
+    var ss;
+    try {
+        ss = SpreadsheetApp.openById(regId);
+    } catch (e) {
+        return [];
+    }
+    var sh = ss.getSheetByName("Tournaments");
+    if (!sh || sh.getLastRow() < 2) return [];
+    var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues();
+    var out = [];
+    for (var i = 0; i < rows.length; i++) {
+        var slug = normalizeSlug(rows[i][0]);
+        var sheetId = String(rows[i][1] || "").trim();
+        if (!slug || !sheetId) continue;
+        out.push({
+            rowNumber: i + 2,
+            slug: slug,
+            sheetId: sheetId,
+            sheetTitle: String(rows[i][2] || ""),
+            courseKey: String(rows[i][3] || ""),
+            managerPin: String(rows[i][4] || ""),
+            resultsUrl: String(rows[i][5] || ""),
+            createdAt: String(rows[i][6] || ""),
+            updatedAt: String(rows[i][7] || "")
+        });
+    }
+    return out;
+}
+
+function lookupTournamentBySlug(rawSlug) {
+    var slug = normalizeSlug(rawSlug);
+    if (!slug) return null;
+    var cacheKey = "REG_V2_" + slug;
     try {
         var cache = CacheService.getScriptCache();
         if (cache) {
-            var cid = cache.get(PROP_ACTIVE_SHEET_ID);
-            if (cid) return cid;
+            var hit = cache.get(cacheKey);
+            if (hit) return JSON.parse(hit);
         }
     } catch (e) { }
-    var props = PropertiesService.getScriptProperties();
-    var sid = props.getProperty(PROP_ACTIVE_SHEET_ID) || "";
-    if (sid) {
-        try {
-            var c2 = CacheService.getScriptCache();
-            if (c2) c2.put(PROP_ACTIVE_SHEET_ID, sid, 600);
-        } catch (e2) { }
+
+    var all = readAllRegistryRecords();
+    for (var i = 0; i < all.length; i++) {
+        if (all[i].slug === slug) {
+            try {
+                var c2 = CacheService.getScriptCache();
+                if (c2) c2.put(cacheKey, JSON.stringify(all[i]), REGISTRY_CACHE_TTL_SEC);
+            } catch (ce) { }
+            return all[i];
+        }
     }
-    return sid;
+    return null;
 }
 
-function getScopedCacheKey(prefix) {
-    var sid = getActiveSheetId() || "NOSHEET";
-    return prefix + sid.slice(0, 28) + "_";
-}
+function upsertTournamentInRegistry(rec) {
+    var slug = normalizeSlug(rec.slug);
+    if (!slug) throw new Error("유효한 대회 코드(slug)가 필요합니다.");
+    var sh = getOrCreateRegistrySpreadsheet();
+    var lastRow = sh.getLastRow();
+    var nowIso = new Date().toISOString();
+    var foundRow = -1;
+    var createdAt = rec.createdAt || nowIso;
 
-function getTargetSpreadsheet() {
-    var sid = getActiveSheetId();
-    if (!sid) {
-        throw new Error("연결된 대회 구글 시트가 없습니다. 총무 페이지(admin.html)에서 시트를 생성해주세요.");
+    if (lastRow >= 2) {
+        var vals = sh.getRange(2, 1, lastRow - 1, 7).getValues();
+        for (var i = 0; i < vals.length; i++) {
+            if (normalizeSlug(vals[i][0]) === slug) {
+                foundRow = i + 2;
+                if (vals[i][6]) createdAt = String(vals[i][6]);
+                break;
+            }
+        }
     }
-    return SpreadsheetApp.openById(sid);
+
+    var rowData = [
+        slug,
+        String(rec.sheetId || ""),
+        String(rec.sheetTitle || ""),
+        String(rec.courseKey || ""),
+        String(rec.managerPin || ""),
+        String(rec.resultsUrl || ""),
+        createdAt,
+        nowIso
+    ];
+
+    if (foundRow > 0) {
+        sh.getRange(foundRow, 1, 1, 8).setValues([rowData]);
+    } else {
+        sh.getRange(lastRow + 1, 1, 1, 8).setValues([rowData]);
+    }
+    SpreadsheetApp.flush();
+
+    var savedObj = {
+        slug: slug,
+        sheetId: rowData[1],
+        sheetTitle: rowData[2],
+        courseKey: rowData[3],
+        managerPin: rowData[4],
+        resultsUrl: rowData[5],
+        createdAt: rowData[6],
+        updatedAt: rowData[7]
+    };
+    try {
+        var cache = CacheService.getScriptCache();
+        if (cache) cache.put("REG_V2_" + slug, JSON.stringify(savedObj), REGISTRY_CACHE_TTL_SEC);
+    } catch (e) { }
+    return savedObj;
 }
 
-function saveChunkedConfig(props, configObj) {
+function removeTournamentFromRegistry(rawSlug) {
+    var slug = normalizeSlug(rawSlug);
+    if (!slug) return false;
+    var sh = getOrCreateRegistrySpreadsheet();
+    var lastRow = sh.getLastRow();
+    if (lastRow >= 2) {
+        var slugs = sh.getRange(2, 1, lastRow - 1, 1).getValues();
+        for (var r = slugs.length - 1; r >= 0; r--) {
+            if (normalizeSlug(slugs[r][0]) === slug) {
+                sh.deleteRow(r + 2);
+            }
+        }
+    }
+    try {
+        var cache = CacheService.getScriptCache();
+        if (cache) cache.remove("REG_V2_" + slug);
+    } catch (e) { }
+    return true;
+}
+
+function writeConfigToSpreadsheet(ss, configObj, managerPinOpt) {
+    var sh = ss.getSheetByName("_Config");
+    if (!sh) {
+        sh = ss.insertSheet("_Config");
+    }
+    try { sh.hideSheet(); } catch (e) { }
+
     var raw = JSON.stringify(configObj || {});
-    var chunkSize = 4000; // Keep safe margin under the 9KB PropertiesService per-key limit (accounting for UTF-8 multibyte chars)
+    var chunkSize = 30000;
     var numChunks = Math.ceil(raw.length / chunkSize) || 1;
-    var oldCount = Number(props.getProperty(PROP_CFG_CHUNKS) || 0);
+    var rows = [["CHUNKS", String(numChunks)], ["MANAGER_PIN", String(managerPinOpt || "")]];
     for (var i = 0; i < numChunks; i++) {
-        props.setProperty(PROP_CFG_PREFIX + i, raw.slice(i * chunkSize, (i + 1) * chunkSize));
+        rows.push(["CFG_" + i, raw.slice(i * chunkSize, (i + 1) * chunkSize)]);
     }
-    for (var j = numChunks; j < oldCount; j++) {
-        props.deleteProperty(PROP_CFG_PREFIX + j);
-    }
-    props.setProperty(PROP_CFG_CHUNKS, String(numChunks));
+    sh.clearContents();
+    sh.getRange(1, 1, rows.length, 2).setValues(rows);
+
     try {
         var cache = CacheService.getScriptCache();
         if (cache && raw.length < 90000) {
-            cache.put("ACTIVE_CFG_CACHE_V1", raw, 300);
+            cache.put("TCFG_V2_" + ss.getId().slice(0, 32), raw, CONFIG_CACHE_TTL_SEC);
         }
-    } catch (e) { }
+    } catch (ce) { }
 }
 
-function loadChunkedConfig() {
+function readConfigFromSpreadsheet(ss, sheetId) {
+    var sid = sheetId || (ss ? ss.getId() : "");
+    var cacheKey = "TCFG_V2_" + sid.slice(0, 32);
     try {
         var cache = CacheService.getScriptCache();
         if (cache) {
-            var cached = cache.get("ACTIVE_CFG_CACHE_V1");
+            var cached = cache.get(cacheKey);
             if (cached) return JSON.parse(cached);
         }
     } catch (e) { }
-    var props = PropertiesService.getScriptProperties();
-    var count = Number(props.getProperty(PROP_CFG_CHUNKS) || 0);
-    if (count <= 0) return null;
+
+    var targetSs = ss || (sid ? SpreadsheetApp.openById(sid) : null);
+    if (!targetSs) return null;
+    var sh = targetSs.getSheetByName("_Config");
+    if (!sh || sh.getLastRow() < 3) return null;
+
+    var vals = sh.getRange(1, 1, sh.getLastRow(), 2).getValues();
+    var numChunks = Number(vals[0][1] || 0);
+    if (numChunks <= 0) return null;
     var parts = [];
-    for (var i = 0; i < count; i++) {
-        parts.push(props.getProperty(PROP_CFG_PREFIX + i) || "");
+    for (var i = 0; i < numChunks; i++) {
+        var rIdx = 2 + i;
+        if (rIdx < vals.length) parts.push(String(vals[rIdx][1] || ""));
     }
     var joined = parts.join("");
     if (!joined) return null;
@@ -102,7 +284,7 @@ function loadChunkedConfig() {
         var parsed = JSON.parse(joined);
         try {
             var c2 = CacheService.getScriptCache();
-            if (c2 && joined.length < 90000) c2.put("ACTIVE_CFG_CACHE_V1", joined, 300);
+            if (c2 && joined.length < 90000) c2.put(cacheKey, joined, CONFIG_CACHE_TTL_SEC);
         } catch (ce) { }
         return parsed;
     } catch (pe) {
@@ -110,45 +292,39 @@ function loadChunkedConfig() {
     }
 }
 
-function readActiveStateMeta() {
-    var props = PropertiesService.getScriptProperties();
-    var sheetId = props.getProperty(PROP_ACTIVE_SHEET_ID) || "";
-    var sheetUrl = props.getProperty(PROP_ACTIVE_SHEET_URL) || (sheetId ? ("https://docs.google.com/spreadsheets/d/" + sheetId + "/edit") : "");
-    var resultsGid = props.getProperty(PROP_ACTIVE_RESULTS_GID) || "";
-    var resultsUrl = (sheetId && resultsGid !== "")
-        ? ("https://docs.google.com/spreadsheets/d/" + sheetId + "/edit?gid=" + resultsGid + "#gid=" + resultsGid)
-        : sheetUrl;
-    var tournamentId = props.getProperty(PROP_ACTIVE_TOURNAMENT_ID) || "";
-    return {
-        sheetId: sheetId,
-        sheetUrl: sheetUrl,
-        resultsGid: resultsGid,
-        resultsUrl: resultsUrl,
-        tournamentId: tournamentId,
-        config: loadChunkedConfig()
-    };
-}
-
-function invalidateActiveCaches(sheetIdOpt) {
+function invalidateSheetCaches(sheetId) {
+    if (!sheetId) return;
     try {
         var cache = CacheService.getScriptCache();
         if (!cache) return;
-        cache.remove(PROP_ACTIVE_SHEET_ID);
-        cache.remove("ACTIVE_CFG_CACHE_V1");
-        if (sheetIdOpt) {
-            var pfx = sheetIdOpt.slice(0, 28) + "_";
-            cache.remove("GL_" + pfx);
-            cache.remove("BF_" + pfx);
-        }
+        var pfx = sheetId.slice(0, 28) + "_";
+        cache.remove("GL_" + pfx);
+        cache.remove("BF_" + pfx);
+        cache.remove("TCFG_V2_" + sheetId.slice(0, 32));
     } catch (e) { }
 }
 
-function verifyAdminPin(pin) {
-    var props = PropertiesService.getScriptProperties();
-    var savedPin = props.getProperty(PROP_ADMIN_PIN) || DEFAULT_ADMIN_PIN;
-    if (String(pin || "").trim() !== String(savedPin).trim()) {
-        throw new Error("총무 비밀번호(PIN)가 올바르지 않습니다.");
+function setRequestTournamentContext(rawSlug) {
+    CURRENT_REQ_SLUG = normalizeSlug(rawSlug);
+    CURRENT_REQ_SHEET_ID = "";
+    if (!CURRENT_REQ_SLUG) return null;
+    var rec = lookupTournamentBySlug(CURRENT_REQ_SLUG);
+    if (rec && rec.sheetId) {
+        CURRENT_REQ_SHEET_ID = rec.sheetId;
     }
+    return rec;
+}
+
+function getCurrentSheetScopePrefix(prefix) {
+    var sid = CURRENT_REQ_SHEET_ID || "NOSHEET";
+    return prefix + sid.slice(0, 28) + "_";
+}
+
+function getTargetSpreadsheet() {
+    if (!CURRENT_REQ_SHEET_ID) {
+        throw new Error("등록되지 않은 대회 코드이거나 연결된 구글 시트가 없습니다.");
+    }
+    return SpreadsheetApp.openById(CURRENT_REQ_SHEET_ID);
 }
 
 function colIndexToLetter(col1Based) {
@@ -165,7 +341,7 @@ function colIndexToLetter(col1Based) {
 /**
  * ============================================================================
  * Spreadsheet Auto-Generator (exact layout, formulas, and styling)
- *   Generated tabs: ['Group 1..N', 'Results', 'Near/Long', 'Stat']
+ *   Generated visible tabs: ['Group 1'...'Group N', 'Results', 'Near/Long', 'Stat'] + hidden '_Config'
  * ============================================================================
  */
 function createTournamentSpreadsheet(spec) {
@@ -187,9 +363,9 @@ function createTournamentSpreadsheet(spec) {
         ? cfg.longDriveHoles.map(function (n) { return Number(n); }).filter(function (n) { return n >= 1 && n <= 18; })
         : [8];
 
-    var sheetTitle = String(cfg.sheetTitle || cfg.heroTitle || cfg.tournamentTitle || "골프대회 스코어보드")
+    var sheetTitle = String(cfg.sheetTitle || cfg.heroTitle || cfg.tournamentTitle || "Golf Tournament Scorecard")
         .replace(/^[⛳🏆🎯\s]+/, "")
-        .trim() || "골프대회 스코어보드";
+        .trim() || "Golf Tournament Scorecard";
 
     // Build normalized group and player list
     var normGroups = [];
@@ -221,17 +397,15 @@ function createTournamentSpreadsheet(spec) {
     var ss = SpreadsheetApp.create(sheetTitle);
     var defaultSheets = ss.getSheets();
 
-    // ------------------------------------------------------------------------
     // 1. Create group tabs (Group 1 ~ Group N)
-    // ------------------------------------------------------------------------
     for (var idx = 0; idx < normGroups.length; idx++) {
         var grp = normGroups[idx];
         var gSheet = ss.insertSheet(grp.name);
         var pCount = grp.players.length;
-        var lastPlayerRow = 2 + pCount;       // Row 6 for 4 players, Row 5 for 3 players
-        var guideRow = lastPlayerRow + 1;     // Row 7 for 4 players
-        var missionRow = lastPlayerRow + 2;   // Row 8 for 4 players
-        var memoRow = Math.max(15, missionRow + 3); // Row 15 ('Memo' row)
+        var lastPlayerRow = 2 + pCount;
+        var guideRow = lastPlayerRow + 1;
+        var missionRow = lastPlayerRow + 2;
+        var memoRow = Math.max(15, missionRow + 3);
 
         var totalRows = memoRow;
         var grid = [];
@@ -267,7 +441,7 @@ function createTournamentSpreadsheet(spec) {
         // All-Par Mission row (A8 label, B8:S8 formulas)
         grid[missionRow - 1][0] = "홀파미션";
         for (var hm = 1; hm <= 18; hm++) {
-            var colL = colIndexToLetter(hm + 1); // B..S
+            var colL = colIndexToLetter(hm + 1);
             grid[missionRow - 1][hm] = '=IF(COUNTBLANK(' + colL + '3:' + colL + lastPlayerRow + ') > 0, "도전", IF(SUM(' + colL + '3:' + colL + lastPlayerRow + ') <= 0, "성공!", "실패"))';
         }
 
@@ -276,7 +450,6 @@ function createTournamentSpreadsheet(spec) {
 
         gSheet.getRange(1, 1, totalRows, 21).setValues(grid);
 
-        // Apply group sheet styling (matching original tournament workbook)
         gSheet.getRange(1, 1, 1, 21)
             .setBackground("#ff0000")
             .setFontColor("#ffffff")
@@ -329,9 +502,7 @@ function createTournamentSpreadsheet(spec) {
         gSheet.setFrozenColumns(1);
     }
 
-    // ------------------------------------------------------------------------
-    // 2. Create 'Results' (Results) tab (matching structure, formulas, row colors, and conditional formatting)
-    // ------------------------------------------------------------------------
+    // 2. Create 'Results' tab
     var resSheet = ss.insertSheet("결과");
     var totalPlayers = 0;
     for (var g0 = 0; g0 < normGroups.length; g0++) totalPlayers += normGroups[g0].players.length;
@@ -358,7 +529,7 @@ function createTournamentSpreadsheet(spec) {
     for (var gi2 = 0; gi2 < normGroups.length; gi2++) {
         var grp2 = normGroups[gi2];
         var gEsc = grp2.name.replace(/'/g, "''");
-        var gBg = (gi2 % 2 === 0) ? "#fff2cc" : "#d9ead3"; // Odd groups: soft yellow (#fff2cc), Even groups: soft green (#d9ead3)
+        var gBg = (gi2 % 2 === 0) ? "#fff2cc" : "#d9ead3";
         var groupStartRow = curResRow;
 
         for (var pi2 = 0; pi2 < grp2.players.length; pi2++) {
@@ -371,33 +542,23 @@ function createTournamentSpreadsheet(spec) {
             }
             rowArr[1] = "='" + gEsc + "'!A" + pSheetRow;
             for (var h2 = 1; h2 <= 18; h2++) {
-                var srcColL = colIndexToLetter(h2 + 1); // B..S
+                var srcColL = colIndexToLetter(h2 + 1);
                 rowArr[1 + h2] = "='" + gEsc + "'!" + srcColL + pSheetRow;
             }
-            // Col U (20): Gross relative-to-par total
             rowArr[20] = '=IF(COUNT(C' + r + ':T' + r + ')=18, SUM(C' + r + ':T' + r + '), "")';
-            // Col V (21): Handicap
             rowArr[21] = "='" + gEsc + "'!U" + pSheetRow;
-            // Col W (22): Net score
             rowArr[22] = '=IF(AND(ISNUMBER(U' + r + '), ISNUMBER(V' + r + ')), U' + r + '-V' + r + ', "")';
-            // Cols X..AC (23..28): Birdie(-1), Par(0), Bogey(1), Double(2), Triple(3), Quadruple(4) counts
             rowArr[23] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', -1), "")';
             rowArr[24] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', 0), "")';
             rowArr[25] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', 1), "")';
             rowArr[26] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', 2), "")';
             rowArr[27] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', 3), "")';
             rowArr[28] = '=IF(ISNUMBER($U' + r + '), COUNTIF($C' + r + ':$T' + r + ', 4), "")';
-            // Col AD (29): Front/Back consistency diff (abs difference between front 9 and back 9)
             rowArr[29] = '=IF(AND(ISNUMBER(U' + r + '), ISNUMBER(V' + r + ')), ABS(SUM(C' + r + ':K' + r + ')-SUM(L' + r + ':T' + r + ')), "")';
-            // Col AE (30): Honest handicap diff (abs difference between total over-par and handicap)
             rowArr[30] = '=IF(AND(ISNUMBER(U' + r + '), ISNUMBER(V' + r + ')), ABS(U' + r + ' - V' + r + '), "")';
-            // Col AF (31): Binary streak (longest alternating 0/1 sequence using standard built-in REDUCE/LAMBDA)
             rowArr[31] = '=IF(ISNUMBER($U' + r + '), INDEX(REDUCE({0, 0, -99}, C' + r + ':T' + r + ', LAMBDA(acc, v, LET(mx, INDEX(acc,1), cur, INDEX(acc,2), prv, INDEX(acc,3), ncur, IF(OR(v=0, v=1), IF(AND(OR(prv=0, prv=1), v<>prv), cur+1, 1), 0), {MAX(mx, ncur), ncur, v}))), 1), "")';
-            // Col AG (32): Front 9 relative score
             rowArr[32] = '=IF(COUNT(C' + r + ':T' + r + ')=18, SUM(C' + r + ':K' + r + '), "")';
-            // Col AH (33): Back 9 relative score
             rowArr[33] = '=IF(COUNT(C' + r + ':T' + r + ')=18, SUM(L' + r + ':T' + r + '), "")';
-            // Col AI (34): Back-nine tiebreak auxiliary sum
             rowArr[34] = '=IF(AND(ISNUMBER(D' + r + '), ISNUMBER(U' + r + ')), SUM(M' + r + ':U' + r + '), "")';
 
             resGrid.push(rowArr);
@@ -427,7 +588,6 @@ function createTournamentSpreadsheet(spec) {
         resSheet.getRange(groupMergeRanges[gm][0], 1, groupMergeRanges[gm][1], 1).merge();
     }
 
-    // Conditional formatting to highlight lowest gross score
     var uColRange = resSheet.getRange(2, 21, totalPlayers, 1);
     resSheet.setConditionalFormatRules([
         SpreadsheetApp.newConditionalFormatRule()
@@ -445,12 +605,10 @@ function createTournamentSpreadsheet(spec) {
     resSheet.setFrozenRows(1);
     resSheet.setFrozenColumns(2);
 
-    // ------------------------------------------------------------------------
-    // 3. Create 'Near/Long' (Near/Long) tab
-    // ------------------------------------------------------------------------
+    // 3. Create 'Near/Long' tab
     var nearSheet = ss.insertSheet("니어/롱기");
     var longColBase = Math.max(nearHoles.length * 2 + 1, 9);
-    var hofCol = Math.max(longColBase + longHoles.length * 2, 11); // Default Col K (11)
+    var hofCol = Math.max(longColBase + longHoles.length * 2, 11);
     var nlHeader = new Array(hofCol).fill("");
     var nlMerges = [];
     var statEventDefs = [];
@@ -479,16 +637,13 @@ function createTournamentSpreadsheet(spec) {
     for (var nm = 0; nm < nlMerges.length; nm++) {
         nearSheet.getRange(1, nlMerges[nm], 1, 2).merge();
     }
-    // Format Near-Pin feet/inch columns (B, D, F, H) as plain text ('@') to prevent auto-date/number conversion
     for (var nf = 0; nf < nearHoles.length; nf++) {
         nearSheet.getRange(2, nf * 2 + 2, 60, 1).setNumberFormat("@");
     }
     nearSheet.setColumnWidth(hofCol, 280);
     nearSheet.setFrozenRows(1);
 
-    // ------------------------------------------------------------------------
-    // 4. Create 'Stat' tab (real-time auto-sorted leaderboards across all categories via =SORT(...))
-    // ------------------------------------------------------------------------
+    // 4. Create 'Stat' tab
     var statSheet = ss.insertSheet("Stat");
     var statCategories = [
         { title: "최저타", colL: "U", asc: "TRUE" },
@@ -537,11 +692,13 @@ function createTournamentSpreadsheet(spec) {
     }
     statSheet.setFrozenRows(1);
 
+    // 5. Store self-contained tournament config in hidden '_Config' tab
+    cfg.groups = normGroups;
+    writeConfigToSpreadsheet(ss, cfg, spec.managerPin || "");
+
     // Remove initial default blank sheet (Sheet1)
     for (var ds = 0; ds < defaultSheets.length; ds++) {
-        try {
-            ss.deleteSheet(defaultSheets[ds]);
-        } catch (de) { }
+        try { ss.deleteSheet(defaultSheets[ds]); } catch (de) { }
     }
 
     ss.setActiveSheet(resSheet);
@@ -558,6 +715,7 @@ function createTournamentSpreadsheet(spec) {
         resultsGid: resultsGid,
         resultsUrl: resultsUrl,
         sheetTitle: sheetTitle,
+        normGroups: normGroups,
         groupList: normGroups.map(function (g) {
             return {
                 name: g.name,
@@ -567,96 +725,35 @@ function createTournamentSpreadsheet(spec) {
     };
 }
 
-function recordSheetHistory(entry) {
-    try {
-        var props = PropertiesService.getScriptProperties();
-        var raw = props.getProperty(PROP_HISTORY_JSON);
-        var list = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(list)) list = [];
-        list = list.filter(function (item) { return item && item.sheetId !== entry.sheetId; });
-        list.unshift(entry);
-        if (list.length > 15) list = list.slice(0, 15);
-        props.setProperty(PROP_HISTORY_JSON, JSON.stringify(list));
-    } catch (e) { }
-}
-
-function getSheetHistoryList() {
-    try {
-        var props = PropertiesService.getScriptProperties();
-        var raw = props.getProperty(PROP_HISTORY_JSON);
-        var list = raw ? JSON.parse(raw) : [];
-        return Array.isArray(list) ? list : [];
-    } catch (e) {
-        return [];
-    }
-}
-
-function saveActiveTournamentState(sheetInfo, configObj) {
-    var oldSheetId = getActiveSheetId();
-    var props = PropertiesService.getScriptProperties();
-    props.setProperty(PROP_ACTIVE_SHEET_ID, sheetInfo.sheetId);
-    props.setProperty(PROP_ACTIVE_SHEET_URL, sheetInfo.sheetUrl || "");
-    props.setProperty(PROP_ACTIVE_RESULTS_GID, String(sheetInfo.resultsGid || ""));
-    if (configObj && configObj.tournamentId) {
-        props.setProperty(PROP_ACTIVE_TOURNAMENT_ID, String(configObj.tournamentId));
-    }
-    if (configObj) {
-        saveChunkedConfig(props, configObj);
-    }
-    invalidateActiveCaches(oldSheetId);
-    invalidateActiveCaches(sheetInfo.sheetId);
-}
-
 /**
- * Called once when booting the GitHub main app (index.html):
- * - If an active tournament sheet already exists, immediately returns { config, groupList, sheetId, resultsUrl }.
- * - If no sheet exists yet and fallbackSpec provides default config/roster, auto-creates a new sheet under Lock protection.
+ * Called once when booting the participant app (index.html?t=slug):
+ * - Resolves the tournament slug to its dedicated Google Spreadsheet and returns { config, groupList, sheetId, resultsUrl }.
+ * - Returns { notFound: true } if the slug does not exist in the registry.
  */
-function getInitBundle(fallbackSpec) {
-    var meta = readActiveStateMeta();
-    if (!meta.sheetId && fallbackSpec && (fallbackSpec.groups || (fallbackSpec.config && fallbackSpec.config.groups))) {
-        var lock = LockService.getScriptLock();
-        lock.waitLock(30000);
-        try {
-            meta = readActiveStateMeta();
-            if (!meta.sheetId) {
-                var created = createTournamentSpreadsheet(fallbackSpec);
-                var initCfg = fallbackSpec.config || {};
-                saveActiveTournamentState(created, initCfg);
-                recordSheetHistory({
-                    sheetId: created.sheetId,
-                    resultsUrl: created.resultsUrl,
-                    title: created.sheetTitle,
-                    createdAt: new Date().toISOString()
-                });
-                return {
-                    autoCreated: true,
-                    sheetId: created.sheetId,
-                    sheetUrl: created.sheetUrl,
-                    resultsUrl: created.resultsUrl,
-                    config: initCfg,
-                    groupList: created.groupList
-                };
-            }
-        } finally {
-            lock.releaseLock();
-        }
+function getInitBundle() {
+    if (!CURRENT_REQ_SLUG) {
+        return { missingSlug: true, groupList: [] };
     }
-
-    var groupList = meta.sheetId ? getGroupList() : [];
+    var rec = lookupTournamentBySlug(CURRENT_REQ_SLUG);
+    if (!rec || !rec.sheetId) {
+        return { notFound: true, slug: CURRENT_REQ_SLUG, groupList: [] };
+    }
+    CURRENT_REQ_SHEET_ID = rec.sheetId;
+    var cfg = readConfigFromSpreadsheet(null, rec.sheetId);
+    var groupList = getGroupList();
     return {
-        autoCreated: false,
-        sheetId: meta.sheetId,
-        sheetUrl: meta.sheetUrl,
-        resultsUrl: meta.resultsUrl,
-        config: meta.config || (fallbackSpec && fallbackSpec.config) || null,
+        notFound: false,
+        slug: rec.slug,
+        sheetId: rec.sheetId,
+        resultsUrl: rec.resultsUrl,
+        config: cfg,
         groupList: groupList
     };
 }
 
 // [Fast] Fetch group list and player names (per-sheet isolated cache + single batch read from 'Results' tab)
 function getGroupList() {
-    var glCacheKey = getScopedCacheKey("GL_");
+    var glCacheKey = getCurrentSheetScopePrefix("GL_");
     try {
         var cache = CacheService.getScriptCache();
         if (cache) {
@@ -826,7 +923,7 @@ function saveGroupScores(groupName, scoreData, notesData, activeHole, nearPinHol
         if (ticket && ticket.device && Number(ticket.seq) > 0) {
             try {
                 var seqCache = CacheService.getScriptCache();
-                var seqKey = getScopedCacheKey("SAVESEQ_") + encodeURIComponent(groupName) + "_" + String(ticket.device).slice(0, 40);
+                var seqKey = getCurrentSheetScopePrefix("SAVESEQ_") + encodeURIComponent(groupName) + "_" + String(ticket.device).slice(0, 40);
                 if (Number(ticket.seq) <= Number(seqCache.get(seqKey) || 0)) {
                     isStaleTicket = true;
                 } else {
@@ -1277,11 +1374,11 @@ function saveBirdieFeedToCacheAndProps(list) {
     }
     try {
         var propsOut = PropertiesService.getScriptProperties();
-        if (propsOut) propsOut.setProperty(getScopedCacheKey("BF_"), outJson);
+        if (propsOut) propsOut.setProperty(getCurrentSheetScopePrefix("BF_"), outJson);
     } catch (pe) { }
     try {
         var cacheOut = CacheService.getScriptCache();
-        if (cacheOut) cacheOut.put(getScopedCacheKey("BF_"), outJson, 21600);
+        if (cacheOut) cacheOut.put(getCurrentSheetScopePrefix("BF_"), outJson, 21600);
     } catch (ce) { }
 }
 
@@ -1308,16 +1405,16 @@ function getBirdieFeed() {
         var raw = null;
         try {
             var cache = CacheService.getScriptCache();
-            if (cache) raw = cache.get(getScopedCacheKey("BF_"));
+            if (cache) raw = cache.get(getCurrentSheetScopePrefix("BF_"));
         } catch (ce) { }
 
         if (!raw) {
             var props = PropertiesService.getScriptProperties();
-            if (props) raw = props.getProperty(getScopedCacheKey("BF_"));
+            if (props) raw = props.getProperty(getCurrentSheetScopePrefix("BF_"));
             if (raw) {
                 try {
                     var cacheWrite = CacheService.getScriptCache();
-                    if (cacheWrite) cacheWrite.put(getScopedCacheKey("BF_"), raw, 21600);
+                    if (cacheWrite) cacheWrite.put(getCurrentSheetScopePrefix("BF_"), raw, 21600);
                 } catch (ce2) { }
             }
         }
@@ -1954,13 +2051,30 @@ function getEventBoardData() {
 
 /**
  * ============================================================================
- * Admin API for Tournament Manager (admin.html — protected by PIN authentication)
+
+/**
+ * ============================================================================
+ * Multi-Tournament Admin API (Master Admin Console + Per-Tournament Manager Mode)
  * ============================================================================
  */
 function extractSpreadsheetId(idOrUrl) {
     var s = String(idOrUrl || "").trim();
     var m = s.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     return m ? m[1] : s;
+}
+
+function verifyTournamentAccess(slug, pin) {
+    var rec = lookupTournamentBySlug(slug);
+    if (!rec) {
+        throw new Error("등록되지 않은 대회 코드입니다: " + slug);
+    }
+    var p = String(pin || "").trim();
+    var masterPin = String(getMasterPin()).trim();
+    if (p === masterPin) return { role: "master", record: rec };
+    if (rec.managerPin && p !== "" && p === String(rec.managerPin).trim()) {
+        return { role: "manager", record: rec };
+    }
+    throw new Error("비밀번호(PIN)가 올바르지 않습니다.");
 }
 
 function readGroupsWithHandicapsFromSheet(ss) {
@@ -1995,116 +2109,182 @@ function readGroupsWithHandicapsFromSheet(ss) {
     return groups;
 }
 
-function adminGetStatus(pin) {
-    verifyAdminPin(pin);
-    var meta = readActiveStateMeta();
-    var groupsWithHcp = [];
-    var sheetTitle = "";
-    if (meta.sheetId) {
-        try {
-            var ss = SpreadsheetApp.openById(meta.sheetId);
-            sheetTitle = ss.getName();
-            groupsWithHcp = readGroupsWithHandicapsFromSheet(ss);
-        } catch (e) { }
-    }
+// [Master Only] List all hosted tournaments in reverse chronological order
+function adminListTournaments(masterPin) {
+    verifyMasterPin(masterPin);
+    var list = readAllRegistryRecords();
+    list.sort(function (a, b) {
+        return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+    });
+    return { tournaments: list };
+}
+
+// [Master OR Club Manager] Load full details for a single tournament slug
+function adminGetTournament(slug, pin) {
+    var auth = verifyTournamentAccess(slug, pin);
+    var rec = auth.record;
+    var ss = SpreadsheetApp.openById(rec.sheetId);
+    var cfg = readConfigFromSpreadsheet(ss, rec.sheetId) || {};
+    var groups = readGroupsWithHandicapsFromSheet(ss);
     return {
-        sheetId: meta.sheetId,
-        sheetUrl: meta.sheetUrl,
-        resultsGid: meta.resultsGid,
-        resultsUrl: meta.resultsUrl,
-        sheetTitle: sheetTitle,
-        config: meta.config,
-        groups: groupsWithHcp,
-        history: getSheetHistoryList()
+        role: auth.role,
+        slug: rec.slug,
+        sheetId: rec.sheetId,
+        sheetTitle: ss.getName(),
+        resultsUrl: rec.resultsUrl,
+        managerPin: rec.managerPin || "",
+        config: cfg,
+        groups: groups
     };
 }
 
+// [Master OR Club Manager rebuilding their own slug] Create a new tournament Google Sheet & register its unique slug
 function adminCreateTournament(pin, spec) {
-    verifyAdminPin(pin);
+    spec = spec || {};
+    var requestedSlug = normalizeSlug(spec.slug || (spec.config && spec.config.tournamentId) || "");
+    var slug = requestedSlug || generateRandomSlug();
+    var existing = lookupTournamentBySlug(slug);
+
+    if (existing) {
+        if (!spec.allowOverwrite) {
+            throw new Error("이미 사용 중인 대회 코드('" + slug + "')입니다. 다른 대회 코드를 입력하거나 기존 대회를 선택해 수정해주세요.");
+        }
+        verifyTournamentAccess(slug, pin);
+    } else {
+        verifyMasterPin(pin);
+        // Ensure auto-generated slug never collides
+        while (lookupTournamentBySlug(slug)) {
+            slug = generateRandomSlug();
+        }
+    }
+
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-        var created = createTournamentSpreadsheet(spec);
-        var cfg = (spec && spec.config) ? spec.config : {};
-        cfg.groups = spec.groups || cfg.groups || [];
-        saveActiveTournamentState(created, cfg);
-        recordSheetHistory({
-            sheetId: created.sheetId,
-            resultsUrl: created.resultsUrl,
-            title: created.sheetTitle,
-            createdAt: new Date().toISOString()
-        });
-        return {
-            sheetId: created.sheetId,
-            sheetUrl: created.sheetUrl,
-            resultsGid: created.resultsGid,
-            resultsUrl: created.resultsUrl,
-            sheetTitle: created.sheetTitle,
+        var cfg = spec.config || {};
+        cfg.tournamentId = slug;
+        var managerPin = String(spec.managerPin !== undefined ? spec.managerPin : (existing ? existing.managerPin : "")).trim();
+
+        var created = createTournamentSpreadsheet({
             config: cfg,
-            groupList: created.groupList,
-            history: getSheetHistoryList()
+            groups: spec.groups || cfg.groups || [],
+            pars: spec.pars,
+            managerPin: managerPin
+        });
+
+        if (existing && existing.sheetId) {
+            invalidateSheetCaches(existing.sheetId);
+        }
+        invalidateSheetCaches(created.sheetId);
+
+        var regSaved = upsertTournamentInRegistry({
+            slug: slug,
+            sheetId: created.sheetId,
+            sheetTitle: created.sheetTitle,
+            courseKey: cfg.courseKey || "",
+            managerPin: managerPin,
+            resultsUrl: created.resultsUrl,
+            createdAt: existing ? existing.createdAt : ""
+        });
+
+        return {
+            slug: regSaved.slug,
+            sheetId: created.sheetId,
+            sheetTitle: created.sheetTitle,
+            resultsUrl: created.resultsUrl,
+            managerPin: managerPin,
+            config: cfg,
+            groupList: created.groupList
         };
     } finally {
         lock.releaseLock();
     }
 }
 
-function adminUpdateConfigOnly(pin, newConfig) {
-    verifyAdminPin(pin);
-    var props = PropertiesService.getScriptProperties();
-    if (newConfig && newConfig.tournamentId) {
-        props.setProperty(PROP_ACTIVE_TOURNAMENT_ID, String(newConfig.tournamentId));
-    }
-    saveChunkedConfig(props, newConfig || {});
-    var meta = readActiveStateMeta();
+// [Master OR Club Manager] Update notice/title/tee-time/settings without creating a new Google Sheet
+function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt) {
+    var auth = verifyTournamentAccess(slug, pin);
+    var rec = auth.record;
+    var ss = SpreadsheetApp.openById(rec.sheetId);
+    var cfg = newConfig || {};
+    cfg.tournamentId = rec.slug;
+
+    var nextManagerPin = (newManagerPinOpt !== undefined && newManagerPinOpt !== null)
+        ? String(newManagerPinOpt).trim()
+        : rec.managerPin;
+
+    writeConfigToSpreadsheet(ss, cfg, nextManagerPin);
+    invalidateSheetCaches(rec.sheetId);
+
+    var saved = upsertTournamentInRegistry({
+        slug: rec.slug,
+        sheetId: rec.sheetId,
+        sheetTitle: cfg.sheetTitle || rec.sheetTitle || ss.getName(),
+        courseKey: cfg.courseKey || rec.courseKey || "",
+        managerPin: nextManagerPin,
+        resultsUrl: rec.resultsUrl,
+        createdAt: rec.createdAt
+    });
+
     return {
         updated: true,
-        sheetId: meta.sheetId,
-        resultsUrl: meta.resultsUrl,
-        config: newConfig
+        slug: saved.slug,
+        sheetId: saved.sheetId,
+        resultsUrl: saved.resultsUrl,
+        managerPin: saved.managerPin,
+        config: cfg
     };
 }
 
-function adminConnectExistingSheet(pin, sheetIdOrUrl, configOpt) {
-    verifyAdminPin(pin);
+// [Master Only] Bind a slug to an existing Google Spreadsheet URL/ID
+function adminConnectExistingSheet(masterPin, rawSlug, sheetIdOrUrl, configOpt, managerPinOpt) {
+    verifyMasterPin(masterPin);
+    var slug = normalizeSlug(rawSlug) || generateRandomSlug();
     var sid = extractSpreadsheetId(sheetIdOrUrl);
     if (!sid) throw new Error("유효한 구글 시트 URL 또는 ID를 입력해주세요.");
+
     var ss = SpreadsheetApp.openById(sid);
     var resSheet = ss.getSheetByName("결과");
     var resultsGid = resSheet ? String(resSheet.getSheetId()) : "0";
     var resultsUrl = "https://docs.google.com/spreadsheets/d/" + sid + "/edit?gid=" + resultsGid + "#gid=" + resultsGid;
-    var groupsWithHcp = readGroupsWithHandicapsFromSheet(ss);
-    var cfg = configOpt || loadChunkedConfig() || {};
-    if (groupsWithHcp.length > 0) cfg.groups = groupsWithHcp;
+    var groups = readGroupsWithHandicapsFromSheet(ss);
+    var existingCfg = readConfigFromSpreadsheet(ss, sid);
+    var cfg = configOpt || existingCfg || {};
+    cfg.tournamentId = slug;
+    if (groups.length > 0) cfg.groups = groups;
 
-    saveActiveTournamentState({
+    var managerPin = String(managerPinOpt || "").trim();
+    writeConfigToSpreadsheet(ss, cfg, managerPin);
+    invalidateSheetCaches(sid);
+
+    var saved = upsertTournamentInRegistry({
+        slug: slug,
         sheetId: sid,
-        sheetUrl: ss.getUrl(),
-        resultsGid: resultsGid
-    }, cfg);
-    recordSheetHistory({
-        sheetId: sid,
-        resultsUrl: resultsUrl,
-        title: ss.getName(),
-        createdAt: new Date().toISOString()
-    });
-    return {
-        sheetId: sid,
-        sheetUrl: ss.getUrl(),
-        resultsUrl: resultsUrl,
         sheetTitle: ss.getName(),
-        groups: groupsWithHcp,
-        config: cfg,
-        history: getSheetHistoryList()
+        courseKey: cfg.courseKey || "",
+        managerPin: managerPin,
+        resultsUrl: resultsUrl
+    });
+
+    return {
+        slug: saved.slug,
+        sheetId: sid,
+        sheetTitle: ss.getName(),
+        resultsUrl: resultsUrl,
+        managerPin: managerPin,
+        groups: groups,
+        config: cfg
     };
 }
 
-function adminResetScores(pin) {
-    verifyAdminPin(pin);
+// [Master OR Club Manager] Clear test scores & Near/Long records on a specific tournament's sheet
+function adminResetTournamentScores(slug, pin) {
+    var auth = verifyTournamentAccess(slug, pin);
+    var rec = auth.record;
     var lock = LockService.getScriptLock();
     lock.waitLock(20000);
     try {
-        var ss = getTargetSpreadsheet();
+        var ss = SpreadsheetApp.openById(rec.sheetId);
         var sheets = ss.getSheets();
         for (var i = 0; i < sheets.length; i++) {
             var sh = sheets[i];
@@ -2136,32 +2316,41 @@ function adminResetScores(pin) {
         if (nearSheet && nearSheet.getLastRow() >= 2) {
             nearSheet.getRange(2, 1, nearSheet.getLastRow() - 1, Math.max(nearSheet.getLastColumn(), 12)).clearContent();
         }
-        var sid = getActiveSheetId();
-        var props = PropertiesService.getScriptProperties();
-        props.deleteProperty(getScopedCacheKey("BF_"));
-        invalidateActiveCaches(sid);
+        CURRENT_REQ_SHEET_ID = rec.sheetId;
+        PropertiesService.getScriptProperties().deleteProperty(getCurrentSheetScopePrefix("BF_"));
+        invalidateSheetCaches(rec.sheetId);
         SpreadsheetApp.flush();
-        return { cleared: true, sheetId: sid };
+        return { cleared: true, slug: rec.slug, sheetId: rec.sheetId };
     } finally {
         lock.releaseLock();
     }
 }
 
-function adminChangePin(oldPin, newPin) {
-    verifyAdminPin(oldPin);
-    var cleaned = String(newPin || "").trim();
-    if (cleaned.length < 4) throw new Error("새 비밀번호(PIN)는 4자리 이상 입력해주세요.");
-    PropertiesService.getScriptProperties().setProperty(PROP_ADMIN_PIN, cleaned);
+// [Master Only] Remove a tournament slug from the registry (spreadsheet file remains safely in Google Drive)
+function adminDeleteTournament(masterPin, slug) {
+    verifyMasterPin(masterPin);
+    removeTournamentFromRegistry(slug);
+    return { deleted: true, slug: normalizeSlug(slug) };
+}
+
+// [Master Only] Change Master Admin PIN
+function adminChangeMasterPin(oldMasterPin, newMasterPin) {
+    verifyMasterPin(oldMasterPin);
+    var cleaned = String(newMasterPin || "").trim();
+    if (cleaned.length < 4) throw new Error("새 마스터 PIN은 4자리 이상 입력해주세요.");
+    PropertiesService.getScriptProperties().setProperty(PROP_MASTER_PIN, cleaned);
     return { changed: true };
 }
 
 /**
- * JSON API endpoint for static GitHub Pages apps (index.html / admin.html)
+ * JSON API endpoint for static GitHub Pages apps (index.html?t=slug & admin.html)
  */
 function doPost(e) {
     try {
         var raw = (e && e.postData && e.postData.contents) ? e.postData.contents : "{}";
         var req = JSON.parse(raw);
+        setRequestTournamentContext(req && req.t ? req.t : "");
+
         var allowed = {
             getInitBundle: getInitBundle,
             getGroupList: getGroupList,
@@ -2170,12 +2359,14 @@ function doPost(e) {
             getHallOfFameFeed: getHallOfFameFeed,
             saveGroupScores: saveGroupScores,
             getEventBoardData: getEventBoardData,
-            adminGetStatus: adminGetStatus,
+            adminListTournaments: adminListTournaments,
+            adminGetTournament: adminGetTournament,
             adminCreateTournament: adminCreateTournament,
-            adminUpdateConfigOnly: adminUpdateConfigOnly,
+            adminUpdateTournamentConfig: adminUpdateTournamentConfig,
             adminConnectExistingSheet: adminConnectExistingSheet,
-            adminResetScores: adminResetScores,
-            adminChangePin: adminChangePin
+            adminResetTournamentScores: adminResetTournamentScores,
+            adminDeleteTournament: adminDeleteTournament,
+            adminChangeMasterPin: adminChangeMasterPin
         };
         if (!req || !req.fn || !allowed[req.fn]) {
             throw new Error("허용되지 않은 호출: " + (req && req.fn ? req.fn : "unknown"));

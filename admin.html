@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>🛠️ 총무 대회 설정 &amp; 구글 시트 자동 생성</title>
+  <title>🛠️ 골프대회 개설 &amp; 관리 콘솔</title>
   <style>
     :root {
       --primary: #800020;
@@ -42,7 +42,7 @@
     }
 
     .topbar-inner {
-      max-width: 980px;
+      max-width: 1020px;
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -84,7 +84,7 @@
     }
 
     .container {
-      max-width: 980px;
+      max-width: 1020px;
       margin: 18px auto;
       padding: 0 14px;
       display: flex;
@@ -114,30 +114,44 @@
 
     .badge {
       display: inline-block;
-      padding: 3px 9px;
+      padding: 3px 10px;
       border-radius: 999px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
       background: #fff0f3;
       color: var(--primary);
       border: 1px solid #f5c2cb;
     }
 
-    .status-banner {
+    .issued-links-box {
       background: #f0fdf4;
       border: 1.5px solid #86efac;
-      border-radius: 12px;
-      padding: 13px 15px;
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .link-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 8px;
+      background: #fff;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 9px 12px;
       flex-wrap: wrap;
     }
 
-    .status-banner.empty {
-      background: #fff9db;
-      border-color: #fcc419;
+    .link-url {
+      font-family: monospace;
+      font-size: 13px;
+      color: #0f172a;
+      word-break: break-all;
+      font-weight: 700;
     }
 
     .grid-2 {
@@ -332,24 +346,39 @@
       align-items: center;
     }
 
-    .history-list {
+    .tournament-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-top: 10px;
+      gap: 8px;
+      margin-top: 12px;
     }
 
-    .history-item {
+    .tournament-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      padding: 8px 11px;
-      border-radius: 9px;
+      gap: 10px;
+      padding: 11px 13px;
+      border-radius: 11px;
       background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      font-size: 13px;
+      border: 1.5px solid #e2e8f0;
       flex-wrap: wrap;
+    }
+
+    .tournament-row.active-edit {
+      background: #fff0f3;
+      border-color: #f59f00;
+    }
+
+    .slug-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-family: monospace;
+      font-size: 12.5px;
+      font-weight: 800;
     }
 
     #toast {
@@ -376,51 +405,104 @@
 <body>
   <div class="topbar">
     <div class="topbar-inner">
-      <h1>🛠️ 총무 대회 설정 &amp; 구글 시트 자동 생성</h1>
+      <h1 id="pageTopHeading">🛠️ 골프대회 개설 &amp; 통합 관리 콘솔</h1>
       <div class="topbar-links">
-        <a href="index.html" class="topbar-btn">⛳ 참가자용 스코어 앱 열기</a>
+        <a href="index.html" id="topPreviewLink" target="_blank" class="topbar-btn">⛳ 참가자 앱 열기</a>
       </div>
     </div>
   </div>
 
   <div class="container">
-    <!-- 0. Backend Connection & Current Active Sheet Status -->
+    <!-- 0. Authentication & Multi-Tournament Dashboard (Master Mode vs Single-Club Manager Mode) -->
     <div class="card">
       <div class="card-title">
-        <span>🔌 구글 시트 엔진 연결 및 현재 대회 상태</span>
-        <span class="badge" id="connBadge">확인 전</span>
+        <span id="authCardTitle">🔐 마스터 인증 및 개설된 전체 대회 목록</span>
+        <span class="badge" id="modeRoleBadge">마스터 콘솔</span>
       </div>
 
-      <div class="grid-2" style="margin-bottom:12px;">
-        <div class="field">
-          <label for="gasUrlInput">Apps Script 엔진 웹앱 URL (1회 배포 주소)</label>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <input type="password" id="adminPinInput" value="2026" placeholder="비밀번호(PIN) 입력"
+          style="width:170px; padding:9px 11px; border:1.5px solid #cbd5e1; border-radius:9px; font-size:14px;">
+        <button type="button" class="btn btn-blue btn-sm" id="authLoadBtn" onclick="onAuthLoadClick()">
+          🔄 대회 목록 불러오기
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" id="newFormResetBtn" onclick="startFreshTournamentForm()">
+          ➕ 새 대회 만들기 (입력창 초기화)
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" id="changeMasterPinBtn" onclick="promptChangeMasterPin()">
+          🔑 마스터 PIN 변경
+        </button>
+      </div>
+
+      <details id="engineUrlDetails" style="margin-top:10px;">
+        <summary style="cursor:pointer; font-size:12px; color:#64748b; font-weight:700;">⚙️ 백엔드 엔진 URL 확인/변경</summary>
+        <div class="field" style="margin-top:8px;">
           <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
-          <span class="hint">TournamentConfig.js의 GAS_BACKEND_URL에 적어두면 모든 기기에 자동 적용됩니다.</span>
         </div>
-        <div class="field">
-          <label for="adminPinInput">총무 비밀번호 (PIN)</label>
-          <div style="display:flex; gap:8px;">
-            <input type="password" id="adminPinInput" value="2026" placeholder="기본값: 2026" style="max-width:160px;">
-            <button type="button" class="btn btn-outline btn-sm" onclick="loadServerStatus()">🔄 현재 시트/설정 불러오기</button>
-            <button type="button" class="btn btn-outline btn-sm" onclick="promptChangePin()">🔑 PIN 변경</button>
+      </details>
+
+      <!-- Issued links banner for currently created or loaded tournament -->
+      <div id="issuedLinksBox" class="issued-links-box">
+        <div style="font-size:14.5px; font-weight:900; color:#166534;" id="issuedBannerTitle">
+          ✅ 대회 전용 링크가 준비되었습니다!
+        </div>
+        <div class="link-row">
+          <div>
+            <div style="font-size:11.5px; font-weight:800; color:#15803d;">📱 참가자 카톡방 공유용 전용 링크</div>
+            <div class="link-url" id="participantShareUrlText"></div>
           </div>
-          <span class="hint">기본 PIN은 <b>2026</b>입니다.</span>
+          <div style="display:flex; gap:6px;">
+            <button type="button" class="btn btn-green btn-sm" onclick="copyTextById('participantShareUrlText', '참가자 전용 링크')">📋 링크 복사</button>
+            <a id="participantShareOpenBtn" href="#" target="_blank" class="btn btn-outline btn-sm">열기 ↗</a>
+          </div>
+        </div>
+        <div class="link-row" id="managerShareRow">
+          <div>
+            <div style="font-size:11.5px; font-weight:800; color:#0369a1;">🛠️ 이 대회 모임 총무 전용 관리 링크 (다른 대회 비노출)</div>
+            <div class="link-url" id="managerShareUrlText"></div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button type="button" class="btn btn-blue btn-sm" onclick="copyTextById('managerShareUrlText', '총무 관리 링크')">📋 총무 링크 복사</button>
+          </div>
+        </div>
+        <div class="link-row">
+          <div>
+            <div style="font-size:11.5px; font-weight:800; color:#4b5563;">📊 연결된 구글 스프레드시트 ('결과'·'Stat' 자동 집계)</div>
+            <div class="link-url" id="sheetResultUrlText" style="font-size:12px;"></div>
+          </div>
+          <div>
+            <a id="sheetResultOpenBtn" href="#" target="_blank" class="btn btn-outline btn-sm">📊 구글 시트 열기 ↗</a>
+          </div>
         </div>
       </div>
 
-      <div id="sheetStatusBanner" class="status-banner empty">
-        <div>
-          <div style="font-weight:800; font-size:14.5px;" id="statusMainText">아직 서버 상태를 불러오지 않았거나 생성된 구글 시트가 없습니다.</div>
-          <div style="font-size:12.5px; color:#4b5563; margin-top:2px;" id="statusSubText">아래에서 참석자 명단을 확인한 뒤 [🚀 새 대회 구글 시트 자동 생성] 버튼을 눌러주세요.</div>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;" id="statusBtnWrap"></div>
+      <!-- Master Tournament List -->
+      <div id="masterTournamentListSection" style="margin-top:12px;">
+        <div id="tournamentListWrap" class="tournament-list"></div>
       </div>
     </div>
 
-    <!-- 1. Tournament General Settings & Course Selection -->
+    <!-- 1. Tournament Slug, Manager PIN & General Settings -->
     <div class="card">
       <div class="card-title">
-        <span>① 대회 기본 정보 및 골프장 선택</span>
+        <span id="formSectionTitle">① 새 대회 고유 코드(링크) 및 기본 정보 설정</span>
+        <span class="badge" id="editingStateBadge">신규 대회 개설 모드</span>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:12px; background:#f8fafc; padding:12px; border-radius:12px; border:1px solid #e2e8f0;">
+        <div class="field">
+          <label for="slugInput">🔗 대회 고유 코드 (참가자 링크 구분용 영문/숫자)</label>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="slugInput" placeholder="예: 2026-fall, sv-alumni" oninput="updateLiveSlugPreview()" style="text-transform:lowercase; font-weight:800;">
+            <button type="button" class="btn btn-outline btn-sm" id="randSlugBtn" onclick="fillRandomSlug()" style="white-space:nowrap;">🎲 자동생성</button>
+          </div>
+          <span class="hint" id="liveSlugUrlPreview"></span>
+        </div>
+        <div class="field" id="managerPinFieldWrap">
+          <label for="managerPinInput">🔑 이 대회 모임 총무용 개별 PIN (선택 사항)</label>
+          <input type="text" id="managerPinInput" placeholder="예: 1234 (모임 총무에게 분양 시 전달할 비밀번호)">
+          <span class="hint">모임 총무에게 <code>admin.html?t=대회코드</code> 링크와 이 PIN을 주면 이 대회만 수정할 수 있습니다.</span>
+        </div>
       </div>
 
       <div class="grid-3">
@@ -519,7 +601,7 @@
       </details>
     </div>
 
-    <!-- 2. Player Roster & Handicap Input (Excel Paste + File Upload + Live Table Editor) -->
+    <!-- 2. Player Roster & Handicap Input -->
     <div class="card">
       <div class="card-title">
         <span>② 참석자 명단 &amp; 핸디 등록 (엑셀 복사/붙여넣기)</span>
@@ -557,41 +639,35 @@
       <div id="groupsEditorGrid" class="groups-grid"></div>
     </div>
 
-    <!-- 3. Google Sheet Auto-Generation & Management Actions -->
+    <!-- 3. Create / Update / Reset Actions -->
     <div class="card">
       <div class="card-title">
-        <span>③ 구글 시트 자동 생성 및 대회 반영</span>
+        <span>③ 대회 생성 및 저장 실행</span>
       </div>
 
       <div class="action-bar">
-        <button type="button" class="btn btn-primary" id="createSheetBtn" onclick="createNewTournamentSheet()">
-          🚀 새 대회 구글 시트 자동 생성 &amp; 대회 오픈
+        <button type="button" class="btn btn-primary" id="createSheetBtn" onclick="createOrRebuildTournamentSheet()">
+          🚀 새 대회 구글 시트 자동 생성 &amp; 전용 링크 발급
         </button>
-        <button type="button" class="btn btn-green" onclick="updateConfigWithoutNewSheet()">
-          ✏️ 시트는 유지하고 공지/설정만 즉시 반영
+        <button type="button" class="btn btn-green" id="saveConfigOnlyBtn" onclick="saveConfigOnly()" style="display:none;">
+          ✏️ 시트는 유지하고 공지/설정만 즉시 저장
         </button>
-        <button type="button" class="btn btn-outline" onclick="downloadTournamentConfigJs()">
-          💾 TournamentConfig.js 파일 다운로드
-        </button>
-        <button type="button" class="btn btn-danger" onclick="resetCurrentSheetScores()">
-          🧹 현재 시트 테스트 점수 초기화
+        <button type="button" class="btn btn-danger" id="resetScoresBtn" onclick="resetTournamentScores()" style="display:none;">
+          🧹 이 대회 테스트 점수 초기화
         </button>
       </div>
       <div class="hint" style="margin-top:10px;">
-        💡 <b>[🚀 새 대회 구글 시트 자동 생성]</b>을 누르면 내 구글 드라이브에 <code>1조~N조</code>, <code>결과</code>, <code>니어/롱기</code>, <code>Stat</code> 탭과 모든 수식·핸디·배경색이 세팅된 새 시트가 만들어지고 참가자 앱에 즉시 연결됩니다.
+        💡 각 대회마다 독립된 구글 시트와 고유 링크(<code>?t=대회코드</code>)가 발급되어, 같은 날 여러 대회를 동시에 개최해도 100% 분리 운영됩니다.
       </div>
 
-      <details style="margin-top:16px;">
-        <summary style="cursor:pointer; font-weight:800; font-size:13px; color:#475569;">
-          🔗 기존 구글 시트 URL/ID 직접 연결 및 최근 생성 시트 이력 보기
+      <details id="connectExistingDetails" style="margin-top:14px;">
+        <summary style="cursor:pointer; font-weight:800; font-size:12.5px; color:#64748b;">
+          🔗 이미 만들어둔 기존 구글 시트 URL/ID에 대회 코드 연결하기 (고급)
         </summary>
-        <div style="margin-top:10px;">
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <input type="text" id="existingSheetInput" placeholder="구글 시트 URL 또는 Spreadsheet ID 붙여넣기"
-              style="flex:1; min-width:240px; padding:8px 11px; border:1.5px solid #cbd5e1; border-radius:9px; font-size:13.5px;">
-            <button type="button" class="btn btn-outline btn-sm" onclick="connectExistingSheet()">🔗 이 시트로 연결 전환</button>
-          </div>
-          <div id="historyListWrap" class="history-list"></div>
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+          <input type="text" id="existingSheetInput" placeholder="연결할 구글 시트 URL 또는 Spreadsheet ID 붙여넣기"
+            style="flex:1; min-width:240px; padding:8px 11px; border:1.5px solid #cbd5e1; border-radius:9px; font-size:13.5px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="connectSlugToExistingSheet()">🔗 위 대회 코드에 이 시트 연결</button>
         </div>
       </details>
     </div>
@@ -603,11 +679,49 @@
   <script src="CourseData.js"></script>
   <script>
     var GAS_URL_STORAGE_KEY = "golf_gas_api_url_v1";
-    var CACHED_REMOTE_CFG_KEY = "golf_active_tournament_cfg_v1";
-    var CACHED_SCOPE_KEY = "golf_active_sheet_scope_v1";
 
+    // Detect if opened in single-club Manager Mode (?t=slug) vs Master Console
+    var LOCKED_MANAGER_SLUG = (function () {
+      try {
+        var p = new URLSearchParams(window.location.search || "");
+        return normalizeSlugClient(p.get("t") || p.get("tournament") || "");
+      } catch (e) {
+        return "";
+      }
+    })();
+
+    var editingExistingSlug = "";
     var editorGroups = [];
     var toastTimer = null;
+
+    function normalizeSlugClient(raw) {
+      return String(raw || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 48);
+    }
+
+    function generateClientSlug() {
+      var chars = "abcdefghjkmnpqrstuvwxyz23456789";
+      var out = "";
+      for (var i = 0; i < 6; i++) out += chars.charAt(Math.floor(Math.random() * chars.length));
+      return out;
+    }
+
+    function getAppBaseDirUrl() {
+      var loc = window.location.href.split("?")[0].split("#")[0];
+      return loc.replace(/\/admin\.html$/i, "/").replace(/\/?$/, "/");
+    }
+
+    function buildParticipantUrl(slug) {
+      return getAppBaseDirUrl() + "?t=" + encodeURIComponent(slug);
+    }
+
+    function buildManagerUrl(slug) {
+      return getAppBaseDirUrl() + "admin.html?t=" + encodeURIComponent(slug);
+    }
 
     function showToast(msg, ms) {
       var el = document.getElementById("toast");
@@ -619,6 +733,28 @@
       }, ms || 3500);
     }
 
+    function copyTextById(elId, label) {
+      var txt = (document.getElementById(elId).textContent || "").trim();
+      if (!txt) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function () {
+          showToast("📋 " + label + "가 복사되었습니다!\n" + txt);
+        });
+      } else {
+        prompt(label + " 복사:", txt);
+      }
+    }
+
+    function copyRawText(txt, label) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function () {
+          showToast("📋 " + label + "가 복사되었습니다!\n" + txt);
+        });
+      } else {
+        prompt(label + " 복사:", txt);
+      }
+    }
+
     function getApiUrl() {
       var v = (document.getElementById("gasUrlInput").value || "").trim();
       if (v) {
@@ -627,14 +763,14 @@
       return v;
     }
 
-    function getAdminPin() {
+    function getPinValue() {
       return (document.getElementById("adminPinInput").value || "").trim();
     }
 
     function callAdminApi(fnName, args) {
       var url = getApiUrl();
       if (!url) {
-        return Promise.reject(new Error("먼저 상단에 Apps Script 엔진 웹앱 URL을 입력해주세요."));
+        return Promise.reject(new Error("백엔드 엔진 URL이 설정되지 않았습니다."));
       }
       return fetch(url, {
         method: "POST",
@@ -647,6 +783,68 @@
           if (res && res.ok) return res.data;
           throw new Error((res && res.error) ? res.error : "서버 오류");
         });
+    }
+
+    function updateLiveSlugPreview() {
+      var slug = normalizeSlugClient(document.getElementById("slugInput").value);
+      var prev = document.getElementById("liveSlugUrlPreview");
+      if (slug) {
+        prev.textContent = "발급될 참가자 주소: " + buildParticipantUrl(slug);
+      } else {
+        prev.textContent = "비워두면 6자리 고유 코드가 자동 부여됩니다.";
+      }
+    }
+
+    function fillRandomSlug() {
+      if (LOCKED_MANAGER_SLUG) return;
+      document.getElementById("slugInput").value = generateClientSlug();
+      editingExistingSlug = "";
+      refreshEditingModeUI();
+      updateLiveSlugPreview();
+    }
+
+    function refreshEditingModeUI() {
+      var createBtn = document.getElementById("createSheetBtn");
+      var saveCfgBtn = document.getElementById("saveConfigOnlyBtn");
+      var resetBtn = document.getElementById("resetScoresBtn");
+      var badge = document.getElementById("editingStateBadge");
+      var secTitle = document.getElementById("formSectionTitle");
+
+      if (editingExistingSlug) {
+        badge.textContent = "기존 대회 편집 중: ?t=" + editingExistingSlug;
+        badge.style.background = "#e0f2fe";
+        badge.style.color = "#0369a1";
+        badge.style.borderColor = "#7dd3fc";
+        secTitle.textContent = "① 선택된 대회(" + editingExistingSlug + ") 설정 및 명단 편집";
+        createBtn.textContent = "🔄 변경된 명단으로 이 대회 구글 시트 다시 생성";
+        saveCfgBtn.style.display = "inline-flex";
+        resetBtn.style.display = "inline-flex";
+      } else {
+        badge.textContent = "신규 대회 개설 모드";
+        badge.style.background = "#fff0f3";
+        badge.style.color = "#800020";
+        badge.style.borderColor = "#f5c2cb";
+        secTitle.textContent = "① 새 대회 고유 코드(링크) 및 기본 정보 설정";
+        createBtn.textContent = "🚀 새 대회 구글 시트 자동 생성 & 전용 링크 발급";
+        saveCfgBtn.style.display = "none";
+        resetBtn.style.display = "none";
+      }
+    }
+
+    function showIssuedLinksBanner(slug, resultsUrl, sheetTitle) {
+      var box = document.getElementById("issuedLinksBox");
+      var pUrl = buildParticipantUrl(slug);
+      var mUrl = buildManagerUrl(slug);
+      document.getElementById("issuedBannerTitle").textContent =
+        "✅ [" + (sheetTitle || slug) + "] 전용 링크가 활성화되었습니다!";
+      document.getElementById("participantShareUrlText").textContent = pUrl;
+      document.getElementById("participantShareOpenBtn").href = pUrl;
+      document.getElementById("managerShareUrlText").textContent = mUrl;
+      document.getElementById("sheetResultUrlText").textContent = resultsUrl || "";
+      document.getElementById("sheetResultOpenBtn").href = resultsUrl || "#";
+      document.getElementById("topPreviewLink").href = pUrl;
+      document.getElementById("managerShareRow").style.display = LOCKED_MANAGER_SLUG ? "none" : "flex";
+      box.style.display = "flex";
     }
 
     function parseIntList(str) {
@@ -729,7 +927,6 @@
     function renderGroupsEditor() {
       var grid = document.getElementById("groupsEditorGrid");
       grid.innerHTML = "";
-      var totalPlayers = 0;
 
       editorGroups.forEach(function (grp, gi) {
         var card = document.createElement("div");
@@ -772,7 +969,6 @@
         card.appendChild(head);
 
         grp.players.forEach(function (pl, pi) {
-          if (pl.name && pl.name.trim()) totalPlayers++;
           var row = document.createElement("div");
           row.className = "player-row";
 
@@ -843,7 +1039,7 @@
     /**
      * Parse [Group | Name | Handicap] text copied from Excel / Google Sheets
      * - Recognizes merged group number cells where rows 2..4 start with a leading tab (\tName\tHandicap).
-     * - If only 2 columns [Name | Handicap] are pasted without group numbers, auto-groups by 4 players (Group 1, Group 2...).
+     * - Strips empty leading margin columns automatically (e.g. tables starting at Column B).
      */
     function parseRosterTextToGroups(rawText) {
       var lines = String(rawText || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
@@ -886,7 +1082,6 @@
         parsedRows.push(cols.map(function (c) { return String(c || "").trim(); }));
       }
 
-      // Automatically strip empty left margin columns when an Excel table starts at column B/C instead of column A
       var minNonEmptyCol = Infinity;
       for (var rCheck = 0; rCheck < parsedRows.length; rCheck++) {
         for (var cCheck = 0; cCheck < parsedRows[rCheck].length; cCheck++) {
@@ -902,8 +1097,6 @@
 
       for (var i = 0; i < parsedRows.length; i++) {
         var trimmedCols = parsedRows[i];
-
-        // Automatically skip header row (e.g. ['', 'Name', 'Handicap'] or ['Group', 'Name', 'Handicap'])
         var joinedHeader = trimmedCols.join("|");
         if (/(^|\|)(이름|성명|선수|name)(\||$)/i.test(joinedHeader) && /(핸디|handicap|hcp|조|team)/i.test(joinedHeader)) {
           continue;
@@ -924,16 +1117,13 @@
             ungroupedPlayers.push({ name: nameCell, handicap: hcpCell });
           }
         } else if (trimmedCols.length === 2) {
-          // 1) Col 1 is group number and Col 2 is player name (handicap omitted)
           if (/^\d+\s*조?$/.test(trimmedCols[0]) && !/^\d+(\.\d+)?$/.test(trimmedCols[1])) {
             currentGroup = normalizeGroupLabel(trimmedCols[0]);
             hasExplicitGroup = true;
             addPlayerToGroup(currentGroup, trimmedCols[1], "");
           } else if (hasExplicitGroup && currentGroup) {
-            // 2) Group number was already set on an earlier row, followed by 'Name\tHandicap'
             addPlayerToGroup(currentGroup, trimmedCols[0], trimmedCols[1]);
           } else {
-            // 3) 2-column roster [Name | Handicap] with no group column
             ungroupedPlayers.push({ name: trimmedCols[0], handicap: trimmedCols[1] });
           }
         } else if (trimmedCols.length === 1 && trimmedCols[0]) {
@@ -973,13 +1163,12 @@
       showToast("✅ " + parsed.length + "개 조 · 총 " + totalP + "명 명단과 핸디가 세팅되었습니다!");
     }
 
-    // Parse .xlsx files directly in browser using built-in DecompressionStream with zero external libraries
+    // Parse .xlsx files directly in browser using built-in DecompressionStream
     async function parseXlsxFileBuffer(arrayBuffer) {
       var bytes = new Uint8Array(arrayBuffer);
       var view = new DataView(arrayBuffer);
       var files = {};
 
-      // Locate ZIP End of Central Directory (EOCD)
       var eocdPos = -1;
       for (var i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
         if (view.getUint32(i, true) === 0x06054b50) {
@@ -1034,7 +1223,6 @@
         }
       }
 
-      // If workbook has group tabs (Group 1, Group 2...), extract names + handicaps from group tabs; otherwise parse first sheet table
       var wbDoc = domParser.parseFromString(files["xl/workbook.xml"], "application/xml");
       var relDoc = domParser.parseFromString(files["xl/_rels/workbook.xml.rels"], "application/xml");
       var relMap = {};
@@ -1093,7 +1281,6 @@
       }
       if (groupSheetsFound.length > 0) return groupSheetsFound;
 
-      // Standard roster sheet ([Group | Name | Handicap]): convert first worksheet matrix to TSV and parse
       var firstRId = sheetNodes[0].getAttribute("r:id") || sheetNodes[0].getAttribute("id");
       var firstMatrix = extractSheetMatrix(files[relMap[firstRId]]);
       var tsvLines = firstMatrix.map(function (r) { return r.join("\t"); }).join("\n");
@@ -1127,9 +1314,11 @@
       ev.target.value = "";
     }
 
-    function populateFormFromConfig(cfg, groupsOpt) {
+    function populateFormFromConfig(cfg, groupsOpt, slugOpt, managerPinOpt) {
       cfg = cfg || {};
-      document.getElementById("sheetTitleInput").value = cfg.sheetTitle || cfg.heroTitle || "2026년 회장배";
+      document.getElementById("slugInput").value = slugOpt || cfg.tournamentId || "";
+      document.getElementById("managerPinInput").value = managerPinOpt !== undefined ? managerPinOpt : "";
+      document.getElementById("sheetTitleInput").value = cfg.sheetTitle || cfg.heroTitle || "";
       document.getElementById("tournamentTitleInput").value = cfg.tournamentTitle || "";
       document.getElementById("heroTitleInput").value = cfg.heroTitle || "";
 
@@ -1155,6 +1344,19 @@
       var grpSource = (Array.isArray(groupsOpt) && groupsOpt.length > 0) ? groupsOpt : (cfg.groups || []);
       editorGroups = normalizeGroupsForEditor(grpSource);
       renderGroupsEditor();
+      updateLiveSlugPreview();
+    }
+
+    function startFreshTournamentForm() {
+      if (LOCKED_MANAGER_SLUG) return;
+      editingExistingSlug = "";
+      document.getElementById("slugInput").disabled = false;
+      var baseCfg = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
+      populateFormFromConfig(baseCfg, baseCfg.groups || [], generateClientSlug(), "");
+      document.getElementById("issuedLinksBox").style.display = "none";
+      refreshEditingModeUI();
+      renderMasterTournamentListHighlight();
+      showToast("➕ 새 대회 입력 양식이 준비되었습니다.");
     }
 
     function collectCleanedGroups() {
@@ -1176,7 +1378,7 @@
       return out;
     }
 
-    function collectConfigFromForm() {
+    function collectConfigFromForm(slug) {
       var sheetTitle = document.getElementById("sheetTitleInput").value.trim() || "골프대회 스코어보드";
       var heroTitle = document.getElementById("heroTitleInput").value.trim() || sheetTitle;
       var tournamentTitle = document.getElementById("tournamentTitleInput").value.trim() || ("⛳ " + heroTitle);
@@ -1186,13 +1388,13 @@
         .filter(Boolean);
 
       return {
-        tournamentId: "t_" + Date.now(),
+        tournamentId: slug,
         courseKey: document.getElementById("courseSelect").value,
         sheetTitle: sheetTitle,
         tournamentTitle: tournamentTitle,
         heroTitle: heroTitle,
         longDriveHoles: parseIntList(document.getElementById("longHolesInput").value),
-        nearPinHoles: parseIntList(document.getElementById("nearHolesInput").value),
+        nearPinHoles: parseIntList(document.getElementById("nearPinHolesInput") ? document.getElementById("nearPinHolesInput").value : document.getElementById("nearHolesInput").value),
         defaultTeeKey: document.getElementById("defaultTeeSelect").value || "white",
         noticeTitle: document.getElementById("noticeTitleInput").value.trim() || "📢 경기 진행 안내",
         noticeLeadHtml: document.getElementById("noticeLeadInput").value.trim(),
@@ -1208,225 +1410,272 @@
       };
     }
 
-    function renderActiveSheetBanner(data) {
-      var banner = document.getElementById("sheetStatusBanner");
-      var badge = document.getElementById("connBadge");
-      var mainTxt = document.getElementById("statusMainText");
-      var subTxt = document.getElementById("statusSubText");
-      var btnWrap = document.getElementById("statusBtnWrap");
-      btnWrap.innerHTML = "";
+    var cachedTournamentList = [];
 
-      if (data && data.sheetId) {
-        banner.classList.remove("empty");
-        badge.textContent = "✅ 시트 연결됨";
-        badge.style.background = "#dcfce7";
-        badge.style.color = "#166534";
-        badge.style.borderColor = "#86efac";
-        mainTxt.textContent = "현재 운영 중인 구글 시트: " + (data.sheetTitle || (data.config && data.config.sheetTitle) || data.sheetId);
-        subTxt.textContent = "Sheet ID: " + data.sheetId;
-
-        var openSheetA = document.createElement("a");
-        openSheetA.href = data.resultsUrl || data.sheetUrl;
-        openSheetA.target = "_blank";
-        openSheetA.rel = "noopener";
-        openSheetA.className = "btn btn-green btn-sm";
-        openSheetA.textContent = "📊 구글 시트('결과' 탭) 열기";
-
-        var openAppA = document.createElement("a");
-        openAppA.href = "index.html";
-        openAppA.target = "_blank";
-        openAppA.className = "btn btn-blue btn-sm";
-        openAppA.textContent = "📱 참가자 스코어 앱 열기";
-
-        btnWrap.appendChild(openSheetA);
-        btnWrap.appendChild(openAppA);
-      } else {
-        banner.classList.add("empty");
-        badge.textContent = "시트 미생성";
-        mainTxt.textContent = "엔진 연결 완료! 아직 생성된 대회 구글 시트가 없습니다.";
-        subTxt.textContent = "아래 [🚀 새 대회 구글 시트 자동 생성 & 대회 오픈] 버튼을 누르면 즉시 시트가 생성됩니다.";
-      }
-
-      // Render recently created/connected sheet history
-      var histWrap = document.getElementById("historyListWrap");
-      histWrap.innerHTML = "";
-      if (data && Array.isArray(data.history) && data.history.length > 0) {
-        data.history.forEach(function (h) {
-          var row = document.createElement("div");
-          row.className = "history-item";
-          var info = document.createElement("div");
-          info.innerHTML = "<b>" + (h.title || h.sheetId) + "</b> <span style='color:#64748b; font-size:12px;'>(" + (h.createdAt ? h.createdAt.slice(0, 16).replace("T", " ") : "") + ")</span>";
-          var actions = document.createElement("div");
-          actions.style.display = "flex";
-          actions.style.gap = "6px";
-
-          var linkBtn = document.createElement("a");
-          linkBtn.href = h.resultsUrl || ("https://docs.google.com/spreadsheets/d/" + h.sheetId + "/edit");
-          linkBtn.target = "_blank";
-          linkBtn.className = "btn btn-outline btn-sm";
-          linkBtn.textContent = "시트 열기";
-
-          var useBtn = document.createElement("button");
-          useBtn.type = "button";
-          useBtn.className = "btn btn-outline btn-sm";
-          useBtn.textContent = (data.sheetId === h.sheetId) ? "현재 사용 중" : "이 시트로 전환";
-          useBtn.disabled = (data.sheetId === h.sheetId);
-          useBtn.onclick = function () {
-            document.getElementById("existingSheetInput").value = h.sheetId;
-            connectExistingSheet();
-          };
-
-          actions.appendChild(linkBtn);
-          actions.appendChild(useBtn);
-          row.appendChild(info);
-          row.appendChild(actions);
-          histWrap.appendChild(row);
-        });
-      }
+    function renderMasterTournamentListHighlight() {
+      renderMasterTournamentList(cachedTournamentList);
     }
 
-    function syncLocalBrowserCache(cfg, sheetId) {
+    function renderMasterTournamentList(list) {
+      cachedTournamentList = Array.isArray(list) ? list : [];
+      var wrap = document.getElementById("tournamentListWrap");
+      wrap.innerHTML = "";
+      if (LOCKED_MANAGER_SLUG) return;
+
+      if (cachedTournamentList.length === 0) {
+        wrap.innerHTML = '<div style="font-size:13px; color:#64748b; padding:8px 2px;">아직 개설된 대회가 없습니다. 아래에서 첫 대회를 생성해 보세요!</div>';
+        return;
+      }
+
+      cachedTournamentList.forEach(function (item) {
+        var row = document.createElement("div");
+        row.className = "tournament-row" + (editingExistingSlug === item.slug ? " active-edit" : "");
+
+        var left = document.createElement("div");
+        var pinInfo = item.managerPin ? (" · 총무PIN: <b>" + item.managerPin + "</b>") : "";
+        left.innerHTML =
+          "<div style='font-weight:800; font-size:14.5px;'>" + (item.sheetTitle || item.slug) + " <span class='slug-pill'>?t=" + item.slug + "</span></div>" +
+          "<div style='font-size:12px; color:#64748b; margin-top:2px;'>골프장: " + (item.courseKey || "-") + pinInfo + "</div>";
+
+        var right = document.createElement("div");
+        right.style.display = "flex";
+        right.style.gap = "6px";
+        right.style.flexWrap = "wrap";
+
+        var copyPBtn = document.createElement("button");
+        copyPBtn.type = "button";
+        copyPBtn.className = "btn btn-green btn-sm";
+        copyPBtn.textContent = "📋 참가자 링크";
+        copyPBtn.onclick = function () { copyRawText(buildParticipantUrl(item.slug), "'" + item.slug + "' 참가자 링크"); };
+
+        var copyMBtn = document.createElement("button");
+        copyMBtn.type = "button";
+        copyMBtn.className = "btn btn-blue btn-sm";
+        copyMBtn.textContent = "📋 총무 링크";
+        copyMBtn.onclick = function () { copyRawText(buildManagerUrl(item.slug), "'" + item.slug + "' 총무 관리 링크"); };
+
+        var sheetA = document.createElement("a");
+        sheetA.href = item.resultsUrl || "#";
+        sheetA.target = "_blank";
+        sheetA.className = "btn btn-outline btn-sm";
+        sheetA.textContent = "📊 시트";
+
+        var editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "btn btn-outline btn-sm";
+        editBtn.textContent = "✏️ 편집";
+        editBtn.onclick = function () { loadSingleTournamentIntoForm(item.slug); };
+
+        var delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "btn btn-danger btn-sm";
+        delBtn.textContent = "삭제";
+        delBtn.onclick = function () { deleteTournamentSlug(item.slug); };
+
+        right.appendChild(copyPBtn);
+        right.appendChild(copyMBtn);
+        right.appendChild(sheetA);
+        right.appendChild(editBtn);
+        right.appendChild(delBtn);
+
+        row.appendChild(left);
+        row.appendChild(right);
+        wrap.appendChild(row);
+      });
+    }
+
+    function syncSlugLocalCache(slug, cfg, sheetId) {
       try {
-        if (cfg) localStorage.setItem(CACHED_REMOTE_CFG_KEY, JSON.stringify(cfg));
-        if (sheetId) localStorage.setItem(CACHED_SCOPE_KEY, String(sheetId));
+        if (slug && cfg) localStorage.setItem("golf_cfg_v2_" + slug, JSON.stringify(cfg));
+        if (slug && sheetId) localStorage.setItem("golf_scope_v2_" + slug, String(sheetId));
       } catch (e) { }
     }
 
-    function loadServerStatus() {
-      callAdminApi("adminGetStatus", [getAdminPin()])
+    function onAuthLoadClick() {
+      if (LOCKED_MANAGER_SLUG) {
+        loadSingleTournamentIntoForm(LOCKED_MANAGER_SLUG);
+      } else {
+        loadMasterTournamentList();
+      }
+    }
+
+    function loadMasterTournamentList() {
+      callAdminApi("adminListTournaments", [getPinValue()])
         .then(function (data) {
-          renderActiveSheetBanner(data);
-          if (data.config || (data.groups && data.groups.length > 0)) {
-            populateFormFromConfig(data.config || TOURNAMENT_CONFIG, data.groups);
-            syncLocalBrowserCache(data.config, data.sheetId);
-          }
-          showToast("✅ 서버에서 현재 대회 상태를 불러왔습니다.");
+          renderMasterTournamentList(data.tournaments || []);
+          showToast("✅ 전체 대회 목록(" + (data.tournaments || []).length + "개)을 불러왔습니다.");
         })
         .catch(function (err) {
-          showToast("❌ 불러오기 실패: " + err.message, 4500);
+          showToast("❌ 목록 불러오기 실패: " + err.message, 4500);
         });
     }
 
-    function createNewTournamentSheet() {
+    function loadSingleTournamentIntoForm(slug) {
+      callAdminApi("adminGetTournament", [slug, getPinValue()])
+        .then(function (data) {
+          editingExistingSlug = data.slug;
+          document.getElementById("slugInput").value = data.slug;
+          document.getElementById("slugInput").disabled = true;
+          populateFormFromConfig(data.config || {}, data.groups || [], data.slug, data.managerPin || "");
+          refreshEditingModeUI();
+          showIssuedLinksBanner(data.slug, data.resultsUrl, data.sheetTitle);
+          renderMasterTournamentListHighlight();
+          syncSlugLocalCache(data.slug, data.config, data.sheetId);
+          showToast("✅ [" + (data.sheetTitle || data.slug) + "] 대회 정보를 불러왔습니다.");
+        })
+        .catch(function (err) {
+          showToast("❌ 대회 불러오기 실패: " + err.message, 4500);
+        });
+    }
+
+    function createOrRebuildTournamentSheet() {
       var groups = collectCleanedGroups();
       if (groups.length === 0) {
         showToast("⚠️ 최소 1개 조 이상의 참석자 명단을 입력해주세요.");
         return;
       }
-      var cfg = collectConfigFromForm();
+      var rawSlug = LOCKED_MANAGER_SLUG || normalizeSlugClient(document.getElementById("slugInput").value) || generateClientSlug();
+      document.getElementById("slugInput").value = rawSlug;
+      var isRebuild = (editingExistingSlug === rawSlug);
+      var cfg = collectConfigFromForm(rawSlug);
+      var managerPin = document.getElementById("managerPinInput").value.trim();
       var totalP = groups.reduce(function (s, g) { return s + g.players.length; }, 0);
-      var ok = confirm(
-        "[" + cfg.sheetTitle + "] 구글 시트를 새로 자동 생성하고 대회를 오픈할까요?\n\n" +
-        "• 골프장: " + cfg.courseKey + "\n" +
-        "• 편성 인원: " + groups.length + "개 조 (총 " + totalP + "명)\n" +
-        "• 생성 탭: 1조~" + groups.length + "조, 결과, 니어/롱기, Stat"
-      );
-      if (!ok) return;
+
+      var confirmMsg = isRebuild
+        ? ("[" + cfg.sheetTitle + " (?t=" + rawSlug + ")] 대회의 구글 시트를 변경된 명단(" + groups.length + "개 조 " + totalP + "명)으로 새로 생성해 교체할까요?")
+        : ("새 대회 [" + cfg.sheetTitle + "] 구글 시트를 자동 생성하고 전용 링크(?t=" + rawSlug + ")를 발급할까요?\n\n" +
+          "• 참가자 전용 주소: " + buildParticipantUrl(rawSlug) + "\n" +
+          "• 골프장: " + cfg.courseKey + " (" + groups.length + "개 조, 총 " + totalP + "명)");
+
+      if (!confirm(confirmMsg)) return;
 
       var btn = document.getElementById("createSheetBtn");
       btn.disabled = true;
-      btn.textContent = "⏳ 구글 시트 및 수식 자동 생성 중... (약 5~10초)";
+      btn.textContent = "⏳ 구글 시트 및 전용 링크 생성 중... (약 5~10초)";
 
       callAdminApi("adminCreateTournament", [
-        getAdminPin(),
+        getPinValue(),
         {
+          slug: rawSlug,
+          allowOverwrite: isRebuild,
+          managerPin: managerPin,
           config: cfg,
           groups: groups,
           pars: getSelectedCoursePars()
         }
       ])
         .then(function (res) {
-          syncLocalBrowserCache(res.config || cfg, res.sheetId);
-          renderActiveSheetBanner(res);
-          showToast("🎉 새 대회 구글 시트가 생성되어 바로 연결되었습니다!", 5000);
+          editingExistingSlug = res.slug;
+          document.getElementById("slugInput").value = res.slug;
+          document.getElementById("slugInput").disabled = true;
+          refreshEditingModeUI();
+          showIssuedLinksBanner(res.slug, res.resultsUrl, res.sheetTitle);
+          syncSlugLocalCache(res.slug, res.config || cfg, res.sheetId);
+          if (!LOCKED_MANAGER_SLUG) {
+            loadMasterTournamentList();
+          }
+          showToast("🎉 대회 구글 시트와 전용 링크(?t=" + res.slug + ")가 생성되었습니다!", 5000);
+          window.scrollTo({ top: 0, behavior: "smooth" });
         })
         .catch(function (err) {
-          showToast("❌ 시트 생성 실패: " + err.message, 5000);
+          showToast("❌ 생성 실패: " + err.message, 5000);
         })
         .finally(function () {
           btn.disabled = false;
-          btn.textContent = "🚀 새 대회 구글 시트 자동 생성 & 대회 오픈";
+          refreshEditingModeUI();
         });
     }
 
-    function updateConfigWithoutNewSheet() {
-      var cfg = collectConfigFromForm();
-      callAdminApi("adminUpdateConfigOnly", [getAdminPin(), cfg])
+    function saveConfigOnly() {
+      var slug = LOCKED_MANAGER_SLUG || editingExistingSlug;
+      if (!slug) return;
+      var cfg = collectConfigFromForm(slug);
+      var managerPin = document.getElementById("managerPinInput").value.trim();
+      callAdminApi("adminUpdateTournamentConfig", [slug, getPinValue(), cfg, LOCKED_MANAGER_SLUG ? undefined : managerPin])
         .then(function (res) {
-          syncLocalBrowserCache(cfg, res.sheetId);
-          showToast("✅ 시트는 그대로 유지하고 대회 공지·설정이 즉시 반영되었습니다!");
+          syncSlugLocalCache(slug, cfg, res.sheetId);
+          if (!LOCKED_MANAGER_SLUG) loadMasterTournamentList();
+          showToast("✅ 시트는 그대로 유지하고 [" + slug + "] 공지·설정이 즉시 저장되었습니다!");
         })
         .catch(function (err) {
-          showToast("❌ 설정 반영 실패: " + err.message, 4500);
+          showToast("❌ 설정 저장 실패: " + err.message, 4500);
         });
     }
 
-    function connectExistingSheet() {
-      var idOrUrl = document.getElementById("existingSheetInput").value.trim();
-      if (!idOrUrl) {
-        showToast("⚠️ 연결할 구글 시트 URL 또는 ID를 입력해주세요.");
+    function resetTournamentScores() {
+      var slug = LOCKED_MANAGER_SLUG || editingExistingSlug;
+      if (!slug) return;
+      if (!confirm("⚠️ [" + slug + "] 대회의 모든 홀 점수와 니어/롱기 기록을 깨끗하게 비울까요?\n(선수 이름, 핸디, 수식은 그대로 보존됩니다.)")) {
         return;
       }
-      var cfg = collectConfigFromForm();
-      callAdminApi("adminConnectExistingSheet", [getAdminPin(), idOrUrl, cfg])
-        .then(function (res) {
-          syncLocalBrowserCache(res.config || cfg, res.sheetId);
-          renderActiveSheetBanner(res);
-          if (res.groups && res.groups.length > 0) {
-            editorGroups = normalizeGroupsForEditor(res.groups);
-            renderGroupsEditor();
-          }
-          showToast("✅ 선택한 구글 시트('" + (res.sheetTitle || res.sheetId) + "')로 전환되었습니다!");
-        })
-        .catch(function (err) {
-          showToast("❌ 시트 연결 실패: " + err.message, 4500);
-        });
-    }
-
-    function resetCurrentSheetScores() {
-      if (!confirm("⚠️ 현재 연결된 구글 시트의 모든 홀 점수와 니어/롱기 기록을 깨끗하게 비울까요?\n(선수 이름, 핸디, 수식은 그대로 보존됩니다.)")) {
-        return;
-      }
-      callAdminApi("adminResetScores", [getAdminPin()])
+      callAdminApi("adminResetTournamentScores", [slug, getPinValue()])
         .then(function () {
-          showToast("🧹 현재 시트의 테스트 점수와 니어/롱기 기록이 모두 초기화되었습니다!");
+          showToast("🧹 [" + slug + "] 대회의 테스트 점수와 니어/롱기 기록이 모두 초기화되었습니다!");
         })
         .catch(function (err) {
           showToast("❌ 초기화 실패: " + err.message, 4500);
         });
     }
 
-    function promptChangePin() {
-      var nextPin = prompt("새로 사용할 총무 비밀번호(PIN, 4자리 이상)를 입력하세요:");
+    function deleteTournamentSlug(slug) {
+      if (!confirm("목록에서 [?t=" + slug + "] 대회 링크를 비활성화(삭제)할까요?\n(구글 드라이브의 시트 파일 자체는 안전하게 보존됩니다.)")) {
+        return;
+      }
+      callAdminApi("adminDeleteTournament", [getPinValue(), slug])
+        .then(function () {
+          if (editingExistingSlug === slug) {
+            startFreshTournamentForm();
+          }
+          loadMasterTournamentList();
+          showToast("🗑️ [?t=" + slug + "] 대회가 목록에서 제거되었습니다.");
+        })
+        .catch(function (err) {
+          showToast("❌ 삭제 실패: " + err.message, 4500);
+        });
+    }
+
+    function connectSlugToExistingSheet() {
+      var slug = normalizeSlugClient(document.getElementById("slugInput").value) || generateClientSlug();
+      var idOrUrl = document.getElementById("existingSheetInput").value.trim();
+      if (!idOrUrl) {
+        showToast("⚠️ 연결할 구글 시트 URL 또는 ID를 입력해주세요.");
+        return;
+      }
+      var cfg = collectConfigFromForm(slug);
+      var managerPin = document.getElementById("managerPinInput").value.trim();
+      callAdminApi("adminConnectExistingSheet", [getPinValue(), slug, idOrUrl, cfg, managerPin])
+        .then(function (res) {
+          editingExistingSlug = res.slug;
+          document.getElementById("slugInput").value = res.slug;
+          document.getElementById("slugInput").disabled = true;
+          if (res.groups && res.groups.length > 0) {
+            editorGroups = normalizeGroupsForEditor(res.groups);
+            renderGroupsEditor();
+          }
+          refreshEditingModeUI();
+          showIssuedLinksBanner(res.slug, res.resultsUrl, res.sheetTitle);
+          loadMasterTournamentList();
+          showToast("✅ [?t=" + res.slug + "] 코드가 기존 구글 시트에 연결되었습니다!");
+        })
+        .catch(function (err) {
+          showToast("❌ 시트 연결 실패: " + err.message, 4500);
+        });
+    }
+
+    function promptChangeMasterPin() {
+      var nextPin = prompt("새로 사용할 마스터 비밀번호(PIN, 4자리 이상)를 입력하세요:");
       if (!nextPin) return;
-      callAdminApi("adminChangePin", [getAdminPin(), nextPin])
+      callAdminApi("adminChangeMasterPin", [getPinValue(), nextPin])
         .then(function () {
           document.getElementById("adminPinInput").value = nextPin.trim();
-          showToast("🔑 총무 비밀번호(PIN)가 변경되었습니다!");
+          showToast("🔑 마스터 비밀번호(PIN)가 변경되었습니다!");
         })
         .catch(function (err) {
           showToast("❌ PIN 변경 실패: " + err.message, 4500);
         });
     }
 
-    function downloadTournamentConfigJs() {
-      var cfg = collectConfigFromForm();
-      var apiUrl = getApiUrl();
-      var content =
-        "/* [TournamentConfig.js] GitHub 정적 기본 대회 설정 파일 */\n\n" +
-        "var GAS_BACKEND_URL = " + JSON.stringify(apiUrl) + ";\n\n" +
-        "var TOURNAMENT_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n";
-      var blob = new Blob([content], { type: "application/javascript;charset=utf-8" });
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "TournamentConfig.js";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      showToast("💾 TournamentConfig.js 파일이 다운로드되었습니다. GitHub 저장소에 덮어쓰면 영구 반영됩니다.");
-    }
-
-    (function initAdminPage() {
+    (function initAdminConsole() {
       populateCourseDropdown();
       var initUrl = "";
       try {
@@ -1440,12 +1689,40 @@
         try { initUrl = (localStorage.getItem(GAS_URL_STORAGE_KEY) || "").trim(); } catch (e2) { }
       }
       document.getElementById("gasUrlInput").value = initUrl;
+      if (!initUrl) {
+        document.getElementById("engineUrlDetails").open = true;
+      }
 
       var baseCfg = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
-      populateFormFromConfig(baseCfg, baseCfg.groups || []);
 
-      if (initUrl) {
-        loadServerStatus();
+      if (LOCKED_MANAGER_SLUG) {
+        // Configure UI strictly for single-club Manager Mode (admin.html?t=slug)
+        document.getElementById("pageTopHeading").textContent = "🛠️ [" + LOCKED_MANAGER_SLUG + "] 모임 총무 대회 관리";
+        document.getElementById("authCardTitle").textContent = "🔐 대회 총무 비밀번호(PIN) 인증";
+        document.getElementById("modeRoleBadge").textContent = "총무 전용 모드";
+        document.getElementById("adminPinInput").value = "";
+        document.getElementById("adminPinInput").placeholder = "전달받은 총무 PIN 입력";
+        document.getElementById("authLoadBtn").textContent = "🔓 내 대회 설정 불러오기";
+        document.getElementById("newFormResetBtn").style.display = "none";
+        document.getElementById("changeMasterPinBtn").style.display = "none";
+        document.getElementById("engineUrlDetails").style.display = "none";
+        document.getElementById("masterTournamentListSection").style.display = "none";
+        document.getElementById("randSlugBtn").style.display = "none";
+        document.getElementById("managerPinFieldWrap").style.display = "none";
+        document.getElementById("connectExistingDetails").style.display = "none";
+        document.getElementById("slugInput").value = LOCKED_MANAGER_SLUG;
+        document.getElementById("slugInput").disabled = true;
+        document.getElementById("topPreviewLink").href = buildParticipantUrl(LOCKED_MANAGER_SLUG);
+        editingExistingSlug = LOCKED_MANAGER_SLUG;
+        populateFormFromConfig(baseCfg, [], LOCKED_MANAGER_SLUG, "");
+        document.getElementById("slugInput").disabled = true;
+        refreshEditingModeUI();
+      } else {
+        populateFormFromConfig(baseCfg, baseCfg.groups || [], baseCfg.tournamentId || "2026-fall", "");
+        refreshEditingModeUI();
+        if (initUrl) {
+          loadMasterTournamentList();
+        }
       }
     })();
   </script>
