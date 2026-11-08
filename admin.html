@@ -435,9 +435,22 @@
       </div>
 
       <details id="engineUrlDetails" style="margin-top:10px;">
-        <summary style="cursor:pointer; font-size:12px; color:#64748b; font-weight:700;">⚙️ 백엔드 엔진 URL 확인/변경</summary>
-        <div class="field" style="margin-top:8px;">
-          <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+        <summary style="cursor:pointer; font-size:12.5px; color:#475569; font-weight:800;">
+          ⚙️ 카톡 대회 제목 자동표시 연동 (GitHub 토큰 최초 1회 등록) &amp; 엔진 URL <span id="ghTokenStatusBadge" style="margin-left:6px; font-size:11.5px; color:#c92a2a;">(미연동)</span>
+        </summary>
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:10px; background:#f8fafc; padding:12px; border-radius:10px; border:1px solid #e2e8f0;">
+          <div class="field">
+            <label for="ghTokenInput">💬 카톡 공유 시 대회 이름이 제목으로 뜨게 하기 (GitHub Personal Access Token <code>ghp_...</code> 1회 저장)</label>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <input type="password" id="ghTokenInput" placeholder="ghp_... 토큰 붙여넣기 (서버에 암호화 보관되며 다시 입력할 필요 없음)" style="flex:1; min-width:220px;">
+              <button type="button" class="btn btn-green btn-sm" onclick="saveGithubTokenSetting()">💾 토큰 1회 저장</button>
+            </div>
+            <span class="hint">등록해 두면 대회를 만들 때마다 전용 주소(<code>/t/코드/</code>)가 생성되어 카톡 미리보기에 대회 이름이 그대로 표시됩니다.</span>
+          </div>
+          <div class="field">
+            <label for="gasUrlInput">백엔드 엔진 URL</label>
+            <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
         </div>
       </details>
 
@@ -450,6 +463,7 @@
           <div>
             <div style="font-size:11.5px; font-weight:800; color:#15803d;">📱 참가자 카톡방 공유용 전용 링크</div>
             <div class="link-url" id="participantShareUrlText"></div>
+            <div id="kakaoReadyHint" style="font-size:12px; font-weight:700; margin-top:4px; display:none;"></div>
           </div>
           <div style="display:flex; gap:6px;">
             <button type="button" class="btn btn-green btn-sm" onclick="copyTextById('participantShareUrlText', '참가자 전용 링크')">📋 링크 복사</button>
@@ -639,6 +653,8 @@
     var editingExistingSlug = "";
     var editorGroups = [];
     var toastTimer = null;
+    var hasGithubPreviewToken = false;
+    var previewPollTimer = null;
 
     function normalizeSlugClient(raw) {
       if (raw === undefined || raw === null || String(raw).trim() === "undefined") return "";
@@ -663,6 +679,9 @@
     }
 
     function buildParticipantUrl(slug) {
+      if (hasGithubPreviewToken) {
+        return getAppBaseDirUrl() + "t/" + encodeURIComponent(slug) + "/";
+      }
       return getAppBaseDirUrl() + "?t=" + encodeURIComponent(slug);
     }
 
@@ -760,17 +779,84 @@
       }
     }
 
+    function watchKakaoPreviewReady(url) {
+      var hintEl = document.getElementById("kakaoReadyHint");
+      if (previewPollTimer) {
+        clearInterval(previewPollTimer);
+        previewPollTimer = null;
+      }
+      if (!hasGithubPreviewToken || url.indexOf("/t/") === -1) {
+        hintEl.style.display = "none";
+        return;
+      }
+      hintEl.style.display = "block";
+      hintEl.style.color = "#b45309";
+      hintEl.textContent = "⏳ 카톡 대회 제목 페이지 반영 중... (완료 표시가 뜬 뒤 카톡에 공유해 주세요, 약 30~45초)";
+
+      var attempts = 0;
+      function checkOnce() {
+        attempts++;
+        fetch(url + "?_cb=" + Date.now(), { method: "GET", cache: "no-store" })
+          .then(function (r) {
+            if (r.ok) {
+              if (previewPollTimer) { clearInterval(previewPollTimer); previewPollTimer = null; }
+              hintEl.style.color = "#15803d";
+              hintEl.textContent = "✅ 카톡 대회 제목 준비 완료! 지금 [📋 링크 복사]해서 카톡방에 공유하세요.";
+            } else if (attempts >= 24) {
+              if (previewPollTimer) { clearInterval(previewPollTimer); previewPollTimer = null; }
+              hintEl.textContent = "ℹ️ 약 1분 뒤 카톡방에 공유하시면 대회 제목이 정상 표시됩니다.";
+            }
+          })
+          .catch(function () { });
+      }
+      checkOnce();
+      previewPollTimer = setInterval(checkOnce, 4000);
+    }
+
+    function updateGhTokenBadgeUI(enabled) {
+      hasGithubPreviewToken = Boolean(enabled);
+      var b = document.getElementById("ghTokenStatusBadge");
+      if (!b) return;
+      if (hasGithubPreviewToken) {
+        b.textContent = "✅ 카톡 제목 자동생성 켜짐";
+        b.style.color = "#15803d";
+      } else {
+        b.textContent = "(미연동 — 클릭해 1회 설정)";
+        b.style.color = "#c92a2a";
+      }
+    }
+
+    function saveGithubTokenSetting() {
+      var tok = (document.getElementById("ghTokenInput").value || "").trim();
+      if (!tok) {
+        showToast("⚠️ ghp_ 로 시작하는 GitHub 토큰을 입력해주세요.");
+        return;
+      }
+      callAdminApi("adminSaveGithubToken", [getPinValue(), tok])
+        .then(function (res) {
+          document.getElementById("ghTokenInput").value = "";
+          updateGhTokenBadgeUI(res && res.hasGithubToken);
+          document.getElementById("engineUrlDetails").open = false;
+          renderMasterTournamentListHighlight();
+          showToast("✅ GitHub 토큰이 저장되었습니다! 이제 대회를 생성하면 카톡에 대회 제목이 자동으로 표시됩니다.", 4500);
+        })
+        .catch(function (err) {
+          showToast("❌ 토큰 저장 실패: " + err.message, 4500);
+        });
+    }
+
     function showIssuedLinksBanner(slug, resultsUrl, sheetTitle) {
       var box = document.getElementById("issuedLinksBox");
       var pUrl = buildParticipantUrl(slug);
       document.getElementById("issuedBannerTitle").textContent =
         "✅ [" + (sheetTitle || slug) + "] 전용 링크가 발급되었습니다!";
       document.getElementById("participantShareUrlText").textContent = pUrl;
-      document.getElementById("participantShareOpenBtn").href = pUrl;
+      document.getElementById("participantShareOpenBtn").href = getAppBaseDirUrl() + "?t=" + encodeURIComponent(slug);
       document.getElementById("sheetResultUrlText").textContent = resultsUrl || "";
       document.getElementById("sheetResultOpenBtn").href = resultsUrl || "#";
-      document.getElementById("topPreviewLink").href = pUrl;
+      document.getElementById("topPreviewLink").href = getAppBaseDirUrl() + "?t=" + encodeURIComponent(slug);
       box.style.display = "flex";
+      watchKakaoPreviewReady(pUrl);
     }
 
     function parseIntList(str) {
@@ -1411,6 +1497,10 @@
     function loadMasterTournamentList() {
       callAdminApi("adminListTournaments", [getPinValue()])
         .then(function (data) {
+          updateGhTokenBadgeUI(data && data.hasGithubToken);
+          if (!(data && data.hasGithubToken)) {
+            document.getElementById("engineUrlDetails").open = true;
+          }
           renderMasterTournamentList(data.tournaments || []);
           showToast("✅ 전체 대회 목록(" + (data.tournaments || []).length + "개)을 불러왔습니다.");
         })

@@ -18,6 +18,9 @@ var CONFIG_CACHE_TTL_SEC = 600;
 var DEFAULT_MASTER_PIN = "2026";
 var PROP_MASTER_PIN = "MASTER_ADMIN_PIN_V2";
 var PROP_REGISTRY_SHEET_ID = "MASTER_REGISTRY_SHEET_ID_V2";
+var PROP_GH_TOKEN = "GITHUB_PAT_TOKEN_V1";
+var PROP_GH_REPO = "GITHUB_REPO_SLUG_V1";
+var DEFAULT_GH_REPO = "aries7594/golf_scorecard_app";
 
 // Per-request execution context populated inside doPost(e)
 var CURRENT_REQ_SLUG = "";
@@ -2109,6 +2112,114 @@ function readGroupsWithHandicapsFromSheet(ss) {
     return groups;
 }
 
+
+// Escape special HTML characters for safe <title> and <meta> tag injection
+function escapeHtmlAttr(str) {
+    return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+// Publish or update a lightweight title-only entry HTML (t/<slug>/index.html) on GitHub Pages
+// so KakaoTalk link previews display the exact tournament name without photos.
+function syncGithubSlugPreviewPage(slug, tournamentName, isDelete) {
+    try {
+        var props = PropertiesService.getScriptProperties();
+        var token = (props.getProperty(PROP_GH_TOKEN) || "").trim();
+        var repo = (props.getProperty(PROP_GH_REPO) || DEFAULT_GH_REPO).trim();
+        if (!token || !repo || !slug) return { synced: false, reason: "no_token" };
+
+        var apiPath = "https://api.github.com/repos/" + repo + "/contents/t/" + encodeURIComponent(slug) + "/index.html";
+        var headers = {
+            "Authorization": "Bearer " + token,
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+        };
+
+        // Check if file already exists to retrieve its current blob SHA
+        var existingSha = "";
+        var getResp = UrlFetchApp.fetch(apiPath, {
+            method: "get",
+            headers: headers,
+            muteHttpExceptions: true
+        });
+        if (getResp.getResponseCode() === 200) {
+            var parsedGet = JSON.parse(getResp.getContentText() || "{}");
+            existingSha = parsedGet.sha || "";
+        }
+
+        if (isDelete) {
+            if (!existingSha) return { synced: true, deleted: true };
+            var delPayload = {
+                message: "Remove tournament preview page: " + slug,
+                sha: existingSha
+            };
+            var delResp = UrlFetchApp.fetch(apiPath, {
+                method: "delete",
+                contentType: "application/json",
+                headers: headers,
+                payload: JSON.stringify(delPayload),
+                muteHttpExceptions: true
+            });
+            var delCode = delResp.getResponseCode();
+            return { synced: delCode >= 200 && delCode < 300, status: delCode };
+        }
+
+        var cleanTitle = String(tournamentName || "골프대회 스코어보드").replace(/^[⛳🏆🎯\s]+/, "").trim();
+        var displayTitle = "⛳ " + cleanTitle;
+        var safeTitle = escapeHtmlAttr(displayTitle);
+        var html =
+            "<!DOCTYPE html>\n" +
+            "<html lang=\"ko\">\n" +
+            "<head>\n" +
+            "  <meta charset=\"UTF-8\">\n" +
+            "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
+            "  <title>" + safeTitle + "</title>\n" +
+            "  <meta property=\"og:type\" content=\"website\">\n" +
+            "  <meta property=\"og:title\" content=\"" + safeTitle + "\">\n" +
+            "  <meta property=\"og:description\" content=\"실시간 스코어카드 · 조 편성표\">\n" +
+            "  <script>window.location.replace(\"../../?t=" + encodeURIComponent(slug) + "\");</script>\n" +
+            "</head>\n" +
+            "<body></body>\n" +
+            "</html>\n";
+
+        var b64Content = Utilities.base64Encode(html, Utilities.Charset.UTF_8);
+        var putPayload = {
+            message: "Publish tournament preview title: " + cleanTitle + " (" + slug + ")",
+            content: b64Content
+        };
+        if (existingSha) putPayload.sha = existingSha;
+
+        var putResp = UrlFetchApp.fetch(apiPath, {
+            method: "put",
+            contentType: "application/json",
+            headers: headers,
+            payload: JSON.stringify(putPayload),
+            muteHttpExceptions: true
+        });
+        var code = putResp.getResponseCode();
+        return { synced: code >= 200 && code < 300, status: code };
+    } catch (e) {
+        return { synced: false, error: String(e && e.message ? e.message : e) };
+    }
+}
+
+function adminSaveGithubToken(masterPin, ghToken, ghRepoOpt) {
+    verifyMasterPin(masterPin);
+    var props = PropertiesService.getScriptProperties();
+    var cleanToken = String(ghToken || "").trim();
+    if (!cleanToken) {
+        props.deleteProperty(PROP_GH_TOKEN);
+        return { saved: false, hasGithubToken: false };
+    }
+    var repo = String(ghRepoOpt || props.getProperty(PROP_GH_REPO) || DEFAULT_GH_REPO).trim();
+    props.setProperty(PROP_GH_TOKEN, cleanToken);
+    props.setProperty(PROP_GH_REPO, repo);
+    return { saved: true, hasGithubToken: true, ghRepo: repo };
+}
+
 // [Master Only] List all hosted tournaments in reverse chronological order
 function adminListTournaments(masterPin) {
     verifyMasterPin(masterPin);
@@ -2116,7 +2227,10 @@ function adminListTournaments(masterPin) {
     list.sort(function (a, b) {
         return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
     });
-    return { tournaments: list };
+    var props = PropertiesService.getScriptProperties();
+    var hasGh = Boolean((props.getProperty(PROP_GH_TOKEN) || "").trim());
+    var ghRepo = (props.getProperty(PROP_GH_REPO) || DEFAULT_GH_REPO).trim();
+    return { tournaments: list, hasGithubToken: hasGh, ghRepo: ghRepo };
 }
 
 // [Master OR Club Manager] Load full details for a single tournament slug
@@ -2187,12 +2301,14 @@ function adminCreateTournament(pin, spec) {
             createdAt: existing ? existing.createdAt : ""
         });
 
+        var ghSync = syncGithubSlugPreviewPage(regSaved.slug, created.sheetTitle, false);
         return {
             slug: regSaved.slug,
             sheetId: created.sheetId,
             sheetTitle: created.sheetTitle,
             resultsUrl: created.resultsUrl,
             managerPin: managerPin,
+            ghPreviewSynced: Boolean(ghSync && ghSync.synced),
             config: cfg,
             groupList: created.groupList
         };
@@ -2226,8 +2342,10 @@ function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt) {
         createdAt: rec.createdAt
     });
 
+    var ghSyncUpd = syncGithubSlugPreviewPage(saved.slug, saved.sheetTitle, false);
     return {
         updated: true,
+        ghPreviewSynced: Boolean(ghSyncUpd && ghSyncUpd.synced),
         slug: saved.slug,
         sheetId: saved.sheetId,
         resultsUrl: saved.resultsUrl,
@@ -2266,7 +2384,9 @@ function adminConnectExistingSheet(masterPin, rawSlug, sheetIdOrUrl, configOpt, 
         resultsUrl: resultsUrl
     });
 
+    var ghSyncConn = syncGithubSlugPreviewPage(saved.slug, saved.sheetTitle, false);
     return {
+        ghPreviewSynced: Boolean(ghSyncConn && ghSyncConn.synced),
         slug: saved.slug,
         sheetId: sid,
         sheetTitle: ss.getName(),
@@ -2329,8 +2449,10 @@ function adminResetTournamentScores(slug, pin) {
 // [Master Only] Remove a tournament slug from the registry (spreadsheet file remains safely in Google Drive)
 function adminDeleteTournament(masterPin, slug) {
     verifyMasterPin(masterPin);
-    removeTournamentFromRegistry(slug);
-    return { deleted: true, slug: normalizeSlug(slug) };
+    var cleanSlug = normalizeSlug(slug);
+    removeTournamentFromRegistry(cleanSlug);
+    syncGithubSlugPreviewPage(cleanSlug, "", true);
+    return { deleted: true, slug: cleanSlug };
 }
 
 // [Master Only] Change Master Admin PIN
@@ -2366,7 +2488,8 @@ function doPost(e) {
             adminConnectExistingSheet: adminConnectExistingSheet,
             adminResetTournamentScores: adminResetTournamentScores,
             adminDeleteTournament: adminDeleteTournament,
-            adminChangeMasterPin: adminChangeMasterPin
+            adminChangeMasterPin: adminChangeMasterPin,
+            adminSaveGithubToken: adminSaveGithubToken
         };
         if (!req || !req.fn || !allowed[req.fn]) {
             throw new Error("허용되지 않은 호출: " + (req && req.fn ? req.fn : "unknown"));
