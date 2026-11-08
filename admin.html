@@ -434,12 +434,6 @@
         </button>
       </div>
 
-      <details id="engineUrlDetails" style="margin-top:10px;">
-        <summary style="cursor:pointer; font-size:12px; color:#64748b; font-weight:700;">⚙️ 백엔드 엔진 URL 확인/변경</summary>
-        <div class="field" style="margin-top:8px;">
-          <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
-        </div>
-      </details>
 
       <!-- Issued links banner for currently created or loaded tournament -->
       <div id="issuedLinksBox" class="issued-links-box">
@@ -699,11 +693,15 @@
     }
 
     function getApiUrl() {
-      var v = (document.getElementById("gasUrlInput").value || "").trim();
-      if (v) {
-        try { localStorage.setItem(GAS_URL_STORAGE_KEY, v); } catch (e) { }
+      try {
+        var params = new URLSearchParams(window.location.search || "");
+        var qApi = (params.get("api") || "").trim();
+        if (qApi) return qApi;
+      } catch (e) { }
+      if (typeof GAS_BACKEND_URL === "string" && GAS_BACKEND_URL.trim()) {
+        return GAS_BACKEND_URL.trim();
       }
-      return v;
+      return "";
     }
 
     function getPinValue() {
@@ -1573,26 +1571,10 @@
 
     (function initAdminConsole() {
       populateCourseDropdown();
-      var initUrl = "";
-      try {
-        var params = new URLSearchParams(window.location.search || "");
-        initUrl = (params.get("api") || "").trim();
-      } catch (e) { }
-      if (!initUrl && typeof GAS_BACKEND_URL === "string" && GAS_BACKEND_URL.trim()) {
-        initUrl = GAS_BACKEND_URL.trim();
-      }
-      if (!initUrl) {
-        try { initUrl = (localStorage.getItem(GAS_URL_STORAGE_KEY) || "").trim(); } catch (e2) { }
-      }
-      document.getElementById("gasUrlInput").value = initUrl;
-      if (!initUrl) {
-        document.getElementById("engineUrlDetails").open = true;
-      }
-
       var baseCfg = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
       populateFormFromConfig(baseCfg, baseCfg.groups || []);
       refreshEditingModeUI();
-      if (initUrl) {
+      if (getApiUrl()) {
         loadMasterTournamentList();
       }
     })();
