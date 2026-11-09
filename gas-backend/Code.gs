@@ -2568,13 +2568,53 @@ function adminResetTournamentScores(slug, pin) {
     }
 }
 
-// [Master Only] Remove a tournament slug from the registry (spreadsheet file remains safely in Google Drive)
+// Run once in Apps Script editor if prompted to grant Google Drive file-trash permission
+function authorizeDrivePermission() {
+    DriveApp.getRootFolder();
+}
+
+// [Master Only] Remove a tournament slug from the registry AND move its Google Sheet file to Google Drive Trash
 function adminDeleteTournament(masterPin, slug) {
     verifyMasterPin(masterPin);
     var cleanSlug = normalizeSlug(slug);
+    var rec = lookupTournamentBySlug(cleanSlug);
+    var targetSheetId = (rec && rec.sheetId) ? String(rec.sheetId).trim() : "";
+
     removeTournamentFromRegistry(cleanSlug);
+    if (targetSheetId) {
+        invalidateSheetCaches(targetSheetId);
+    }
+
+    var sheetTrashed = false;
+    var sheetTrashError = "";
+    if (targetSheetId) {
+        try {
+            var regSheetId = String(PropertiesService.getScriptProperties().getProperty(PROP_REGISTRY_SHEET_ID) || "").trim();
+            var remaining = readAllRegistryRecords();
+            var stillReferenced = false;
+            for (var i = 0; i < remaining.length; i++) {
+                if (remaining[i].sheetId === targetSheetId) {
+                    stillReferenced = true;
+                    break;
+                }
+            }
+            if (!stillReferenced && targetSheetId !== regSheetId) {
+                DriveApp.getFileById(targetSheetId).setTrashed(true);
+                sheetTrashed = true;
+            }
+        } catch (trashErr) {
+            sheetTrashError = String((trashErr && trashErr.message) || trashErr || "");
+        }
+    }
+
     syncGithubSlugPreviewPage(cleanSlug, "", true);
-    return { deleted: true, slug: cleanSlug };
+    return {
+        deleted: true,
+        slug: cleanSlug,
+        sheetId: targetSheetId,
+        sheetTrashed: sheetTrashed,
+        sheetTrashError: sheetTrashError
+    };
 }
 
 // [Master Only] Change Master Admin PIN

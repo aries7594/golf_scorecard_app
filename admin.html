@@ -2224,15 +2224,19 @@
 
     function deleteTournamentFromModal(slug, title) {
       if (!slug) return;
-      if (!confirm("[" + title + "] 대회를 목록에서 삭제할까요?\n(구글 드라이브의 시트 파일 자체는 안전하게 보존됩니다.)")) {
+      if (!confirm("⚠️ [" + title + "] 대회와 연결된 구글 시트를 함께 삭제할까요?\n(삭제된 시트는 구글 드라이브 휴지통으로 이동합니다.)")) {
         return;
       }
       callAdminApiWithPin("adminDeleteTournament", function (pin) { return [pin, slug]; })
-        .then(function () {
+        .then(function (res) {
           if (editingExistingSlug === slug) {
             startFreshTournamentForm();
           }
-          showToast("🗑️ [" + title + "] 대회가 목록에서 삭제되었습니다.");
+          if (res && res.sheetTrashError) {
+            showToast("⚠️ 목록에서는 삭제되었으나 구글 시트 삭제 권한 승인이 필요합니다:\n" + res.sheetTrashError, 5500);
+          } else {
+            showToast("🗑️ [" + title + "] 대회와 연결된 구글 시트가 함께 삭제되었습니다.");
+          }
           openPastTournamentsModal();
         })
         .catch(function (err) {
