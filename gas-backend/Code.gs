@@ -397,8 +397,25 @@ function createTournamentSpreadsheet(spec) {
         throw new Error("유효한 참석자 이름이 최소 1명 이상 필요합니다.");
     }
 
-    var ss = SpreadsheetApp.create(sheetTitle);
-    var defaultSheets = ss.getSheets();
+    var ss = spec.existingSs || null;
+    var defaultSheets = [];
+    if (ss) {
+        try {
+            if (ss.getName() !== sheetTitle) ss.rename(sheetTitle);
+        } catch (renErr) { }
+        var stagingSheet = ss.insertSheet("_RebuildTmp_" + new Date().getTime());
+        defaultSheets = [stagingSheet];
+        var oldTabs = ss.getSheets();
+        for (var ot = 0; ot < oldTabs.length; ot++) {
+            var tabName = oldTabs[ot].getName();
+            if (oldTabs[ot] !== stagingSheet && tabName !== "_Config") {
+                try { ss.deleteSheet(oldTabs[ot]); } catch (delTabErr) { }
+            }
+        }
+    } else {
+        ss = SpreadsheetApp.create(sheetTitle);
+        defaultSheets = ss.getSheets();
+    }
 
     // 1. Create group tabs (Group 1 ~ Group N)
     for (var idx = 0; idx < normGroups.length; idx++) {
@@ -2317,41 +2334,146 @@ function adminCreateTournament(pin, spec) {
     }
 }
 
-// [Master OR Club Manager] Update notice/title/tee-time/settings without creating a new Google Sheet
-function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt) {
+// Normalize raw group roster array into [{ name, players: [{ name, handicap }] }]
+function normalizeTournamentGroups_(rawGroups) {
+    var norm = [];
+    if (!Array.isArray(rawGroups)) return norm;
+    for (var gi = 0; gi < rawGroups.length; gi++) {
+        var g = rawGroups[gi] || {};
+        var gName = String(g.name || ((gi + 1) + "조")).trim();
+        if (gName.indexOf("조") === -1) gName = gName + "조";
+        var pArr = Array.isArray(g.players) ? g.players : [];
+        var cleanPlayers = [];
+        for (var pi = 0; pi < pArr.length; pi++) {
+            var pItem = pArr[pi];
+            var pName = (typeof pItem === "string") ? pItem.trim() : String((pItem && pItem.name) || "").trim();
+            var pHcp = (typeof pItem === "object" && pItem !== null && pItem.handicap !== undefined && pItem.handicap !== "")
+                ? Number(pItem.handicap)
+                : "";
+            if (isNaN(pHcp)) pHcp = "";
+            if (pName) cleanPlayers.push({ name: pName, handicap: pHcp });
+        }
+        if (cleanPlayers.length > 0) norm.push({ name: gName, players: cleanPlayers });
+    }
+    return norm;
+}
+
+// [Master OR Club Manager] Unified Save: updates config, player names/handicaps, or group tabs inside the SAME Google Sheet
+function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt, parsOpt) {
     var auth = verifyTournamentAccess(slug, pin);
     var rec = auth.record;
-    var ss = SpreadsheetApp.openById(rec.sheetId);
-    var cfg = newConfig || {};
-    cfg.tournamentId = rec.slug;
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+        var ss = SpreadsheetApp.openById(rec.sheetId);
+        var oldCfg = readConfigFromSpreadsheet(ss, rec.sheetId) || {};
+        var oldGroups = normalizeTournamentGroups_(readGroupsWithHandicapsFromSheet(ss));
 
-    var nextManagerPin = (newManagerPinOpt !== undefined && newManagerPinOpt !== null)
-        ? String(newManagerPinOpt).trim()
-        : rec.managerPin;
+        var cfg = newConfig || {};
+        cfg.tournamentId = rec.slug;
+        var normNewGroups = normalizeTournamentGroups_(cfg.groups || []);
+        if (normNewGroups.length > 0) {
+            cfg.groups = normNewGroups;
+        }
 
-    writeConfigToSpreadsheet(ss, cfg, nextManagerPin);
-    invalidateSheetCaches(rec.sheetId);
+        var nextManagerPin = (newManagerPinOpt !== undefined && newManagerPinOpt !== null && String(newManagerPinOpt).trim() !== "")
+            ? String(newManagerPinOpt).trim()
+            : rec.managerPin;
 
-    var saved = upsertTournamentInRegistry({
-        slug: rec.slug,
-        sheetId: rec.sheetId,
-        sheetTitle: cfg.sheetTitle || rec.sheetTitle || ss.getName(),
-        courseKey: cfg.courseKey || rec.courseKey || "",
-        managerPin: nextManagerPin,
-        resultsUrl: rec.resultsUrl,
-        createdAt: rec.createdAt
-    });
+        var cleanSheetTitle = String(cfg.sheetTitle || rec.sheetTitle || ss.getName())
+            .replace(/^[⛳🏆🎯\s]+/, "")
+            .trim() || ss.getName();
+        try {
+            if (ss.getName() !== cleanSheetTitle) ss.rename(cleanSheetTitle);
+        } catch (renErr2) { }
 
-    var ghSyncUpd = syncGithubSlugPreviewPage(saved.slug, saved.sheetTitle, false);
-    return {
-        updated: true,
-        ghPreviewSynced: Boolean(ghSyncUpd && ghSyncUpd.synced),
-        slug: saved.slug,
-        sheetId: saved.sheetId,
-        resultsUrl: saved.resultsUrl,
-        managerPin: saved.managerPin,
-        config: cfg
-    };
+        var courseChanged = Boolean(cfg.courseKey && oldCfg.courseKey && cfg.courseKey !== oldCfg.courseKey);
+        var eventHolesChanged =
+            JSON.stringify(cfg.nearPinHoles || []) !== JSON.stringify(oldCfg.nearPinHoles || []) ||
+            JSON.stringify(cfg.longDriveHoles || []) !== JSON.stringify(oldCfg.longDriveHoles || []);
+
+        var sameShape = (oldGroups.length === normNewGroups.length);
+        var samePlayers = sameShape;
+        if (sameShape) {
+            for (var i = 0; i < oldGroups.length; i++) {
+                if (oldGroups[i].name !== normNewGroups[i].name || oldGroups[i].players.length !== normNewGroups[i].players.length) {
+                    sameShape = false;
+                    samePlayers = false;
+                    break;
+                }
+                for (var j = 0; j < oldGroups[i].players.length; j++) {
+                    var op = oldGroups[i].players[j];
+                    var np = normNewGroups[i].players[j];
+                    if (op.name !== np.name || String(op.handicap) !== String(np.handicap)) {
+                        samePlayers = false;
+                    }
+                }
+            }
+        }
+
+        var updateMode = "config_only";
+        var nextResultsUrl = rec.resultsUrl;
+
+        if (normNewGroups.length > 0 && (!sameShape || courseChanged || eventHolesChanged)) {
+            // Rebuild tabs inside the SAME existing spreadsheet (same sheetId, zero duplicate files)
+            var rebuilt = createTournamentSpreadsheet({
+                existingSs: ss,
+                config: cfg,
+                groups: normNewGroups,
+                pars: parsOpt,
+                managerPin: nextManagerPin
+            });
+            nextResultsUrl = rebuilt.resultsUrl;
+            updateMode = "rebuilt_in_same_sheet";
+        } else {
+            if (normNewGroups.length > 0 && sameShape && !samePlayers) {
+                // Update only player names (col A) and handicaps (col U) in-place while preserving all entered hole scores
+                for (var gi = 0; gi < normNewGroups.length; gi++) {
+                    var gObj = normNewGroups[gi];
+                    var gTab = ss.getSheetByName(gObj.name);
+                    if (!gTab) continue;
+                    var pCnt = gObj.players.length;
+                    var nameCol = [];
+                    var hcpCol = [];
+                    for (var pi = 0; pi < pCnt; pi++) {
+                        nameCol.push([gObj.players[pi].name]);
+                        hcpCol.push([gObj.players[pi].handicap]);
+                    }
+                    gTab.getRange(3, 1, pCnt, 1).setValues(nameCol);
+                    gTab.getRange(3, 21, pCnt, 1).setValues(hcpCol);
+                }
+                SpreadsheetApp.flush();
+                updateMode = "roster_inplace";
+            }
+            writeConfigToSpreadsheet(ss, cfg, nextManagerPin);
+        }
+
+        invalidateSheetCaches(rec.sheetId);
+
+        var saved = upsertTournamentInRegistry({
+            slug: rec.slug,
+            sheetId: rec.sheetId,
+            sheetTitle: cleanSheetTitle,
+            courseKey: cfg.courseKey || rec.courseKey || "",
+            managerPin: nextManagerPin,
+            resultsUrl: nextResultsUrl,
+            createdAt: rec.createdAt
+        });
+
+        var ghSyncUpd = syncGithubSlugPreviewPage(saved.slug, saved.sheetTitle, false);
+        return {
+            updated: true,
+            updateMode: updateMode,
+            ghPreviewSynced: Boolean(ghSyncUpd && ghSyncUpd.synced),
+            slug: saved.slug,
+            sheetId: saved.sheetId,
+            resultsUrl: saved.resultsUrl,
+            managerPin: saved.managerPin,
+            config: cfg
+        };
+    } finally {
+        lock.releaseLock();
+    }
 }
 
 // [Master Only] Bind a slug to an existing Google Spreadsheet URL/ID

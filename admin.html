@@ -986,13 +986,10 @@
           🚀 새 대회 구글 시트 자동 생성 &amp; 전용 링크 발급
         </button>
         <button type="button" class="btn btn-green" id="saveConfigOnlyBtn" onclick="saveConfigOnly()" style="display:none;">
-          ✏️ 시트는 유지하고 설정/경기진행안내만 저장
+          💾 변경사항 저장
         </button>
         <button type="button" class="btn btn-danger" id="resetScoresBtn" onclick="resetTournamentScores()" style="display:none;">
           🧹 테스트 점수 초기화
-        </button>
-        <button type="button" class="btn btn-danger" id="deleteTournamentBtn" onclick="deleteCurrentLoadedTournament()" style="display:none;">
-          🗑️ 이 대회 목록에서 삭제
         </button>
       </div>
     </div>
@@ -1271,7 +1268,6 @@
       var createBtn = document.getElementById("createSheetBtn");
       var saveCfgBtn = document.getElementById("saveConfigOnlyBtn");
       var resetBtn = document.getElementById("resetScoresBtn");
-      var delBtn = document.getElementById("deleteTournamentBtn");
       var badge = document.getElementById("editingStateBadge");
       var secTitle = document.getElementById("formSectionTitle");
 
@@ -1284,10 +1280,10 @@
         badge.style.color = "#0369a1";
         badge.style.borderColor = "#7dd3fc";
         secTitle.textContent = "① 대회 정보 확인 및 수정";
-        createBtn.textContent = "🔄 변경된 명단으로 이 대회 시트 다시 생성";
+        createBtn.style.display = "none";
         saveCfgBtn.style.display = "inline-flex";
+        saveCfgBtn.textContent = "💾 변경사항 저장";
         resetBtn.style.display = "inline-flex";
-        delBtn.style.display = "inline-flex";
       } else {
         banner.textContent = "신규 대회 생성";
         banner.classList.remove("is-existing");
@@ -1297,10 +1293,10 @@
         badge.style.color = "#800020";
         badge.style.borderColor = "#f5c2cb";
         secTitle.textContent = "① 대회 기본 정보 설정";
+        createBtn.style.display = "inline-flex";
         createBtn.textContent = "🚀 새 대회 구글 시트 자동 생성 & 전용 링크 발급";
         saveCfgBtn.style.display = "none";
         resetBtn.style.display = "none";
-        delBtn.style.display = "none";
       }
     }
 
@@ -2052,12 +2048,34 @@
               "<div style='font-size:12.5px; color:#64748b; margin-top:3px;'>골프장: <b>" + (item.courseKey || "-") + "</b>" +
               (dateText ? (" · 생성일: " + dateText) : "") + "</div>";
 
-            var selectBadge = document.createElement("span");
-            selectBadge.className = "btn btn-blue btn-sm";
-            selectBadge.textContent = "불러오기 ➔";
+            var rightBtns = document.createElement("div");
+            rightBtns.style.display = "flex";
+            rightBtns.style.alignItems = "center";
+            rightBtns.style.gap = "6px";
 
+            var selectBtn = document.createElement("button");
+            selectBtn.type = "button";
+            selectBtn.className = "btn btn-blue btn-sm";
+            selectBtn.textContent = "불러오기";
+            selectBtn.onclick = function (ev) {
+              ev.stopPropagation();
+              closePastTournamentsModal();
+              loadSingleTournamentIntoForm(item.slug);
+            };
+
+            var delItemBtn = document.createElement("button");
+            delItemBtn.type = "button";
+            delItemBtn.className = "btn btn-danger btn-sm";
+            delItemBtn.textContent = "삭제";
+            delItemBtn.onclick = function (ev) {
+              ev.stopPropagation();
+              deleteTournamentFromModal(item.slug, item.sheetTitle || item.slug);
+            };
+
+            rightBtns.appendChild(selectBtn);
+            rightBtns.appendChild(delItemBtn);
             row.appendChild(left);
-            row.appendChild(selectBadge);
+            row.appendChild(rightBtns);
             body.appendChild(row);
           });
         })
@@ -2149,17 +2167,43 @@
     function saveConfigOnly() {
       var slug = editingExistingSlug;
       if (!slug) return;
+      var nameVal = document.getElementById("tournamentNameInput").value.trim();
+      if (!nameVal) {
+        showToast("⚠️ 대회 이름을 입력해주세요!");
+        document.getElementById("tournamentNameInput").focus();
+        return;
+      }
+      var groups = collectCleanedGroups();
+      if (groups.length === 0) {
+        showToast("⚠️ 참석자 명단이 비어 있습니다!");
+        return;
+      }
       var cfg = collectConfigFromForm(slug);
-      callAdminApiWithPin("adminUpdateTournamentConfig", function (pin) { return [slug, pin, cfg, ""]; })
+      var pars = getSelectedCoursePars();
+      var saveBtn = document.getElementById("saveConfigOnlyBtn");
+      saveBtn.disabled = true;
+      saveBtn.textContent = "⏳ 변경사항 저장 중...";
+
+      callAdminApiWithPin("adminUpdateTournamentConfig", function (pin) { return [slug, pin, cfg, "", pars]; })
         .then(function (res) {
           editingExistingTitle = cfg.sheetTitle;
           refreshEditingModeUI();
           showIssuedLinksBanner(slug, res.resultsUrl, editingExistingTitle);
           syncSlugLocalCache(slug, cfg, res.sheetId);
-          showToast("✅ 시트는 그대로 유지하고 [" + editingExistingTitle + "] 설정 및 경기진행안내가 저장되었습니다!");
+          if (res && res.updateMode === "rebuilt_in_same_sheet") {
+            showToast("✅ [" + editingExistingTitle + "] 변경된 명단과 설정이 기존 시트에 반영되었습니다!");
+          } else if (res && res.updateMode === "roster_inplace") {
+            showToast("✅ [" + editingExistingTitle + "] 선수 이름·핸디 및 설정이 저장되었습니다! (기존 점수 유지)");
+          } else {
+            showToast("✅ [" + editingExistingTitle + "] 변경사항이 저장되었습니다!");
+          }
         })
         .catch(function (err) {
-          showToast("❌ 설정 저장 실패: " + err.message, 4500);
+          showToast("❌ 변경사항 저장 실패: " + err.message, 4500);
+        })
+        .finally(function () {
+          saveBtn.disabled = false;
+          refreshEditingModeUI();
         });
     }
 
@@ -2178,17 +2222,18 @@
         });
     }
 
-    function deleteCurrentLoadedTournament() {
-      var slug = editingExistingSlug;
+    function deleteTournamentFromModal(slug, title) {
       if (!slug) return;
-      if (!confirm("[" + (editingExistingTitle || slug) + "] 대회를 목록에서 삭제할까요?\n(구글 드라이브의 시트 파일 자체는 안전하게 보존됩니다.)")) {
+      if (!confirm("[" + title + "] 대회를 목록에서 삭제할까요?\n(구글 드라이브의 시트 파일 자체는 안전하게 보존됩니다.)")) {
         return;
       }
       callAdminApiWithPin("adminDeleteTournament", function (pin) { return [pin, slug]; })
         .then(function () {
-          startFreshTournamentForm();
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          showToast("🗑️ 대회가 목록에서 삭제되어 신규 대회 생성 모드로 돌아왔습니다.");
+          if (editingExistingSlug === slug) {
+            startFreshTournamentForm();
+          }
+          showToast("🗑️ [" + title + "] 대회가 목록에서 삭제되었습니다.");
+          openPastTournamentsModal();
         })
         .catch(function (err) {
           showToast("❌ 삭제 실패: " + err.message, 4500);
