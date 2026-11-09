@@ -729,6 +729,11 @@ function createTournamentSpreadsheet(spec) {
     var sheetUrl = ss.getUrl();
     var resultsUrl = "https://docs.google.com/spreadsheets/d/" + sheetId + "/edit?gid=" + resultsGid + "#gid=" + resultsGid;
 
+    // Automatically grant read-only link access so anyone with the sheet link can view Results/Stat without permission prompts
+    try {
+        DriveApp.getFileById(sheetId).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (shareErr) { }
+
     return {
         sheetId: sheetId,
         sheetUrl: sheetUrl,
@@ -2448,6 +2453,9 @@ function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt, par
             writeConfigToSpreadsheet(ss, cfg, nextManagerPin);
         }
 
+        try {
+            DriveApp.getFileById(rec.sheetId).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        } catch (shareErr2) { }
         invalidateSheetCaches(rec.sheetId);
 
         var saved = upsertTournamentInRegistry({
@@ -2568,52 +2576,55 @@ function adminResetTournamentScores(slug, pin) {
     }
 }
 
-// Run once in Apps Script editor if prompted to grant Google Drive file-trash permission
+// Run once in Apps Script editor (toolbar: select 'authorizeDrivePermission' -> click Run) to grant Google Drive delete permission
 function authorizeDrivePermission() {
-    DriveApp.getRootFolder();
+    var root = DriveApp.getRootFolder();
+    if (false) {
+        DriveApp.getFileById("").setTrashed(false);
+    }
+    Logger.log("Drive permission granted: " + root.getName());
 }
 
-// [Master Only] Remove a tournament slug from the registry AND move its Google Sheet file to Google Drive Trash
+// [Master Only] Trash the linked Google Sheet in Google Drive FIRST, then remove the tournament slug from the registry
 function adminDeleteTournament(masterPin, slug) {
     verifyMasterPin(masterPin);
     var cleanSlug = normalizeSlug(slug);
     var rec = lookupTournamentBySlug(cleanSlug);
     var targetSheetId = (rec && rec.sheetId) ? String(rec.sheetId).trim() : "";
 
-    removeTournamentFromRegistry(cleanSlug);
+    var sheetTrashed = false;
     if (targetSheetId) {
+        var regSheetId = String(PropertiesService.getScriptProperties().getProperty(PROP_REGISTRY_SHEET_ID) || "").trim();
+        var allRecords = readAllRegistryRecords();
+        var otherReference = false;
+        for (var i = 0; i < allRecords.length; i++) {
+            if (allRecords[i].slug !== cleanSlug && allRecords[i].sheetId === targetSheetId) {
+                otherReference = true;
+                break;
+            }
+        }
+        if (!otherReference && targetSheetId !== regSheetId) {
+            try {
+                DriveApp.getFileById(targetSheetId).setTrashed(true);
+                sheetTrashed = true;
+            } catch (trashErr) {
+                var errMsg = String((trashErr && trashErr.message) || trashErr || "");
+                if (errMsg.indexOf("permission") !== -1 || errMsg.indexOf("권한") !== -1) {
+                    throw new Error("구글 드라이브 삭제 권한 승인이 필요합니다. Apps Script 상단에서 'authorizeDrivePermission'을 선택하고 [▷ 실행]을 한 번 눌러 허용해주세요!");
+                }
+                // If the file was already manually deleted in Drive, continue cleaning up the registry
+            }
+        }
         invalidateSheetCaches(targetSheetId);
     }
 
-    var sheetTrashed = false;
-    var sheetTrashError = "";
-    if (targetSheetId) {
-        try {
-            var regSheetId = String(PropertiesService.getScriptProperties().getProperty(PROP_REGISTRY_SHEET_ID) || "").trim();
-            var remaining = readAllRegistryRecords();
-            var stillReferenced = false;
-            for (var i = 0; i < remaining.length; i++) {
-                if (remaining[i].sheetId === targetSheetId) {
-                    stillReferenced = true;
-                    break;
-                }
-            }
-            if (!stillReferenced && targetSheetId !== regSheetId) {
-                DriveApp.getFileById(targetSheetId).setTrashed(true);
-                sheetTrashed = true;
-            }
-        } catch (trashErr) {
-            sheetTrashError = String((trashErr && trashErr.message) || trashErr || "");
-        }
-    }
-
+    removeTournamentFromRegistry(cleanSlug);
     syncGithubSlugPreviewPage(cleanSlug, "", true);
     return {
         deleted: true,
         slug: cleanSlug,
         sheetId: targetSheetId,
-        sheetTrashed: sheetTrashed,
-        sheetTrashError: sheetTrashError
+        sheetTrashed: sheetTrashed
     };
 }
 
