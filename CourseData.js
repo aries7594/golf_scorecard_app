@@ -1,3 +1,23 @@
+// Copyright-free panoramic hero banner themes (3.12:1 aspect ratio)
+var DEFAULT_HERO_THEME_KEY = "hills";
+var HERO_BANNER_THEMES = {
+  hills: {
+    key: "hills",
+    label: "골든 구릉지 코스 (기본)",
+    url: "images/hero_hills.jpg"
+  },
+  coastal: {
+    key: "coastal",
+    label: "오션뷰 & 소나무 코스",
+    url: "images/hero_coastal.jpg"
+  },
+  lake: {
+    key: "lake",
+    label: "청명한 호수 & 그린",
+    url: "images/hero_lake.jpg"
+  }
+};
+
 /* ============================================================================
  * [CourseData.js] Unified Golf Course Database (GitHub Direct Execution)
  * ----------------------------------------------------------------------------
@@ -13,8 +33,8 @@ var COURSE_CATALOG = {
       name: "The Golf Club at Moffett Field",
       heroVenue: "The Golf Club at Moffett Field · Par 72",
       address: "1080 Lockheed Martin Way, Moffett Field, CA 94035",
-      heroImgUrl: "https://www.moffettgolf.com/wp-content/uploads/sites/8944/2023/06/new_slide4.jpg",
-      heroImgFallbackUrl: "https://www.moffettgolf.com/wp-content/uploads/sites/8944/2023/06/18.jpg",
+      heroImgUrl: "images/hero_hills.jpg",
+      heroImgFallbackUrl: "images/hero_hills.jpg",
       longDriveHoles: [9],
       nearPinHoles: [5, 7, 13, 15],
       defaultTeeKey: "white",
@@ -294,8 +314,8 @@ var COURSE_CATALOG = {
       name: "The Course at Wente Vineyards",
       heroVenue: "The Course at Wente Vineyards · Par 72",
       address: "5050 Arroyo Rd, Livermore, CA 94550",
-      heroImgUrl: "https://cdn.allsquaregolf.com/pictures/pictures/000/054/899/large/course_at_wente_vineyards_the_cover_picture.jpg",
-      heroImgFallbackUrl: "https://golfguide.net/wp-content/uploads/2018/10/wente-vineyards-2.jpeg",
+      heroImgUrl: "images/hero_hills.jpg",
+      heroImgFallbackUrl: "images/hero_hills.jpg",
       longDriveHoles: [5],
       nearPinHoles: [3, 7, 11, 14],
       defaultTeeKey: "white",
@@ -589,8 +609,8 @@ var COURSE_CATALOG = {
       name: "Poppy Hills Golf Course",
       heroVenue: "Poppy Hills Golf Course · Par 71",
       address: "3200 Lopez Rd, Pebble Beach, CA 93953",
-      heroImgUrl: "https://poppyhillsgolf.ncga.org/hubfs/S2%20Poppy%20Hills/Poppy%20Hills%20Website%20Photos/Poppy%20Hills%20Hero%20Images/Poppy%20Hills%2014H%20PR%20112213%200117-%20Website%20Hero%20Banner%20-%201600%20x%20942.jpeg",
-      heroImgFallbackUrl: "https://poppyhillsgolf.ncga.org/hubfs/S2%20Poppy%20Hills/Poppy%20Hills%20Website%20Photos/Poppy%20Hills%20Hero%20Images/10%20overhead%20with%20fairway-%20Website%20Hero%20Banner%20-%201600%20x%20942.png",
+      heroImgUrl: "images/hero_hills.jpg",
+      heroImgFallbackUrl: "images/hero_hills.jpg",
       longDriveHoles: [9],
       nearPinHoles: [2, 6, 11, 15, 17],
       defaultTeeKey: "blue",

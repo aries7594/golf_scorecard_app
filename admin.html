@@ -268,6 +268,70 @@
       border-radius: 8px;
     }
 
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 640px) {
+      .theme-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .theme-card {
+      position: relative;
+      border: 2px solid #cbd5e1;
+      border-radius: 11px;
+      overflow: hidden;
+      cursor: pointer;
+      background: #0f172a;
+      transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.08s ease;
+    }
+
+    .theme-card:hover {
+      border-color: #64748b;
+    }
+
+    .theme-card.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.18);
+    }
+
+    .theme-card img {
+      width: 100%;
+      aspect-ratio: 3.12 / 1;
+      object-fit: cover;
+      display: block;
+    }
+
+    .theme-card-caption {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: #ffffff;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #1f2937;
+    }
+
+    .theme-check {
+      display: none;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .theme-card.active .theme-check {
+      display: inline-block;
+    }
+
     .paste-box {
       background: #f8fafc;
       border: 1.5px dashed #94a3b8;
@@ -713,6 +777,11 @@
           <span class="hint"><a href="#" onclick="fillRecommendedEventHoles(); return false;">골프장 추천 홀 자동 입력</a></span>
         </div>
       </div>
+
+      <div class="field" style="margin-top:14px;">
+        <label>🖼️ 첫 화면 상단 배너 배경 테마 선택</label>
+        <div class="theme-grid" id="heroThemeGrid"></div>
+      </div>
     </div>
 
     <!-- 2. Player Roster & Handicap Input (Starts Blank by Default!) -->
@@ -898,6 +967,7 @@
     var PIN_STORAGE_KEY = "golf_master_pin_v2";
     var editingExistingSlug = "";
     var editingExistingTitle = "";
+    var selectedHeroThemeKey = "hills";
     var editorGroups = [];
     var toastTimer = null;
 
@@ -1166,6 +1236,29 @@
         .split(/[,\s]+/)
         .map(function (s) { return parseInt(s, 10); })
         .filter(function (n) { return !isNaN(n) && n >= 1 && n <= 18; });
+    }
+
+    function renderHeroThemePicker() {
+      var wrap = document.getElementById("heroThemeGrid");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      var themes = (typeof HERO_BANNER_THEMES !== "undefined" && HERO_BANNER_THEMES) ? HERO_BANNER_THEMES : {};
+      var order = ["hills", "coastal", "lake"];
+      order.forEach(function (k) {
+        var t = themes[k];
+        if (!t) return;
+        var card = document.createElement("div");
+        card.className = "theme-card" + (selectedHeroThemeKey === k ? " active" : "");
+        card.setAttribute("data-theme-key", k);
+        card.onclick = function () {
+          selectedHeroThemeKey = k;
+          renderHeroThemePicker();
+        };
+        card.innerHTML =
+          '<img src="' + t.url + '" alt="' + t.label + '">' +
+          '<div class="theme-card-caption"><span>' + t.label + '</span><span class="theme-check">✓ 선택됨</span></div>';
+        wrap.appendChild(card);
+      });
     }
 
     function populateCourseDropdown() {
@@ -1681,6 +1774,7 @@
 
       var cObj = getSelectedCourseObj();
       if (isNewDefault) {
+        selectedHeroThemeKey = "hills";
         document.getElementById("menTeeSelect").value = "white";
         document.getElementById("womenTeeSelect").value = "red";
         document.getElementById("customTeeTextInput").value = "";
@@ -1691,6 +1785,7 @@
         document.getElementById("afterPartyAddrInput").value = "";
         editorGroups = [];
       } else {
+        selectedHeroThemeKey = cfg.heroThemeKey || "hills";
         // Restore tee selections or custom tee text
         var mKey = cfg.menTeeKey !== undefined ? cfg.menTeeKey : (cfg.defaultTeeKey || "");
         var wKey = cfg.womenTeeKey !== undefined ? cfg.womenTeeKey : "";
@@ -1731,6 +1826,7 @@
       }
 
       document.getElementById("rosterPasteInput").value = "";
+      renderHeroThemePicker();
       renderGroupsEditor();
       syncGuideFooterUI();
     }
@@ -1787,9 +1883,14 @@
       var afterAddr = document.getElementById("afterPartyAddrInput").value.trim();
       var baseCfg = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
 
+      var themes = (typeof HERO_BANNER_THEMES !== "undefined" && HERO_BANNER_THEMES) ? HERO_BANNER_THEMES : {};
+      var chosenTheme = themes[selectedHeroThemeKey] || themes.hills || { key: "hills", url: "images/hero_hills.jpg" };
+
       return {
         tournamentId: slug,
         courseKey: document.getElementById("courseSelect").value,
+        heroThemeKey: chosenTheme.key,
+        heroImgUrl: chosenTheme.url,
         sheetTitle: sheetTitle,
         tournamentTitle: tournamentTitle,
         heroTitle: heroTitle,
