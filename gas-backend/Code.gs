@@ -15,8 +15,6 @@ var GROUP_LIST_CACHE_TTL_SEC = 300;
 var REGISTRY_CACHE_TTL_SEC = 21600;
 var CONFIG_CACHE_TTL_SEC = 600;
 
-var DEFAULT_MASTER_PIN = "2026";
-var PROP_MASTER_PIN = "MASTER_ADMIN_PIN_V2";
 var PROP_REGISTRY_SHEET_ID = "MASTER_REGISTRY_SHEET_ID_V2";
 var PROP_GH_TOKEN = "GITHUB_PAT_TOKEN_V1";
 var PROP_GH_REPO = "GITHUB_REPO_SLUG_V1";
@@ -49,17 +47,6 @@ function generateRandomSlug() {
         out += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return out;
-}
-
-function getMasterPin() {
-    var props = PropertiesService.getScriptProperties();
-    return props.getProperty(PROP_MASTER_PIN) || DEFAULT_MASTER_PIN;
-}
-
-function verifyMasterPin(pin) {
-    if (String(pin || "").trim() !== String(getMasterPin()).trim()) {
-        throw new Error("마스터 비밀번호(PIN)가 올바르지 않습니다.");
-    }
 }
 
 function normalizeUserEmail_(rawEmail) {
@@ -113,33 +100,28 @@ function getScriptDeployerEmail_() {
 
 function verifyAdminCredential_(cred) {
     var raw = String(cred || "").trim();
-    if (raw.indexOf("USR1|") === 0) {
-        var parts = raw.split("|");
-        if (parts.length !== 4) {
-            throw new Error("로그인 세션이 유효하지 않습니다. 다시 로그인해 주세요.");
-        }
-        var email = normalizeUserEmail_(parts[1]);
-        var expMs = Number(parts[2] || 0);
-        var sig = parts[3] || "";
-        if (!email || !expMs || isNaN(expMs) || new Date().getTime() > expMs) {
-            throw new Error("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.");
-        }
-        var expectedSig = sha256Hex_(getOrCreateAuthSecret_() + "|USR1|" + email + "|" + expMs);
-        if (sig !== expectedSig) {
-            throw new Error("로그인 인증 서명이 올바르지 않습니다. 다시 로그인해 주세요.");
-        }
-        var deployerEmail = getScriptDeployerEmail_();
-        return {
-            isSession: true,
-            email: email,
-            isMaster: Boolean(deployerEmail && email === deployerEmail)
-        };
+    if (raw.indexOf("USR1|") !== 0) {
+        throw new Error("로그인이 필요합니다. 이메일과 비밀번호로 로그인해 주세요.");
     }
-    verifyMasterPin(raw);
+    var parts = raw.split("|");
+    if (parts.length !== 4) {
+        throw new Error("로그인 세션이 유효하지 않습니다. 다시 로그인해 주세요.");
+    }
+    var email = normalizeUserEmail_(parts[1]);
+    var expMs = Number(parts[2] || 0);
+    var sig = parts[3] || "";
+    if (!email || !expMs || isNaN(expMs) || new Date().getTime() > expMs) {
+        throw new Error("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.");
+    }
+    var expectedSig = sha256Hex_(getOrCreateAuthSecret_() + "|USR1|" + email + "|" + expMs);
+    if (sig !== expectedSig) {
+        throw new Error("로그인 인증 서명이 올바르지 않습니다. 다시 로그인해 주세요.");
+    }
+    var deployerEmail = getScriptDeployerEmail_();
     return {
-        isSession: false,
-        email: getScriptDeployerEmail_(),
-        isMaster: true
+        isSession: true,
+        email: email,
+        isMaster: Boolean(deployerEmail && email === deployerEmail)
     };
 }
 
@@ -2412,21 +2394,12 @@ function verifyTournamentAccess(slug, cred) {
     if (!rec) {
         throw new Error("등록되지 않은 대회 코드입니다: " + slug);
     }
-    var raw = String(cred || "").trim();
-    if (raw.indexOf("USR1|") === 0) {
-        var auth = verifyAdminCredential_(raw);
-        var recOwner = normalizeUserEmail_(rec.ownerEmail || "");
-        if (auth.isMaster || (recOwner && recOwner === auth.email)) {
-            return { role: "owner", email: auth.email, record: rec };
-        }
-        throw new Error("본인 계정으로 생성한 대회만 접근하거나 수정할 수 있습니다.");
+    var auth = verifyAdminCredential_(cred);
+    var recOwner = normalizeUserEmail_(rec.ownerEmail || "");
+    if (auth.isMaster || (recOwner && recOwner === auth.email)) {
+        return { role: "owner", email: auth.email, record: rec };
     }
-    var masterPin = String(getMasterPin()).trim();
-    if (raw === masterPin) return { role: "master", email: getScriptDeployerEmail_(), record: rec };
-    if (rec.managerPin && raw !== "" && raw === String(rec.managerPin).trim()) {
-        return { role: "manager", email: "", record: rec };
-    }
-    throw new Error("인증 정보가 올바르지 않습니다.");
+    throw new Error("본인 계정으로 생성한 대회만 접근하거나 수정할 수 있습니다.");
 }
 
 function readGroupsWithHandicapsFromSheet(ss) {
@@ -2555,8 +2528,9 @@ function syncGithubSlugPreviewPage(slug, tournamentName, isDelete) {
     }
 }
 
-function adminSaveGithubToken(masterPin, ghToken, ghRepoOpt) {
-    verifyMasterPin(masterPin);
+function adminSaveGithubToken(authCred, ghToken, ghRepoOpt) {
+    var auth = verifyAdminCredential_(authCred);
+    if (!auth.isMaster) throw new Error("서버 소유자 계정만 설정할 수 있습니다.");
     var props = PropertiesService.getScriptProperties();
     var cleanToken = String(ghToken || "").trim();
     if (!cleanToken) {
@@ -3011,9 +2985,10 @@ function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt, par
     }
 }
 
-// [Master Only] Bind a slug to an existing Google Spreadsheet URL/ID
-function adminConnectExistingSheet(masterPin, rawSlug, sheetIdOrUrl, configOpt, managerPinOpt) {
-    verifyMasterPin(masterPin);
+// [Server Owner Only] Bind a slug to an existing Google Spreadsheet URL/ID
+function adminConnectExistingSheet(authCred, rawSlug, sheetIdOrUrl, configOpt, managerPinOpt) {
+    var auth = verifyAdminCredential_(authCred);
+    if (!auth.isMaster) throw new Error("서버 소유자 계정만 기존 시트를 직접 연결할 수 있습니다.");
     var slug = normalizeSlug(rawSlug) || generateRandomSlug();
     var sid = extractSpreadsheetId(sheetIdOrUrl);
     if (!sid) throw new Error("유효한 구글 시트 URL 또는 ID를 입력해주세요.");
@@ -3167,15 +3142,6 @@ function adminDeleteTournament(authCred, slug) {
     };
 }
 
-// [Master Only] Change Master Admin PIN
-function adminChangeMasterPin(oldMasterPin, newMasterPin) {
-    verifyMasterPin(oldMasterPin);
-    var cleaned = String(newMasterPin || "").trim();
-    if (cleaned.length < 4) throw new Error("새 마스터 PIN은 4자리 이상 입력해주세요.");
-    PropertiesService.getScriptProperties().setProperty(PROP_MASTER_PIN, cleaned);
-    return { changed: true };
-}
-
 /**
  * JSON API endpoint for static GitHub Pages apps (index.html?t=slug & admin.html)
  */
@@ -3203,7 +3169,6 @@ function doPost(e) {
             adminConnectExistingSheet: adminConnectExistingSheet,
             adminResetTournamentScores: adminResetTournamentScores,
             adminDeleteTournament: adminDeleteTournament,
-            adminChangeMasterPin: adminChangeMasterPin,
             adminSaveGithubToken: adminSaveGithubToken
         };
         if (!req || !req.fn || !allowed[req.fn]) {

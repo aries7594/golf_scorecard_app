@@ -1,4 +1,3 @@
-    var PIN_STORAGE_KEY = "golf_master_pin_v2";
     var AUTH_TOKEN_KEY = "golf_organizer_session_token_v1";
     var AUTH_EMAIL_KEY = "golf_organizer_email_v1";
     var currentAuthMode = "login"; // "login" | "register"
@@ -16,18 +15,6 @@
       gold: "골드티",
       red: "레드티"
     };
-
-    function getSavedMasterPin() {
-      try {
-        var p = localStorage.getItem(PIN_STORAGE_KEY);
-        if (p && p.trim()) return p.trim();
-      } catch (e) { }
-      return "2026";
-    }
-
-    function setSavedMasterPin(pin) {
-      try { localStorage.setItem(PIN_STORAGE_KEY, String(pin || "").trim()); } catch (e) { }
-    }
 
     function getAppBaseDirUrl() {
       var loc = window.location.href.split("?")[0].split("#")[0];
@@ -99,10 +86,13 @@
     }
 
     function callAdminApiWithPin(fnName, buildArgsFn) {
-      var cred = currentAuthToken || getSavedMasterPin();
-      return callRawBackend(fnName, buildArgsFn(cred)).catch(function (err) {
+      if (!currentAuthToken) {
+        logoutOrganizer("로그인이 필요합니다. 이메일과 비밀번호로 로그인해 주세요.");
+        return Promise.reject(new Error("로그인이 필요합니다."));
+      }
+      return callRawBackend(fnName, buildArgsFn(currentAuthToken)).catch(function (err) {
         var msg = String((err && err.message) || err || "");
-        if (msg.indexOf("세션이 만료") !== -1 || msg.indexOf("세션이 유효하지") !== -1 || msg.indexOf("서명이 올바르지") !== -1) {
+        if (msg.indexOf("로그인이 필요") !== -1 || msg.indexOf("세션이 만료") !== -1 || msg.indexOf("세션이 유효하지") !== -1 || msg.indexOf("서명이 올바르지") !== -1) {
           logoutOrganizer("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.");
         }
         throw err;
@@ -1614,22 +1604,6 @@
         })
         .catch(function (err) {
           showToast("❌ 삭제 실패: " + err.message, 4500);
-        });
-    }
-
-    function promptChangeMasterPin() {
-      var curPin = prompt("현재 관리자 비밀번호(PIN)를 입력하세요:", getSavedMasterPin());
-      if (!curPin) return;
-      var nextPin = prompt("새로 사용할 관리자 비밀번호(PIN, 4자리 이상)를 입력하세요:");
-      if (!nextPin) return;
-      setSavedMasterPin(curPin.trim());
-      callAdminApiWithPin("adminChangeMasterPin", function () { return [curPin.trim(), nextPin.trim()]; })
-        .then(function () {
-          setSavedMasterPin(nextPin.trim());
-          showToast("🔑 관리자 비밀번호(PIN)가 변경되었습니다!");
-        })
-        .catch(function (err) {
-          showToast("❌ PIN 변경 실패: " + err.message, 4500);
         });
     }
 

@@ -17,9 +17,7 @@ var COURSE_LS_RECENT_KEY = "golf_course_recent_keys_v1";
 var __COURSE_LOAD_QUEUE = {};
 
 function normalizeCourseKey(rawKey) {
-  var k = String(rawKey || "").trim();
-  if (k === "poppyhills") return "poppy_hills";
-  return k;
+  return String(rawKey || "").trim();
 }
 
 function getCourseManifestEntry(courseKey) {
@@ -103,7 +101,7 @@ function ensureCourseLoaded(courseKey, callback) {
 
   function attemptLoad(attemptNum) {
     var sep = baseSrc.indexOf("?") === -1 ? "?" : "&";
-    var srcUrl = baseSrc + sep + "v=20261109f" + (attemptNum > 0 ? ("&retry=" + attemptNum + "_" + Date.now()) : "");
+    var srcUrl = baseSrc + sep + "v=20261109k" + (attemptNum > 0 ? ("&retry=" + attemptNum + "_" + Date.now()) : "");
     var scriptEl = document.createElement("script");
     scriptEl.src = srcUrl;
     scriptEl.async = true;

@@ -284,4 +284,3 @@ window.COURSE_CATALOG.poppy_hills = {
       }
       ]
     };
-window.COURSE_CATALOG.poppyhills = window.COURSE_CATALOG.poppy_hills;
