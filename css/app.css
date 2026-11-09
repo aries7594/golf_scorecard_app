@@ -1,0 +1,2591 @@
+    :root {
+      --primary: #800020;
+      --secondary: #003876;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --text: #222222;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Fit viewport to 100dvh to block outer page scroll + prevent Android font-boosting and pull-to-refresh */
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* Full-height vertical Flex layout */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      height: 100dvh;
+      padding: 5px 8px;
+    }
+
+    /* Top header & group selector (single-row burgundy bar shown only on score entry screen) */
+    .top-compact-bar {
+      flex: 0 0 auto;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 8px 10px 8px 12px;
+      margin-bottom: 5px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #a3002b 0%, #800020 55%, #5a0016 100%);
+      box-shadow: 0 2px 6px rgba(128, 0, 32, 0.3);
+    }
+
+    .top-compact-bar.in-group {
+      display: flex;
+    }
+
+    .top-right-wrap {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .top-title {
+      font-size: clamp(16.5px, 4.6vw, 22px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.4px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+      white-space: nowrap;
+    }
+
+    .group-selector {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .group-select-label {
+      padding: 4px 10px;
+      border: 1px solid #ced4da;
+      border-bottom: 2.5px solid #adb5bd;
+      border-radius: 14px;
+      font-size: 12.5px;
+      font-weight: 800;
+      background: linear-gradient(180deg, #ffffff 0%, #f1f3f5 100%);
+      color: #800020;
+      white-space: nowrap;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .group-select-label:active {
+      transform: translateY(1px);
+    }
+
+    .group-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      min-width: 245px;
+      max-width: 86vw;
+      max-height: 68dvh;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid #ced4da;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      z-index: 9600;
+      padding: 4px 0;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .group-dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 11px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #212529;
+      border-bottom: 1px solid #f1f3f5;
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .group-dropdown-item:last-child {
+      border-bottom: none;
+    }
+
+    .group-dropdown-item:active {
+      background: #fdf2f4;
+    }
+
+    .group-dropdown-item.selected {
+      background: #fff5f7;
+      color: #800020;
+      font-weight: 800;
+    }
+
+    .group-dropdown-radio {
+      flex: 0 0 auto;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid #adb5bd;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .group-dropdown-item.selected .group-dropdown-radio {
+      border-color: #800020;
+    }
+
+    .group-dropdown-item.selected .group-dropdown-radio::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #800020;
+    }
+
+    /* ===== Home Screen: Course Hero Card, Tournament Notice & Group Cards ===== */
+    #quickSelectArea {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 2px 2px 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Course hero banner */
+    .golf-hero-card {
+      position: relative;
+      width: 100%;
+      height: 125px;
+      border-radius: 10px;
+      overflow: visible;
+      margin-bottom: 6px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      flex: 0 0 auto;
+    }
+
+    .golf-hero-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 10px;
+    }
+
+    .golf-hero-overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.68) 0%, rgba(0, 0, 0, 0.25) 60%, rgba(0, 0, 0, 0.10) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 8px 110px 8px 12px;
+      color: #fff;
+    }
+
+    .hero-group-slot {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      z-index: 30;
+    }
+
+    .golf-hero-venue {
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      color: #ffc107;
+    }
+
+    .golf-hero-title {
+      font-size: clamp(16px, 4.6vw, 19px);
+      font-weight: 900;
+      color: #ffffff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+      margin: 1px 0;
+    }
+
+    .golf-hero-desc {
+      font-size: 11px;
+      font-weight: 600;
+      color: #e2e8f0;
+      opacity: 0.95;
+    }
+
+    .golf-hero-addr {
+      margin-top: 2px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .golf-hero-addr a {
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      text-decoration: none;
+    }
+
+    .hero-addr-text {
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* Google Maps pin icon before address links (gradient pin + white cutout drawn purely in CSS) */
+    .gmaps-pin {
+      position: relative;
+      display: inline-block;
+      flex: 0 0 auto;
+      width: 11.2px;
+      height: 14px;
+      margin-right: 3px;
+      vertical-align: -2px;
+      background: conic-gradient(from 0deg at 50% 40%,
+          #8e5cf6 0deg, #4285f4 40deg, #2b9cf2 88deg, #1fb07a 130deg, #34a853 180deg,
+          #9cc31c 212deg, #fbbc04 234deg, #f8851d 256deg, #ea4335 282deg, #e8467c 330deg, #8e5cf6 360deg);
+      -webkit-mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 30'%3E%3Cpath d='M12 0C5.4 0 0 5.4 0 12c0 5.4 4.4 10.2 9.9 16.6 1.1 1.3 3.1 1.3 4.2 0C19.6 22.2 24 17.4 24 12 24 5.4 18.6 0 12 0z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+      mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 30'%3E%3Cpath d='M12 0C5.4 0 0 5.4 0 12c0 5.4 4.4 10.2 9.9 16.6 1.1 1.3 3.1 1.3 4.2 0C19.6 22.2 24 17.4 24 12 24 5.4 18.6 0 12 0z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+    }
+
+    .gmaps-pin::after {
+      content: "";
+      position: absolute;
+      left: 27.5%;
+      top: 22%;
+      width: 45%;
+      height: 36%;
+      border-radius: 50%;
+      background: #ffffff;
+    }
+
+    /* Tournament notice banner */
+    .notice-card {
+      flex: 0 0 auto;
+      background: #fffdf5;
+      border: 1px solid #fef3c7;
+      border-left: 4px solid #d97706;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .notice-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #b45309;
+    }
+
+    .notice-body {
+      font-size: 12px;
+      font-weight: 600;
+      color: #451a03;
+      line-height: 1.4;
+      word-break: keep-all;
+    }
+
+    .notice-list {
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .notice-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 5px;
+    }
+
+    .notice-chk {
+      flex: 0 0 auto;
+      color: #d97706;
+      font-weight: 900;
+      font-size: 11.5px;
+      line-height: 1.4;
+    }
+
+    /* Group selection guide bar */
+    .quick-banner {
+      flex: 0 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 7px 10px;
+      margin-bottom: 6px;
+      border-left: 4px solid var(--primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .quick-banner-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #111;
+    }
+
+    .quick-banner-sub {
+      font-size: 11px;
+      font-weight: 600;
+      color: #777;
+    }
+
+    .quick-group-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 7px;
+    }
+
+    .quick-group-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f4f6f9 100%);
+      border: 1px solid #ced4da;
+      border-bottom: 3.5px solid #adb5bd;
+      border-radius: 10px;
+      padding: 8px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+      user-select: none;
+    }
+
+    .quick-group-card:active {
+      transform: translateY(2px);
+      background: #fdf2f4;
+      border-color: #e599a3;
+      border-bottom-color: #c96b78;
+      box-shadow: none;
+    }
+
+    .q-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Home group card: tee time next to group badge (shown only when firstTeeTime/teeIntervalMin are configured) */
+    .q-card-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .q-card-time {
+      font-size: 12.5px;
+      font-weight: 900;
+      color: #1f2d3d;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+    }
+
+    .q-card-badge {
+      background: linear-gradient(180deg, #b80030 0%, #800020 100%);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid #800020;
+      border-bottom: 2px solid #4a0012;
+      box-shadow: 0 1px 2px rgba(128, 0, 32, 0.25);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+    }
+
+    .q-card-arrow {
+      font-size: 11px;
+      font-weight: 800;
+      color: #800020;
+      background: linear-gradient(180deg, #ffffff 0%, #f1f3f5 100%);
+      border: 1px solid #ced4da;
+      border-bottom: 2px solid #adb5bd;
+      border-radius: 6px;
+      padding: 2px 6px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
+
+    .q-card-players {
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
+      line-height: 1.35;
+      word-break: keep-all;
+    }
+
+    /* Home screen: creator copyright placed in bottom-right grid space */
+    .q-copyright-cell {
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      text-align: right;
+      font-size: 10px;
+      font-weight: 600;
+      color: #777;
+      line-height: 1.35;
+      padding: 2px 2px 2px 4px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .q-copyright-cell.full {
+      grid-column: span 2;
+    }
+
+    .loading-notice {
+      grid-column: span 2;
+      text-align: center;
+      padding: 20px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #666;
+      background: #fff;
+      border-radius: 8px;
+      border: 1px dashed #ccc;
+    }
+
+    /* ===== Main Content Area (smart dynamic layout + full scroll fallback on small screens/keyboards) ===== */
+    #contentArea {
+      flex: 1 1 auto;
+      display: none;
+      flex-direction: column;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior-y: contain;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    #contentArea::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* ===== Hole Navigation Bar ===== */
+    .hole-bar {
+      flex: 0 0 auto;
+      display: flex;
+      overflow-x: auto;
+      overflow-y: hidden;
+      touch-action: pan-x;
+      -webkit-overflow-scrolling: touch;
+      gap: 4px;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+      scrollbar-width: none;
+    }
+
+    .hole-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .hole-chip {
+      flex: 0 0 auto;
+      min-width: 40px;
+      text-align: center;
+      padding: 4px 11px;
+      background: linear-gradient(180deg, #ffffff 0%, #f1f3f5 100%);
+      border: 1px solid #ced4da;
+      border-bottom: 3px solid #adb5bd;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      color: #333;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+      user-select: none;
+    }
+
+    .hole-chip:active {
+      transform: translateY(1.5px);
+      box-shadow: none;
+    }
+
+    .hole-chip.has-data {
+      background: linear-gradient(180deg, #e7f5ff 0%, #d0ebff 100%);
+      border-color: #74c0fc;
+      border-bottom: 3px solid #339af0;
+      color: #0b4a82;
+    }
+
+    .hole-chip.active {
+      background: linear-gradient(180deg, #343a40 0%, #111111 100%) !important;
+      color: #fff !important;
+      border: 1px solid #212529 !important;
+      border-bottom: 3px solid #000000 !important;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.28);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Current hole header card */
+    .hole-header-card {
+      flex: 0 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary);
+      padding: 2px 10px;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+
+    .hole-title {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+    }
+
+    .hole-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #888;
+      letter-spacing: 1px;
+    }
+
+    .hole-num {
+      font-size: clamp(26px, 7.5vw, 32px);
+      font-weight: 900;
+      color: var(--primary);
+      line-height: 1.1;
+    }
+
+    .hole-meta {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .par-badge {
+      background: #343a40;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: clamp(13px, 3.6vw, 15px);
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    .scorecard-btn {
+      background: linear-gradient(180deg, #ffffff 0%, #f8f0f2 100%);
+      color: var(--primary);
+      border: 1px solid #a3002b;
+      border-bottom: 3px solid #6b001b;
+      padding: 3px 9px;
+      border-radius: 10px;
+      font-size: clamp(12px, 3.3vw, 13.5px);
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 2px 4px rgba(128, 0, 32, 0.18);
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+      user-select: none;
+    }
+
+    .scorecard-btn:active {
+      transform: translateY(1.5px);
+      background: #fdf2f4;
+      box-shadow: none;
+    }
+
+    .holemap-promo-row {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: stretch;
+      gap: 7px;
+      margin-bottom: 5px;
+    }
+
+    .holemap-btn {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-height: 52px;
+      background: linear-gradient(180deg, #20c997 0%, #0ca678 100%);
+      color: #ffffff;
+      border: 1.5px solid #099268;
+      border-bottom: 4px solid #066346;
+      padding: 4px 6px;
+      border-radius: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 3px 8px rgba(12, 166, 120, 0.28);
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+      user-select: none;
+    }
+
+    .holemap-guide-box {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: #ffffff;
+      border: 1px solid #a7f3d0;
+      border-left: 3.5px solid #0ca678;
+      border-radius: 10px;
+      padding: 4px 8px;
+      font-size: clamp(10.5px, 2.85vw, 12px);
+      font-weight: 700;
+      color: #343a40;
+      line-height: 1.35;
+      letter-spacing: -0.35px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      cursor: pointer;
+      user-select: none;
+      word-break: keep-all;
+    }
+
+    .holemap-guide-box b {
+      color: #087f5b;
+      font-weight: 900;
+    }
+
+    .holemap-btn-text-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      min-width: 0;
+      flex: 0 1 auto;
+    }
+
+    .holemap-btn-main {
+      font-size: clamp(13.5px, 3.8vw, 16.5px);
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+    }
+
+    .golf-hole-svg {
+      flex: 0 0 auto;
+      vertical-align: middle;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.32));
+    }
+
+    .holemap-btn:active {
+      transform: translateY(1.5px);
+      background: #0ca678;
+      box-shadow: none;
+    }
+
+    /* Fullscreen modal for Hole Layout (GPS) & Green Slope (Heatmap) */
+    #holeMapModal.mode-modal-backdrop {
+      padding: 0;
+    }
+
+    .hm-modal-card {
+      width: 100vw;
+      height: 100dvh;
+      max-width: none;
+      background: #1b1d20;
+      color: #f8f9fa;
+      border-radius: 0;
+      padding: calc(10px + env(safe-area-inset-top, 0px)) 10px calc(12px + env(safe-area-inset-bottom, 0px)) 10px;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      box-sizing: border-box;
+    }
+
+    .hm-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .hm-hole-nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hm-hole-step-btn {
+      background: linear-gradient(180deg, #343a40 0%, #212529 100%);
+      color: #fff;
+      border: 1px solid #495057;
+      border-bottom: 2.5px solid #111;
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hm-hole-step-btn:active {
+      transform: translateY(1px);
+    }
+
+    .hm-title-text {
+      font-size: 14.5px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.2px;
+    }
+
+    .hm-close-btn {
+      height: 28px;
+      min-width: 86px;
+      padding: 0 16px;
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: linear-gradient(180deg, #fa5252 0%, #c92a2a 100%);
+      border: 1px solid #ff8787;
+      border-bottom: 2.5px solid #7f1d1d;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.2px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .hm-close-btn:active {
+      transform: translateY(1px);
+    }
+
+    .hm-green-float-btn {
+      position: absolute;
+      top: 46px;
+      right: 10px;
+      z-index: 6;
+      width: 58px;
+      padding: 6px 5px 5px 5px;
+      border-radius: 16px;
+      background: rgba(18, 22, 26, 0.78);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1.5px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      pointer-events: auto;
+      user-select: none;
+      transition: transform 0.12s ease, border-color 0.15s ease;
+    }
+
+    .hm-green-float-btn:active {
+      transform: scale(0.95);
+    }
+
+    .hm-green-float-btn.active-green {
+      border-color: #38d9a9;
+      background: rgba(18, 28, 25, 0.88);
+    }
+
+    #hmMiniGreenCanvas {
+      width: 44px;
+      height: 48px;
+      display: block;
+      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.7));
+    }
+
+    .hm-green-float-lbl {
+      width: 100%;
+      padding: 5px 2px;
+      border-radius: 11px;
+      background: rgba(10, 12, 14, 0.82);
+      color: #339af0;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1.15;
+      text-align: center;
+      letter-spacing: -0.3px;
+    }
+
+    .hm-green-float-btn.active-green .hm-green-float-lbl {
+      color: #38d9a9;
+    }
+
+    .hm-wind-float-btn {
+      position: absolute;
+      top: 142px;
+      right: 10px;
+      z-index: 6;
+      width: 58px;
+      padding: 6px 4px 5px 4px;
+      border-radius: 16px;
+      background: rgba(18, 22, 26, 0.80);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1.5px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+      pointer-events: auto;
+      user-select: none;
+      transition: transform 0.12s ease, border-color 0.15s ease;
+    }
+
+    .hm-wind-float-btn:active {
+      transform: scale(0.95);
+    }
+
+    .hm-wind-compass {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hm-wind-arrow-svg {
+      width: 36px;
+      height: 36px;
+      display: block;
+      overflow: visible;
+    }
+
+    #hmWindArrowGroup {
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .hm-wind-speed-lbl {
+      font-size: 11px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.1;
+      letter-spacing: -0.3px;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    }
+
+    .hm-wind-rel-lbl {
+      width: 100%;
+      padding: 2px 2px;
+      border-radius: 8px;
+      background: rgba(10, 12, 14, 0.82);
+      color: #74c0fc;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1.15;
+      text-align: center;
+      letter-spacing: -0.3px;
+    }
+
+    .hm-yardage-bar {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      right: 10px;
+      z-index: 6;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      background: transparent;
+      border: none;
+      padding: 2px 0;
+      pointer-events: none;
+    }
+
+    .hm-yd-left-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .hm-yd-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
+    .hm-yd-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0px;
+    }
+
+    .hm-yd-item.pl-item {
+      cursor: pointer;
+      pointer-events: auto;
+      user-select: none;
+    }
+
+    .hm-yd-item.pl-item:active {
+      opacity: 0.8;
+    }
+
+    .hm-yd-lbl {
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.15;
+      color: #f1f3f5;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 6px rgba(0, 0, 0, 0.9);
+    }
+
+    .hm-yd-lbl.center-lbl {
+      font-size: 13px;
+      color: #63e6be;
+    }
+
+    .hm-yd-lbl.pl-lbl {
+      font-size: 13px;
+      color: #ffd43b;
+    }
+
+    .hm-yd-val {
+      font-size: 17px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.08;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.98), 0 0 8px rgba(0, 0, 0, 0.9);
+    }
+
+    .hm-yd-val.center-yd {
+      font-size: clamp(26px, 7.5vw, 30px);
+      line-height: 1.02;
+      color: #38d9a9;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.98), 0 0 10px rgba(0, 0, 0, 0.92);
+    }
+
+    .hm-yd-val.pl-yd {
+      font-size: clamp(26px, 7.5vw, 30px);
+      line-height: 1.02;
+      color: #ffd43b;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.98), 0 0 10px rgba(0, 0, 0, 0.92);
+    }
+
+    .hm-pl-sub {
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.15;
+      color: #ffd43b;
+      white-space: nowrap;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.98), 0 0 8px rgba(0, 0, 0, 0.92);
+    }
+
+    /* Plays-like terrain & weather adjustment detail popup (single line per factor + close button) */
+    .pl-detail-pop {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: max-content;
+      max-width: calc(100vw - 16px);
+      z-index: 9700;
+      background: rgba(33, 37, 41, 0.96);
+      color: #f1f3f5;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 14px;
+      padding: 9px 12px 11px 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      font-size: clamp(11.5px, 3.4vw, 13.5px);
+      font-weight: 700;
+      line-height: 1.55;
+    }
+
+    .pl-detail-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 3px;
+    }
+
+    .pl-detail-title {
+      white-space: nowrap;
+      font-weight: 900;
+      color: #ffd43b;
+    }
+
+    .pl-detail-close {
+      flex: 0 0 auto;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .pl-detail-body div {
+      white-space: nowrap;
+    }
+
+    .pl-detail-sum {
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    /* Dim distance numbers while waiting for fresh GPS fix after turning GPS on (typically 1-5s, max 8s) */
+    .hm-yd-group.hm-yd-waiting .hm-yd-val,
+    .hm-yd-group.hm-yd-waiting .hm-pl-sub {
+      opacity: 0.35;
+      transition: opacity 0.2s;
+    }
+
+    /* Common GPS guide modal styles (Location Permission, In-App Browser, Precise Location) — scrollable on small phones */
+    .mode-modal-backdrop.gg-backdrop {
+      padding: 12px;
+    }
+
+    .mode-modal-card.gg-card {
+      max-width: 355px;
+      text-align: left;
+      padding: 16px 14px 14px 14px;
+      max-height: calc(100dvh - 24px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .gg-title {
+      font-size: 17px;
+      font-weight: 900;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    .gg-sub {
+      font-size: 12.5px;
+      color: #495057;
+      line-height: 1.45;
+      text-align: center;
+      margin-bottom: 10px;
+      word-break: keep-all;
+    }
+
+    .gg-box {
+      background: #f8f9fa;
+      border: 1.5px solid #dee2e6;
+      border-radius: 10px;
+      padding: 9px 11px;
+      font-size: 12.5px;
+      line-height: 1.62;
+      color: #212529;
+      margin-bottom: 8px;
+      word-break: keep-all;
+    }
+
+    .gg-box-main {
+      background: #ebfbee;
+      border-color: #8ce99a;
+    }
+
+    .gg-box-head {
+      font-size: 13px;
+      font-weight: 900;
+      color: #495057;
+      margin-bottom: 3px;
+    }
+
+    .gg-box-main .gg-box-head {
+      color: #2b8a3e;
+    }
+
+    .gg-chip {
+      display: inline-block;
+      padding: 0 6px;
+      border-radius: 6px;
+      background: #2b8a3e;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      margin-left: 4px;
+      vertical-align: 1px;
+    }
+
+    .gg-ok {
+      display: inline-block;
+      margin-top: 2px;
+      padding: 1px 7px;
+      background: #e6fcf5;
+      color: #087f5b;
+      border: 1px solid #63e6be;
+      border-radius: 6px;
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .gg-small {
+      font-size: 11px;
+      color: #868e96;
+      margin-top: 2px;
+    }
+
+    .gg-warn {
+      margin-top: 4px;
+      font-size: 11.5px;
+      color: #c92a2a;
+      font-weight: 800;
+    }
+
+    .gg-url {
+      display: block;
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: #ffffff;
+      border: 1px dashed #adb5bd;
+      border-radius: 6px;
+      font-size: 11.5px;
+      color: #1864ab;
+      word-break: break-all;
+      -webkit-user-select: all;
+      user-select: all;
+    }
+
+    .gg-note {
+      background: #fff9db;
+      border: 1px solid #ffe066;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: #5c3c00;
+      margin-bottom: 11px;
+      word-break: keep-all;
+    }
+
+    .gg-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .gg-btn-main {
+      width: 100%;
+      padding: 11px 10px;
+      border-radius: 9px;
+      border: none;
+      background: #0ca678;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .gg-btn-blue {
+      background: #1c7ed6;
+    }
+
+    .gg-btn-sub {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 9px;
+      border: 1px solid #ced4da;
+      background: #f1f3f5;
+      color: #495057;
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .hm-gps-btn {
+      background: linear-gradient(180deg, #339af0 0%, #1c7ed6 100%);
+      color: #fff;
+      border: 1px solid #1864ab;
+      border-bottom: 2.5px solid #0b4a82;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      pointer-events: auto;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+    }
+
+    .hm-gps-btn.gps-live {
+      background: linear-gradient(180deg, #40c057 0%, #2b8a3e 100%);
+      border-color: #2b8a3e;
+      border-bottom-color: #1b5e20;
+    }
+
+    .hm-gps-btn.gps-off {
+      background: linear-gradient(180deg, #495057 0%, #2b3035 100%);
+      border-color: #fa5252;
+      border-bottom-color: #c92a2a;
+      color: #ffe3e3;
+    }
+
+    .hm-tee-row {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      pointer-events: none;
+    }
+
+    .hm-tee-btn {
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: rgba(24, 28, 32, 0.88);
+      color: #f8f9fa;
+      border: 1.5px solid rgba(255, 255, 255, 0.8);
+      border-radius: 14px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+      user-select: none;
+    }
+
+    .hm-tee-btn:active {
+      transform: translateY(1px);
+    }
+
+    .hm-total-yds {
+      font-size: 21px;
+      font-weight: 900;
+      color: #f1f3f5;
+      line-height: 1.1;
+      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.98), 0 0 10px rgba(0, 0, 0, 0.92);
+      white-space: nowrap;
+    }
+
+    .hm-shot-box {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      pointer-events: none;
+    }
+
+    .hm-shot-live-val {
+      font-size: 22px;
+      font-weight: 900;
+      color: #ffd43b;
+      line-height: 1.1;
+      text-shadow: 0 2px 5px rgba(0, 0, 0, 0.98), 0 0 10px rgba(0, 0, 0, 0.92);
+      white-space: nowrap;
+    }
+
+    .hm-shot-btn {
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: linear-gradient(180deg, #12b886 0%, #087f5b 100%);
+      color: #ffffff;
+      border: 1.5px solid #38d9a9;
+      border-bottom: 2.5px solid #055038;
+      border-radius: 14px;
+      padding: 5px 11px;
+      font-size: 12.5px;
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+      user-select: none;
+    }
+
+    .hm-shot-btn.measuring {
+      background: linear-gradient(180deg, #ff6b6b 0%, #c92a2a 100%);
+      border-color: #ffa8a8;
+      border-bottom-color: #861818;
+    }
+
+    .hm-shot-btn:active {
+      transform: translateY(1px);
+    }
+
+    .hm-canvas-wrap {
+      position: relative;
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
+      background: #121619;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #343a40;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #holeMapCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    .hm-sub-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 11px;
+      color: #ced4da;
+    }
+
+    .hm-legend-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .hm-color-scale {
+      flex: 1;
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #1c4ed8 0%, #199bd2 20%, #2ec96e 40%, #e8cc30 60%, #f78a27 80%, #d62626 100%);
+    }
+
+    /* Full 18-hole scorecard modal (Front 9 OUT / Back 9 IN) */
+    .sc-modal-card {
+      width: 100%;
+      max-width: 410px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px 10px 12px 10px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+      border-top: 5px solid #800020;
+    }
+
+    .sc-modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+
+    .sc-modal-title {
+      font-size: 16px;
+      font-weight: 900;
+      color: #212529;
+    }
+
+    .sc-close-btn {
+      background: #f1f3f5;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #495057;
+      cursor: pointer;
+    }
+
+    .sc-section-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #800020;
+      text-align: left;
+      margin: 6px 0 4px 2px;
+    }
+
+    .sc-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 11.5px;
+      margin-bottom: 8px;
+    }
+
+    .sc-table th,
+    .sc-table td {
+      border: 1px solid #dee2e6;
+      padding: 4px 1px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sc-table th {
+      background: #343a40;
+      color: #fff;
+      font-weight: 800;
+      font-size: 11px;
+    }
+
+    .sc-table .sc-par-row td {
+      background: #f8f9fa;
+      color: #666;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    .sc-table .sc-col-name {
+      width: 48px;
+      font-weight: 800;
+      background: #f8f9fa;
+      color: #212529;
+    }
+
+    .sc-table .sc-col-sum {
+      width: 72px;
+      font-weight: 800;
+      background: #fffdf5;
+      color: #212529;
+      font-size: 11px;
+    }
+
+    .sc-val-birdie {
+      color: #d90429;
+      font-weight: 900;
+    }
+
+    .sc-val-par {
+      color: #2b8a3e;
+      font-weight: 800;
+    }
+
+    .event-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: clamp(12px, 3.4vw, 14px);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .badge-longdrive {
+      background-color: #ffe3e3;
+      color: #d90429;
+      border: 1px solid #ffc9c9;
+    }
+
+    .badge-nearpin {
+      background-color: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+
+    /* Players list container (prevent flex shrinking) */
+    #playersList {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(3px, 0.55dvh, 5px);
+    }
+
+    /* Individual player card */
+    .player-card {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: clamp(3px, 0.55dvh, 5px);
+      background: #fff;
+      border-radius: 6px;
+      padding: clamp(4px, 0.75dvh, 7px) 8px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .player-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .player-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .player-name {
+      font-size: clamp(12px, 3.4vw, 14px);
+      font-weight: 700;
+      color: #111;
+      line-height: 1.2;
+    }
+
+    .player-event-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      line-height: 1.2;
+      white-space: nowrap;
+      color: #ffffff;
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+
+    .player-event-btn:active {
+      transform: translateY(1.5px);
+      box-shadow: 0 0 0 rgba(0, 0, 0, 0) !important;
+    }
+
+    .player-event-btn.btn-near {
+      background: linear-gradient(180deg, #228be6 0%, #1864ab 100%);
+      border: 1px solid #1864ab;
+      border-bottom: 2.5px solid #0b4a82;
+      box-shadow: 0 2px 4px rgba(24, 100, 171, 0.35);
+    }
+
+    .player-event-btn.btn-long {
+      background: linear-gradient(180deg, #fa5252 0%, #c92a2a 100%);
+      border: 1px solid #c92a2a;
+      border-bottom: 2.5px solid #8a1818;
+      box-shadow: 0 2px 4px rgba(201, 42, 42, 0.35);
+    }
+
+    /* Near-Pin / Long-Drive numeric keypad popup modal */
+    .ek-modal-card {
+      width: 100%;
+      max-width: 310px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px 14px 12px 14px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+      border-top: 5px solid var(--primary);
+      text-align: center;
+    }
+
+    .ek-modal-title {
+      font-size: 16px;
+      font-weight: 900;
+      color: #212529;
+      margin-bottom: 4px;
+    }
+
+    .ek-modal-step {
+      font-size: 12px;
+      font-weight: 700;
+      color: #800020;
+      margin-bottom: 10px;
+    }
+
+    .ek-display-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .ek-field-box {
+      flex: 1;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 6px;
+      border-radius: 8px;
+      border: 2px solid #dee2e6;
+      background: #f8f9fa;
+      cursor: pointer;
+    }
+
+    .ek-field-box.active {
+      border-color: #007bff;
+      background: #eef6ff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+    }
+
+    .ek-field-val {
+      font-size: 20px;
+      font-weight: 400;
+      color: #111;
+      min-width: 28px;
+      text-align: right;
+    }
+
+    .ek-field-unit {
+      font-size: 13px;
+      font-weight: 800;
+      color: #495057;
+    }
+
+    .ek-keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .ek-key-btn {
+      height: 44px;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      background: #f8f9fa;
+      font-size: 18px;
+      font-weight: 800;
+      color: #212529;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .ek-key-btn:active {
+      background: #dee2e6;
+      transform: scale(0.97);
+    }
+
+    .ek-footer-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .ek-btn-cancel {
+      flex: 1;
+      height: 40px;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      background: #f1f3f5;
+      color: #495057;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .ek-btn-confirm {
+      flex: 2;
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .ek-btn-confirm.step-next {
+      background: #0056b3;
+    }
+
+    .tot-score-box {
+      font-size: clamp(11px, 3.2vw, 13px);
+      font-weight: 700;
+      color: #333;
+      line-height: 1.2;
+    }
+
+    .tot-score-box b {
+      color: #0056b3;
+      font-size: clamp(12px, 3.6vw, 15px);
+      font-weight: 800;
+      margin-left: 2px;
+    }
+
+    /* Quick score button group (-2 to +5, 8 equal columns) */
+    .btn-group {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 3px;
+      margin: 0;
+    }
+
+    .score-btn {
+      height: clamp(30px, 4.8dvh, 40px);
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #ffffff 0%, #f1f3f5 100%);
+      border: 1px solid #ced4da;
+      border-bottom: 3px solid #adb5bd;
+      border-radius: 6px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+      font-size: clamp(12px, 3.6vw, 15px);
+      font-weight: 800;
+      cursor: pointer;
+      color: #333;
+      user-select: none;
+    }
+
+    .score-btn:active {
+      transform: translateY(1.5px);
+      box-shadow: none;
+    }
+
+    .score-btn.selected {
+      background: linear-gradient(180deg, #339af0 0%, #1864ab 100%) !important;
+      color: #fff !important;
+      border: 1px solid #1864ab !important;
+      border-bottom: 3px solid #0b4a82 !important;
+      box-shadow: 0 2px 4px rgba(24, 100, 171, 0.35);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    }
+
+    .score-btn.birdie {
+      color: #d90429;
+    }
+
+    .score-btn.par {
+      color: #212529;
+    }
+
+    /* Compact memo input */
+    .note-box {
+      flex: 0 0 auto;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .note-box label {
+      font-size: clamp(12px, 3.4vw, 13px);
+      font-weight: 800;
+      white-space: nowrap;
+      color: #111;
+    }
+
+    .note-input {
+      flex: 1;
+      height: 28px;
+      padding: 1px 8px;
+      border: 1.5px solid #bbb;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 400;
+      color: #222;
+      font-family: inherit;
+    }
+
+    .note-input::placeholder {
+      font-size: 12px;
+      color: #868e96;
+    }
+
+    /* Bottom save & hole navigation button bar */
+    .footer-actions {
+      flex: 0 0 auto;
+      margin-top: 4px;
+      margin-bottom: 5px;
+      display: flex;
+      gap: 6px;
+    }
+
+    /* Bottom live mini-scorecard (sticky player name & total + current-hole auto-centering + dynamic height) */
+    .mini-sc-wrap {
+      flex: 1 0 auto;
+      min-height: 124px;
+      max-height: 185px;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      border: 1px solid #dee2e6;
+      margin-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .mini-sc-scroll {
+      flex: 1 1 auto;
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      touch-action: pan-x;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mini-sc-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .mini-sc-table {
+      height: 100%;
+      width: max-content;
+      min-width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13.5px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .mini-sc-table th,
+    .mini-sc-table td {
+      border-right: 1px solid #dee2e6;
+      border-bottom: 1px solid #dee2e6;
+      padding: 4px 4px;
+      height: clamp(24px, 3.6dvh, 36px);
+      line-height: 1.2;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
+
+    .mini-sc-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .mini-sc-table th {
+      background: #343a40;
+      color: #fff;
+      font-weight: 800;
+      font-size: 12.5px;
+    }
+
+    .mini-sc-table .msc-col-hole {
+      width: 42px;
+      min-width: 42px;
+      max-width: 42px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .mini-sc-table .msc-col-name {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      width: 64px;
+      min-width: 64px;
+      max-width: 64px;
+      font-size: 13px;
+      font-weight: 800;
+      background: #f8f9fa;
+      color: #212529;
+      border-right: 1.5px solid #ced4da;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+
+    .mini-sc-table th.msc-col-name {
+      background: #212529;
+      color: #fff;
+      z-index: 3;
+    }
+
+    .mini-sc-table .msc-col-sum {
+      position: sticky;
+      right: 0;
+      z-index: 2;
+      width: 68px;
+      min-width: 68px;
+      max-width: 68px;
+      font-weight: 800;
+      background: #fffdf5;
+      color: #212529;
+      border-left: 1.5px solid #ced4da;
+      border-right: none;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .mini-sc-table th.msc-col-sum {
+      background: #212529;
+      color: #ffd43b;
+      z-index: 3;
+    }
+
+    .mini-sc-table th.msc-cur-hole {
+      background: #800020;
+      color: #ffd43b;
+      font-weight: 900;
+    }
+
+    .mini-sc-table td.msc-cur-hole {
+      background: #fff4f6;
+      font-weight: 900;
+    }
+
+    .nav-btn {
+      flex: 1;
+      height: 38px;
+      border: 1px solid #ced4da;
+      border-bottom: 3.5px solid #adb5bd;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      background: linear-gradient(180deg, #ffffff 0%, #e9ecef 100%);
+      color: #212529;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+      user-select: none;
+    }
+
+    .nav-btn:active:not(.disabled-btn) {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    .nav-btn.disabled-btn {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .nav-btn.next-ready {
+      background: linear-gradient(180deg, #b80030 0%, #800020 100%);
+      color: #fff;
+      border: 1px solid #800020;
+      border-bottom: 3.5px solid #4a0012;
+      box-shadow: 0 2px 6px rgba(128, 0, 32, 0.35);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+    }
+
+    .save-btn {
+      flex: 2;
+      height: 38px;
+      border: 1px solid #d9480f;
+      border-bottom: 3.5px solid #9c360b;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      background: linear-gradient(180deg, #ff922b 0%, #e8590c 100%);
+      color: #fff;
+      box-shadow: 0 2px 5px rgba(232, 89, 12, 0.35);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.2s;
+      user-select: none;
+    }
+
+    .save-btn:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    .save-btn.saved {
+      background: linear-gradient(180deg, #40c057 0%, #2b8a3e 100%);
+      border-color: #2b8a3e;
+      border-bottom-color: #1b5e20;
+      box-shadow: 0 2px 5px rgba(43, 138, 62, 0.35);
+    }
+
+    .save-btn:disabled {
+      background: linear-gradient(180deg, #868e96 0%, #495057 100%);
+      border-color: #495057;
+      border-bottom-color: #343a40;
+      box-shadow: none;
+    }
+
+    .view-only-badge {
+      display: inline-flex;
+      align-items: center;
+      background: #495057;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-left: 6px;
+      letter-spacing: -0.3px;
+    }
+
+    /* Mode selection modal (Score Input vs Spectator View-Only) */
+    .mode-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 9500;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .mode-modal-card {
+      width: 100%;
+      max-width: 320px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px 16px 14px 16px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+      text-align: center;
+      border-top: 5px solid #800020;
+    }
+
+    .mode-modal-title {
+      font-size: 17px;
+      font-weight: 900;
+      color: #212529;
+      margin-bottom: 6px;
+    }
+
+    .mode-modal-desc {
+      font-size: 12.5px;
+      color: #555;
+      line-height: 1.45;
+      margin-bottom: 14px;
+      white-space: pre-line;
+      word-break: keep-all;
+    }
+
+    .mode-modal-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mode-btn {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .mode-btn-sub {
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0.88;
+    }
+
+    .mode-btn-input {
+      background: #800020;
+      color: #fff;
+    }
+
+    .mode-btn-view {
+      background: #f1f3f5;
+      color: #212529;
+      border: 1.5px solid #ced4da;
+    }
+
+    .mode-btn-cancel {
+      margin-top: 2px;
+      background: transparent;
+      color: #868e96;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 6px;
+      border: none;
+      cursor: pointer;
+    }
+
+    #toast {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 88vw;
+      background: rgba(33, 37, 41, 0.94);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 16px;
+      font-size: 13.5px;
+      font-weight: 700;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+      z-index: 9999;
+      text-align: center;
+      white-space: pre-wrap;
+      pointer-events: none;
+    }
+
+    /* Shared real-time Birdie / Eagle broadcast banner (chronological list, auto-closes after 6s+) */
+    #birdieBroadcastBanner {
+      display: none;
+      position: fixed;
+      top: calc(48px + env(safe-area-inset-top, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 20px);
+      max-width: 400px;
+      background: linear-gradient(145deg, #132a13 0%, #1b4332 55%, #081c15 100%);
+      color: #fff;
+      border: 2px solid #ffd43b;
+      border-radius: 14px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55), 0 0 14px rgba(255, 212, 59, 0.3);
+      z-index: 10500;
+      overflow: hidden;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      animation: birdieBannerSlideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes birdieBannerSlideIn {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -18px) scale(0.96);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+    }
+
+    .bb-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(255, 212, 59, 0.16);
+      border-bottom: 1px solid rgba(255, 212, 59, 0.3);
+    }
+
+    .bb-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #ffd43b;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .bb-close-btn {
+      background: rgba(255, 255, 255, 0.14);
+      border: none;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .bb-list {
+      padding: 8px 11px 10px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 52vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .bb-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .bb-item.is-eagle {
+      background: linear-gradient(90deg, rgba(255, 212, 59, 0.24) 0%, rgba(240, 140, 0, 0.18) 100%);
+      border-color: #ffd43b;
+    }
+
+    .bb-item.is-par-mission {
+      background: linear-gradient(90deg, rgba(59, 130, 246, 0.28) 0%, rgba(37, 99, 235, 0.18) 100%);
+      border-color: #74c0fc;
+    }
+
+    .bb-item.is-par-streak {
+      background: linear-gradient(90deg, rgba(190, 75, 219, 0.26) 0%, rgba(121, 80, 242, 0.18) 100%);
+      border-color: #da77f2;
+    }
+
+    .bb-item-main {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .bb-badge {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      font-weight: 900;
+      padding: 3px 7px;
+      border-radius: 7px;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+    }
+
+    .bb-badge-svg {
+      display: inline-block;
+      vertical-align: middle;
+      flex: 0 0 auto;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .bb-badge.birdie {
+      background: #2b8a3e;
+      color: #fff;
+      border: 1px solid #69db7c;
+    }
+
+    .bb-badge.eagle {
+      background: linear-gradient(135deg, #f59f00 0%, #e67700 100%);
+      color: #fff;
+      border: 1px solid #ffe066;
+      box-shadow: 0 0 8px rgba(255, 212, 59, 0.45);
+    }
+
+    .bb-badge.par-mission {
+      background: linear-gradient(135deg, #1c7ed6 0%, #1864ab 100%);
+      color: #fff;
+      border: 1px solid #a5d8ff;
+      box-shadow: 0 0 8px rgba(116, 192, 252, 0.35);
+    }
+
+    .bb-badge.par-streak {
+      background: linear-gradient(135deg, #9c36b5 0%, #7048e8 100%);
+      color: #fff;
+      border: 1px solid #e599f7;
+      box-shadow: 0 0 8px rgba(218, 119, 242, 0.35);
+    }
+
+    .bb-text {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.35;
+      word-break: keep-all;
+    }
+
+    .bb-text .bb-group {
+      color: #ffd43b;
+      font-weight: 900;
+      margin-right: 3px;
+    }
+
+    .bb-text .bb-hole {
+      color: #8ce99a;
+      font-weight: 900;
+    }
+
+    .bb-item.is-eagle .bb-text .bb-hole {
+      color: #ffe066;
+    }
+
+    .bb-item.is-par-mission .bb-text .bb-hole {
+      color: #a5d8ff;
+    }
+
+    .bb-item.is-par-streak .bb-text .bb-hole {
+      color: #f3d9fa;
+    }
+
+    .bb-time {
+      flex: 0 0 auto;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #ced4da;
+      opacity: 0.85;
+      white-space: nowrap;
+    }
+
+    /* Today's Hall of Fame modal styles (view all tournament highlights) */
+    .hof-modal-card {
+      width: calc(100% - 20px);
+      max-width: 420px;
+      max-height: 82vh;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(145deg, #132a13 0%, #1b4332 55%, #081c15 100%);
+      color: #fff;
+      border: 2px solid #ffd43b;
+      border-radius: 16px;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+    }
+
+    .hof-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, 0.28);
+      border-bottom: 1px solid rgba(255, 212, 59, 0.35);
+      flex: 0 0 auto;
+    }
+
+    .hof-modal-title {
+      font-size: 15px;
+      font-weight: 900;
+      color: #ffd43b;
+      letter-spacing: -0.2px;
+    }
+
+    .hof-close-btn {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .hof-modal-body {
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .hof-empty-msg {
+      text-align: center;
+      padding: 32px 16px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #dee2e6;
+      line-height: 1.5;
+    }
+
+    /* Near/Long Scoreboard modal: opens via 3D header badge button + brief auto-popup on hole arrival */
+    /* Match 3D pressable button style/height of adjacent Hall of Fame button (blue for Near, red for Long) */
+    #holeEvent {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    #holeEvent .event-badge {
+      display: inline-block;
+      box-sizing: border-box;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      padding: 3px 9px;
+      border-radius: 10px;
+      font-size: clamp(12px, 3.3vw, 13.5px);
+      font-weight: 800;
+      line-height: normal;
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+
+    #holeEvent .badge-nearpin {
+      background: linear-gradient(180deg, #ffffff 0%, #d0ebff 100%);
+      color: #0b4a82;
+      border: 1px solid #1c7ed6;
+      border-bottom: 3px solid #0b4a82;
+      box-shadow: 0 2px 4px rgba(11, 74, 130, 0.25);
+    }
+
+    #holeEvent .badge-longdrive {
+      background: linear-gradient(180deg, #ffffff 0%, #ffd8d8 100%);
+      color: #b01e1e;
+      border: 1px solid #e03131;
+      border-bottom: 3px solid #7f1d1d;
+      box-shadow: 0 2px 4px rgba(138, 24, 24, 0.25);
+    }
+
+    #holeEvent .event-badge:active {
+      transform: translateY(1.5px);
+      box-shadow: none;
+    }
+
+    /* Leading badge icon: hidden on narrow viewports (<360px) or in spectator mode so header never overflows */
+    /* Keeps hole header width compact while preserving identical button height next to Hall of Fame button */
+    #holeEvent .badge-nearpin::before {
+      content: "🎯 ";
+    }
+
+    #holeEvent .badge-longdrive::before {
+      content: "🚀 ";
+    }
+
+    @media (max-width: 359.98px) {
+      #holeEvent .event-badge::before {
+        display: inline-block;
+        width: 0;
+        visibility: hidden;
+      }
+    }
+
+    .hole-header-card:has(.view-only-badge) #holeEvent .event-badge::before {
+      display: inline-block;
+      width: 0;
+      visibility: hidden;
+    }
+
+    .eb-card {
+      max-width: 360px;
+    }
+
+    .eb-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .eb-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .eb-row.eb-first {
+      border-color: rgba(255, 212, 59, 0.75);
+      background: rgba(255, 212, 59, 0.14);
+    }
+
+    .eb-rank {
+      flex: 0 0 auto;
+      min-width: 78px;
+      font-size: 14px;
+      font-weight: 900;
+      color: #ffd43b;
+      white-space: nowrap;
+    }
+
+    .eb-row.eb-last .eb-rank {
+      color: #ced4da;
+    }
+
+    .eb-name {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 16px;
+      font-weight: 800;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .eb-val {
+      flex: 0 0 auto;
+      font-size: 16px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .eb-gap {
+      text-align: center;
+      color: #adb5bd;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      line-height: 0.8;
+    }
+
+    .eb-foot {
+      margin-top: 2px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #ced4da;
+      line-height: 1.5;
+    }
+
+    .eb-msg {
+      text-align: center;
+      padding: 22px 10px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #dee2e6;
+      line-height: 1.5;
+    }
+
+    #noticeLeadEl p {
+      margin: 0 0 4px 0;
+    }
+
+    #noticeLeadEl ul,
+    #noticeLeadEl ol {
+      margin: 4px 0 4px 18px;
+      padding: 0;
+    }
+
+    #noticeLeadEl ul {
+      list-style-type: disc;
+    }
+
+    #noticeLeadEl ul ul {
+      list-style-type: circle;
+      margin-top: 2px;
+      margin-bottom: 3px;
+    }
+
+    #noticeLeadEl li {
+      margin-bottom: 2px;
+    }
