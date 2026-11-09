@@ -1,23 +1,3 @@
-// Copyright-free panoramic hero banner themes (3.12:1 aspect ratio)
-var DEFAULT_HERO_THEME_KEY = "hills";
-var HERO_BANNER_THEMES = {
-  hills: {
-    key: "hills",
-    label: "골든 구릉지 코스 (기본)",
-    url: "images/hero_hills.jpg"
-  },
-  coastal: {
-    key: "coastal",
-    label: "오션뷰 & 소나무 코스",
-    url: "images/hero_coastal.jpg"
-  },
-  lake: {
-    key: "lake",
-    label: "청명한 호수 & 그린",
-    url: "images/hero_lake.jpg"
-  }
-};
-
 /* ============================================================================
  * [CourseData.js] Unified Golf Course Database (GitHub Direct Execution)
  * ----------------------------------------------------------------------------

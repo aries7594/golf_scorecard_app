@@ -3359,14 +3359,7 @@
       }
       var heroImgEl = document.getElementById("heroImgEl");
       if (heroImgEl) {
-        var themes = (typeof HERO_BANNER_THEMES !== "undefined" && HERO_BANNER_THEMES) ? HERO_BANNER_THEMES : {};
-        var tKey = ACTIVE_COURSE.heroThemeKey || "hills";
-        var resolvedBannerUrl = (themes[tKey] && themes[tKey].url) ? themes[tKey].url : "images/hero_hills.jpg";
-        heroImgEl.onerror = function () {
-          this.onerror = null;
-          this.src = "images/hero_hills.jpg";
-        };
-        heroImgEl.src = resolvedBannerUrl;
+        heroImgEl.src = "images/hero_hills.jpg";
         if (ACTIVE_COURSE.heroVenue) heroImgEl.alt = ACTIVE_COURSE.heroVenue;
       }
       var heroVenueEl = document.getElementById("heroVenueEl");

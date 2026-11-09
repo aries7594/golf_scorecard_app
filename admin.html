@@ -734,13 +734,12 @@
 
       <div class="grid-2">
         <div class="field">
-          <label for="tournamentNameInput">🏆 대회 이름 (배너 · 상단 타이틀 · 구글 시트명 공통)</label>
+          <label for="tournamentNameInput">🏆 대회 이름</label>
           <input type="text" id="tournamentNameInput" placeholder="예: 2027년 봄 골프대회">
         </div>
         <div class="field">
-          <label for="courseSelect">골프장 선택 (1~18홀 Par &amp; 코스맵 자동 연동)</label>
+          <label for="courseSelect">골프장 선택</label>
           <select id="courseSelect" onchange="onCourseSelectChange(true)"></select>
-          <span class="hint" id="courseParPreview"></span>
         </div>
       </div>
 
@@ -769,7 +768,6 @@
         <div class="field">
           <label for="longHolesInput">장타(Long Drive) 홀 번호</label>
           <input type="text" id="longHolesInput" placeholder="미정 시 비워둠 (예: 8)" oninput="syncGuideFooterUI()">
-          <span class="hint">비워두면 3번에서 입력 가능</span>
         </div>
         <div class="field">
           <label for="nearHolesInput">니어(Near Pin) 홀 번호</label>
@@ -778,10 +776,6 @@
         </div>
       </div>
 
-      <div class="field" style="margin-top:14px;">
-        <label>🖼️ 첫 화면 상단 배너 배경 테마 선택</label>
-        <div class="theme-grid" id="heroThemeGrid"></div>
-      </div>
     </div>
 
     <!-- 2. Player Roster & Handicap Input (Starts Blank by Default!) -->
@@ -912,9 +906,9 @@
         <div class="guide-meta-row">
           <span>뒷풀이:</span>
           <input type="text" id="afterPartyPlaceInput" class="inline-meta-input" style="width:210px;"
-            placeholder="장소 (예: Canton Village)">
+            placeholder="장소">
           <input type="text" id="afterPartyAddrInput" class="inline-meta-input" style="flex:1; min-width:240px;"
-            placeholder="주소 입력 시 구글맵 자동 링크 (예: 1070 E Stanley Blvd, Livermore, CA)">
+            placeholder="주소 입력 시 구글맵 자동 링크">
         </div>
       </div>
     </div>
@@ -967,7 +961,6 @@
     var PIN_STORAGE_KEY = "golf_master_pin_v2";
     var editingExistingSlug = "";
     var editingExistingTitle = "";
-    var selectedHeroThemeKey = "hills";
     var editorGroups = [];
     var toastTimer = null;
 
@@ -1238,29 +1231,6 @@
         .filter(function (n) { return !isNaN(n) && n >= 1 && n <= 18; });
     }
 
-    function renderHeroThemePicker() {
-      var wrap = document.getElementById("heroThemeGrid");
-      if (!wrap) return;
-      wrap.innerHTML = "";
-      var themes = (typeof HERO_BANNER_THEMES !== "undefined" && HERO_BANNER_THEMES) ? HERO_BANNER_THEMES : {};
-      var order = ["hills", "coastal", "lake"];
-      order.forEach(function (k) {
-        var t = themes[k];
-        if (!t) return;
-        var card = document.createElement("div");
-        card.className = "theme-card" + (selectedHeroThemeKey === k ? " active" : "");
-        card.setAttribute("data-theme-key", k);
-        card.onclick = function () {
-          selectedHeroThemeKey = k;
-          renderHeroThemePicker();
-        };
-        card.innerHTML =
-          '<img src="' + t.url + '" alt="' + t.label + '">' +
-          '<div class="theme-card-caption"><span>' + t.label + '</span><span class="theme-check">✓ 선택됨</span></div>';
-        wrap.appendChild(card);
-      });
-    }
-
     function populateCourseDropdown() {
       var sel = document.getElementById("courseSelect");
       sel.innerHTML = "";
@@ -1292,14 +1262,7 @@
     }
 
     function onCourseSelectChange(autoFillIfNew) {
-      var pars = getSelectedCoursePars();
-      var sum = pars.reduce(function (a, b) { return a + b; }, 0);
       var cObj = getSelectedCourseObj();
-      var recLong = (cObj.longDriveHoles || []).join(", ") || "-";
-      var recNear = (cObj.nearPinHoles || []).join(", ") || "-";
-      document.getElementById("courseParPreview").textContent =
-        "Par " + sum + " (" + pars.join(",") + ") · 추천 장타: " + recLong + "H / 추천 니어: " + recNear + "H";
-
       if (autoFillIfNew && !editingExistingSlug) {
         if (Array.isArray(cObj.longDriveHoles)) {
           document.getElementById("longHolesInput").value = cObj.longDriveHoles.join(", ");
@@ -1774,7 +1737,6 @@
 
       var cObj = getSelectedCourseObj();
       if (isNewDefault) {
-        selectedHeroThemeKey = "hills";
         document.getElementById("menTeeSelect").value = "white";
         document.getElementById("womenTeeSelect").value = "red";
         document.getElementById("customTeeTextInput").value = "";
@@ -1785,7 +1747,6 @@
         document.getElementById("afterPartyAddrInput").value = "";
         editorGroups = [];
       } else {
-        selectedHeroThemeKey = cfg.heroThemeKey || "hills";
         // Restore tee selections or custom tee text
         var mKey = cfg.menTeeKey !== undefined ? cfg.menTeeKey : (cfg.defaultTeeKey || "");
         var wKey = cfg.womenTeeKey !== undefined ? cfg.womenTeeKey : "";
@@ -1826,7 +1787,6 @@
       }
 
       document.getElementById("rosterPasteInput").value = "";
-      renderHeroThemePicker();
       renderGroupsEditor();
       syncGuideFooterUI();
     }
@@ -1883,14 +1843,10 @@
       var afterAddr = document.getElementById("afterPartyAddrInput").value.trim();
       var baseCfg = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
 
-      var themes = (typeof HERO_BANNER_THEMES !== "undefined" && HERO_BANNER_THEMES) ? HERO_BANNER_THEMES : {};
-      var chosenTheme = themes[selectedHeroThemeKey] || themes.hills || { key: "hills", url: "images/hero_hills.jpg" };
-
       return {
         tournamentId: slug,
         courseKey: document.getElementById("courseSelect").value,
-        heroThemeKey: chosenTheme.key,
-        heroImgUrl: chosenTheme.url,
+        heroImgUrl: "images/hero_hills.jpg",
         sheetTitle: sheetTitle,
         tournamentTitle: tournamentTitle,
         heroTitle: heroTitle,
