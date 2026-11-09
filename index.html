@@ -6620,6 +6620,9 @@
         try {
           var qParams = new URLSearchParams(window.location.search || "");
           if (qParams.get("preview") === "1") {
+            var prevStyle = document.createElement("style");
+            prevStyle.textContent = "html, body { scrollbar-width: none; -ms-overflow-style: none; } html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }";
+            document.head.appendChild(prevStyle);
             var rawDraft = localStorage.getItem("golf_admin_live_preview_v1");
             var draftObj = rawDraft ? JSON.parse(rawDraft) : {};
             setTournamentHeaderCardsVisible(true);
