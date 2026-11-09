@@ -2576,13 +2576,11 @@ function adminResetTournamentScores(slug, pin) {
     }
 }
 
-// Run once in Apps Script editor (toolbar: select 'authorizeDrivePermission' -> click Run) to grant Google Drive delete permission
+// Run once in Apps Script editor (toolbar: select 'authorizeDrivePermission' -> click Run) to grant full Google Drive write/trash permission
 function authorizeDrivePermission() {
-    var root = DriveApp.getRootFolder();
-    if (false) {
-        DriveApp.getFileById("").setTrashed(false);
-    }
-    Logger.log("Drive permission granted: " + root.getName());
+    var tempFile = DriveApp.createFile("_golf_drive_permission_check.txt", "ok");
+    tempFile.setTrashed(true);
+    Logger.log("Full Drive write/trash permission granted!");
 }
 
 // [Master Only] Trash the linked Google Sheet in Google Drive FIRST, then remove the tournament slug from the registry
