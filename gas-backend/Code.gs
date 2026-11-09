@@ -20,6 +20,7 @@ var PROP_MASTER_PIN = "MASTER_ADMIN_PIN_V2";
 var PROP_REGISTRY_SHEET_ID = "MASTER_REGISTRY_SHEET_ID_V2";
 var PROP_GH_TOKEN = "GITHUB_PAT_TOKEN_V1";
 var PROP_GH_REPO = "GITHUB_REPO_SLUG_V1";
+var PROP_AUTH_SECRET = "USER_AUTH_HMAC_SECRET_V1";
 var DEFAULT_GH_REPO = "aries7594/golf_scorecard_app";
 
 // Per-request execution context populated inside doPost(e)
@@ -61,7 +62,111 @@ function verifyMasterPin(pin) {
     }
 }
 
-function getOrCreateRegistrySpreadsheet() {
+function normalizeUserEmail_(rawEmail) {
+    return String(rawEmail || "").trim().toLowerCase();
+}
+
+function isValidEmailFormat_(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || ""));
+}
+
+function sha256Hex_(inputStr) {
+    var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(inputStr || ""), Utilities.Charset.UTF_8);
+    var hex = "";
+    for (var i = 0; i < digest.length; i++) {
+        var b = digest[i];
+        if (b < 0) b += 256;
+        var h = b.toString(16);
+        if (h.length === 1) h = "0" + h;
+        hex += h;
+    }
+    return hex;
+}
+
+function getOrCreateAuthSecret_() {
+    var props = PropertiesService.getScriptProperties();
+    var sec = props.getProperty(PROP_AUTH_SECRET) || "";
+    if (!sec) {
+        sec = generateRandomSlug() + generateRandomSlug() + generateRandomSlug() + "_" + String(new Date().getTime());
+        props.setProperty(PROP_AUTH_SECRET, sec);
+    }
+    return sec;
+}
+
+function issueUserSessionToken_(email) {
+    var cleanEmail = normalizeUserEmail_(email);
+    var expMs = new Date().getTime() + (30 * 24 * 60 * 60 * 1000); // 30-day session
+    var sig = sha256Hex_(getOrCreateAuthSecret_() + "|USR1|" + cleanEmail + "|" + expMs);
+    return "USR1|" + cleanEmail + "|" + expMs + "|" + sig;
+}
+
+function getScriptDeployerEmail_() {
+    try {
+        var regId = PropertiesService.getScriptProperties().getProperty(PROP_REGISTRY_SHEET_ID) || "";
+        if (!regId) return "";
+        var owner = DriveApp.getFileById(regId).getOwner();
+        return owner ? normalizeUserEmail_(owner.getEmail()) : "";
+    } catch (e) {
+        return "";
+    }
+}
+
+function verifyAdminCredential_(cred) {
+    var raw = String(cred || "").trim();
+    if (raw.indexOf("USR1|") === 0) {
+        var parts = raw.split("|");
+        if (parts.length !== 4) {
+            throw new Error("로그인 세션이 유효하지 않습니다. 다시 로그인해 주세요.");
+        }
+        var email = normalizeUserEmail_(parts[1]);
+        var expMs = Number(parts[2] || 0);
+        var sig = parts[3] || "";
+        if (!email || !expMs || isNaN(expMs) || new Date().getTime() > expMs) {
+            throw new Error("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.");
+        }
+        var expectedSig = sha256Hex_(getOrCreateAuthSecret_() + "|USR1|" + email + "|" + expMs);
+        if (sig !== expectedSig) {
+            throw new Error("로그인 인증 서명이 올바르지 않습니다. 다시 로그인해 주세요.");
+        }
+        var deployerEmail = getScriptDeployerEmail_();
+        return {
+            isSession: true,
+            email: email,
+            isMaster: Boolean(deployerEmail && email === deployerEmail)
+        };
+    }
+    verifyMasterPin(raw);
+    return {
+        isSession: false,
+        email: getScriptDeployerEmail_(),
+        isMaster: true
+    };
+}
+
+// Keep generated Google Sheet private and grant Viewer permission ONLY to the logged-in user's email
+function grantSheetViewerToOwnerOnly_(sheetId, ownerEmail) {
+    var cleanEmail = normalizeUserEmail_(ownerEmail);
+    var result = { viewerGranted: false, viewerEmail: cleanEmail, viewerNote: "" };
+    if (!sheetId) return result;
+    try {
+        var file = DriveApp.getFileById(sheetId);
+        file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+        if (cleanEmail) {
+            var deployerEmail = getScriptDeployerEmail_();
+            if (deployerEmail && cleanEmail === deployerEmail) {
+                result.viewerGranted = true;
+            } else {
+                file.addViewer(cleanEmail);
+                result.viewerGranted = true;
+            }
+        }
+    } catch (shareErr) {
+        result.viewerNote = String((shareErr && shareErr.message) || shareErr || "");
+    }
+    return result;
+}
+
+function getOrCreateRegistryWorkbook_() {
     var props = PropertiesService.getScriptProperties();
     var regId = props.getProperty(PROP_REGISTRY_SHEET_ID) || "";
     var ss = null;
@@ -76,27 +181,160 @@ function getOrCreateRegistrySpreadsheet() {
         ss = SpreadsheetApp.create("_GolfScoreCard_Master_Registry");
         var defaultSheets = ss.getSheets();
         var sh = ss.insertSheet("Tournaments");
-        sh.getRange(1, 1, 1, 8).setValues([[
-            "slug", "sheetId", "sheetTitle", "courseKey", "managerPin", "resultsUrl", "createdAt", "updatedAt"
+        sh.getRange(1, 1, 1, 9).setValues([[
+            "slug", "sheetId", "sheetTitle", "courseKey", "managerPin", "resultsUrl", "createdAt", "updatedAt", "ownerEmail"
         ]])
             .setBackground("#1f2937")
             .setFontColor("#ffffff")
             .setFontWeight("bold");
         sh.setFrozenRows(1);
+
+        var uSheet = ss.insertSheet("Users");
+        uSheet.getRange(1, 1, 1, 5).setValues([[
+            "email", "salt", "passwordHash", "createdAt", "lastLoginAt"
+        ]])
+            .setBackground("#1f2937")
+            .setFontColor("#ffffff")
+            .setFontWeight("bold");
+        uSheet.setFrozenRows(1);
+
         for (var d = 0; d < defaultSheets.length; d++) {
             try { ss.deleteSheet(defaultSheets[d]); } catch (de) { }
         }
         SpreadsheetApp.flush();
         props.setProperty(PROP_REGISTRY_SHEET_ID, ss.getId());
     }
+    return ss;
+}
+
+function getOrCreateRegistrySpreadsheet() {
+    var ss = getOrCreateRegistryWorkbook_();
     var tSheet = ss.getSheetByName("Tournaments");
     if (!tSheet) {
         tSheet = ss.insertSheet("Tournaments");
-        tSheet.getRange(1, 1, 1, 8).setValues([[
-            "slug", "sheetId", "sheetTitle", "courseKey", "managerPin", "resultsUrl", "createdAt", "updatedAt"
+        tSheet.getRange(1, 1, 1, 9).setValues([[
+            "slug", "sheetId", "sheetTitle", "courseKey", "managerPin", "resultsUrl", "createdAt", "updatedAt", "ownerEmail"
         ]]);
+    } else if (tSheet.getLastColumn() < 9) {
+        tSheet.getRange(1, 9).setValue("ownerEmail");
     }
     return tSheet;
+}
+
+function getOrCreateUsersSheet_() {
+    var ss = getOrCreateRegistryWorkbook_();
+    var uSheet = ss.getSheetByName("Users");
+    if (!uSheet) {
+        uSheet = ss.insertSheet("Users");
+        uSheet.getRange(1, 1, 1, 5).setValues([[
+            "email", "salt", "passwordHash", "createdAt", "lastLoginAt"
+        ]])
+            .setBackground("#1f2937")
+            .setFontColor("#ffffff")
+            .setFontWeight("bold");
+        uSheet.setFrozenRows(1);
+    }
+    return uSheet;
+}
+
+function findUserRowByEmail_(uSheet, cleanEmail) {
+    var lastRow = uSheet.getLastRow();
+    if (lastRow < 2) return null;
+    var rows = uSheet.getRange(2, 1, lastRow - 1, 5).getValues();
+    for (var i = 0; i < rows.length; i++) {
+        if (normalizeUserEmail_(rows[i][0]) === cleanEmail) {
+            return {
+                rowNumber: i + 2,
+                email: cleanEmail,
+                salt: String(rows[i][1] || ""),
+                passwordHash: String(rows[i][2] || ""),
+                createdAt: String(rows[i][3] || ""),
+                lastLoginAt: String(rows[i][4] || "")
+            };
+        }
+    }
+    return null;
+}
+
+// Login existing user by email + password, or signal NEW_USER_NEEDS_REGISTER if email is not registered yet
+function authLoginUser(rawEmail, rawPassword) {
+    var email = normalizeUserEmail_(rawEmail);
+    var pw = String(rawPassword || "");
+    if (!isValidEmailFormat_(email)) {
+        throw new Error("올바른 이메일 주소를 입력해주세요.");
+    }
+    var lock = LockService.getScriptLock();
+    lock.waitLock(15000);
+    try {
+        var uSheet = getOrCreateUsersSheet_();
+        var user = findUserRowByEmail_(uSheet, email);
+        if (!user) {
+            return {
+                status: "NEW_USER_NEEDS_REGISTER",
+                email: email
+            };
+        }
+        if (!pw) {
+            throw new Error("비밀번호를 입력해주세요.");
+        }
+        var computed = sha256Hex_(user.salt + ":" + pw);
+        if (computed !== user.passwordHash) {
+            throw new Error("비밀번호가 올바르지 않습니다. 다시 확인해주세요.");
+        }
+        var nowIso = new Date().toISOString();
+        uSheet.getRange(user.rowNumber, 5).setValue(nowIso);
+        SpreadsheetApp.flush();
+        return {
+            status: "OK",
+            email: email,
+            token: issueUserSessionToken_(email)
+        };
+    } finally {
+        lock.releaseLock();
+    }
+}
+
+// Register a brand-new organizer account (email + password) and return an active session token
+function authRegisterUser(rawEmail, rawPassword) {
+    var email = normalizeUserEmail_(rawEmail);
+    var pw = String(rawPassword || "");
+    if (!isValidEmailFormat_(email)) {
+        throw new Error("올바른 이메일 주소를 입력해주세요.");
+    }
+    if (pw.length < 4) {
+        throw new Error("비밀번호는 4자 이상으로 설정해주세요.");
+    }
+    var lock = LockService.getScriptLock();
+    lock.waitLock(15000);
+    try {
+        var uSheet = getOrCreateUsersSheet_();
+        var existing = findUserRowByEmail_(uSheet, email);
+        if (existing) {
+            throw new Error("이미 등록된 이메일입니다. 로그인해 주세요.");
+        }
+        var salt = generateRandomSlug() + generateRandomSlug();
+        var pwHash = sha256Hex_(salt + ":" + pw);
+        var nowIso = new Date().toISOString();
+        uSheet.getRange(uSheet.getLastRow() + 1, 1, 1, 5).setValues([[
+            email, salt, pwHash, nowIso, nowIso
+        ]]);
+        SpreadsheetApp.flush();
+        return {
+            status: "REGISTERED",
+            email: email,
+            token: issueUserSessionToken_(email)
+        };
+    } finally {
+        lock.releaseLock();
+    }
+}
+
+function authVerifySession(token) {
+    var info = verifyAdminCredential_(token);
+    return {
+        valid: true,
+        email: info.email
+    };
 }
 
 function readAllRegistryRecords() {
@@ -111,7 +349,8 @@ function readAllRegistryRecords() {
     }
     var sh = ss.getSheetByName("Tournaments");
     if (!sh || sh.getLastRow() < 2) return [];
-    var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues();
+    var colCount = Math.max(9, sh.getLastColumn());
+    var rows = sh.getRange(2, 1, sh.getLastRow() - 1, colCount).getValues();
     var out = [];
     for (var i = 0; i < rows.length; i++) {
         var slug = normalizeSlug(rows[i][0]);
@@ -126,7 +365,8 @@ function readAllRegistryRecords() {
             managerPin: String(rows[i][4] || ""),
             resultsUrl: String(rows[i][5] || ""),
             createdAt: String(rows[i][6] || ""),
-            updatedAt: String(rows[i][7] || "")
+            updatedAt: String(rows[i][7] || ""),
+            ownerEmail: normalizeUserEmail_(rows[i][8] || "")
         });
     }
     return out;
@@ -165,17 +405,21 @@ function upsertTournamentInRegistry(rec) {
     var nowIso = new Date().toISOString();
     var foundRow = -1;
     var createdAt = rec.createdAt || nowIso;
+    var existingOwner = "";
 
     if (lastRow >= 2) {
-        var vals = sh.getRange(2, 1, lastRow - 1, 7).getValues();
+        var vals = sh.getRange(2, 1, lastRow - 1, 9).getValues();
         for (var i = 0; i < vals.length; i++) {
             if (normalizeSlug(vals[i][0]) === slug) {
                 foundRow = i + 2;
                 if (vals[i][6]) createdAt = String(vals[i][6]);
+                if (vals[i][8]) existingOwner = normalizeUserEmail_(vals[i][8]);
                 break;
             }
         }
     }
+
+    var ownerEmail = normalizeUserEmail_(rec.ownerEmail !== undefined ? rec.ownerEmail : existingOwner);
 
     var rowData = [
         slug,
@@ -185,13 +429,14 @@ function upsertTournamentInRegistry(rec) {
         String(rec.managerPin || ""),
         String(rec.resultsUrl || ""),
         createdAt,
-        nowIso
+        nowIso,
+        ownerEmail
     ];
 
     if (foundRow > 0) {
-        sh.getRange(foundRow, 1, 1, 8).setValues([rowData]);
+        sh.getRange(foundRow, 1, 1, 9).setValues([rowData]);
     } else {
-        sh.getRange(lastRow + 1, 1, 1, 8).setValues([rowData]);
+        sh.getRange(lastRow + 1, 1, 1, 9).setValues([rowData]);
     }
     SpreadsheetApp.flush();
 
@@ -203,7 +448,8 @@ function upsertTournamentInRegistry(rec) {
         managerPin: rowData[4],
         resultsUrl: rowData[5],
         createdAt: rowData[6],
-        updatedAt: rowData[7]
+        updatedAt: rowData[7],
+        ownerEmail: rowData[8]
     };
     try {
         var cache = CacheService.getScriptCache();
@@ -729,10 +975,7 @@ function createTournamentSpreadsheet(spec) {
     var sheetUrl = ss.getUrl();
     var resultsUrl = "https://docs.google.com/spreadsheets/d/" + sheetId + "/edit?gid=" + resultsGid + "#gid=" + resultsGid;
 
-    // Automatically grant read-only link access so anyone with the sheet link can view Results/Stat without permission prompts
-    try {
-        DriveApp.getFileById(sheetId).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    } catch (shareErr) { }
+
 
     return {
         sheetId: sheetId,
@@ -2088,18 +2331,26 @@ function extractSpreadsheetId(idOrUrl) {
     return m ? m[1] : s;
 }
 
-function verifyTournamentAccess(slug, pin) {
+function verifyTournamentAccess(slug, cred) {
     var rec = lookupTournamentBySlug(slug);
     if (!rec) {
         throw new Error("등록되지 않은 대회 코드입니다: " + slug);
     }
-    var p = String(pin || "").trim();
-    var masterPin = String(getMasterPin()).trim();
-    if (p === masterPin) return { role: "master", record: rec };
-    if (rec.managerPin && p !== "" && p === String(rec.managerPin).trim()) {
-        return { role: "manager", record: rec };
+    var raw = String(cred || "").trim();
+    if (raw.indexOf("USR1|") === 0) {
+        var auth = verifyAdminCredential_(raw);
+        var recOwner = normalizeUserEmail_(rec.ownerEmail || "");
+        if (auth.isMaster || (recOwner && recOwner === auth.email)) {
+            return { role: "owner", email: auth.email, record: rec };
+        }
+        throw new Error("본인 계정으로 생성한 대회만 접근하거나 수정할 수 있습니다.");
     }
-    throw new Error("비밀번호(PIN)가 올바르지 않습니다.");
+    var masterPin = String(getMasterPin()).trim();
+    if (raw === masterPin) return { role: "master", email: getScriptDeployerEmail_(), record: rec };
+    if (rec.managerPin && raw !== "" && raw === String(rec.managerPin).trim()) {
+        return { role: "manager", email: "", record: rec };
+    }
+    throw new Error("인증 정보가 올바르지 않습니다.");
 }
 
 function readGroupsWithHandicapsFromSheet(ss) {
@@ -2242,17 +2493,26 @@ function adminSaveGithubToken(masterPin, ghToken, ghRepoOpt) {
     return { saved: true, hasGithubToken: true, ghRepo: repo };
 }
 
-// [Master Only] List all hosted tournaments in reverse chronological order
-function adminListTournaments(masterPin) {
-    verifyMasterPin(masterPin);
-    var list = readAllRegistryRecords();
+// List tournaments owned by the logged-in user in reverse chronological order
+function adminListTournaments(authCred) {
+    var auth = verifyAdminCredential_(authCred);
+    var all = readAllRegistryRecords();
+    var list = all.filter(function (rec) {
+        var owner = normalizeUserEmail_(rec.ownerEmail || "");
+        if (auth.isSession) {
+            if (owner === auth.email) return true;
+            if (auth.isMaster && !owner) return true;
+            return false;
+        }
+        return true;
+    });
     list.sort(function (a, b) {
         return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
     });
     var props = PropertiesService.getScriptProperties();
     var hasGh = Boolean((props.getProperty(PROP_GH_TOKEN) || "").trim());
     var ghRepo = (props.getProperty(PROP_GH_REPO) || DEFAULT_GH_REPO).trim();
-    return { tournaments: list, hasGithubToken: hasGh, ghRepo: ghRepo };
+    return { tournaments: list, ownerEmail: auth.email, hasGithubToken: hasGh, ghRepo: ghRepo };
 }
 
 // [Master OR Club Manager] Load full details for a single tournament slug
@@ -2281,13 +2541,16 @@ function adminCreateTournament(pin, spec) {
     var slug = requestedSlug || generateRandomSlug();
     var existing = lookupTournamentBySlug(slug);
 
+    var ownerEmail = "";
     if (existing) {
         if (!spec.allowOverwrite) {
             throw new Error("이미 사용 중인 대회 코드('" + slug + "')입니다. 다른 대회 코드를 입력하거나 기존 대회를 선택해 수정해주세요.");
         }
-        verifyTournamentAccess(slug, pin);
+        var exAuth = verifyTournamentAccess(slug, pin);
+        ownerEmail = normalizeUserEmail_(exAuth.email || existing.ownerEmail || "");
     } else {
-        verifyMasterPin(pin);
+        var newAuth = verifyAdminCredential_(pin);
+        ownerEmail = normalizeUserEmail_(newAuth.email || "");
         // Ensure auto-generated slug never collides
         while (lookupTournamentBySlug(slug)) {
             slug = generateRandomSlug();
@@ -2313,6 +2576,8 @@ function adminCreateTournament(pin, spec) {
         }
         invalidateSheetCaches(created.sheetId);
 
+        var viewerShare = grantSheetViewerToOwnerOnly_(created.sheetId, ownerEmail);
+
         var regSaved = upsertTournamentInRegistry({
             slug: slug,
             sheetId: created.sheetId,
@@ -2320,7 +2585,8 @@ function adminCreateTournament(pin, spec) {
             courseKey: cfg.courseKey || "",
             managerPin: managerPin,
             resultsUrl: created.resultsUrl,
-            createdAt: existing ? existing.createdAt : ""
+            createdAt: existing ? existing.createdAt : "",
+            ownerEmail: ownerEmail
         });
 
         var ghSync = syncGithubSlugPreviewPage(regSaved.slug, created.sheetTitle, false);
@@ -2330,6 +2596,9 @@ function adminCreateTournament(pin, spec) {
             sheetTitle: created.sheetTitle,
             resultsUrl: created.resultsUrl,
             managerPin: managerPin,
+            ownerEmail: ownerEmail,
+            viewerGranted: viewerShare.viewerGranted,
+            viewerNote: viewerShare.viewerNote,
             ghPreviewSynced: Boolean(ghSync && ghSync.synced),
             config: cfg,
             groupList: created.groupList
@@ -2453,9 +2722,8 @@ function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt, par
             writeConfigToSpreadsheet(ss, cfg, nextManagerPin);
         }
 
-        try {
-            DriveApp.getFileById(rec.sheetId).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-        } catch (shareErr2) { }
+        var effectiveOwner = normalizeUserEmail_(rec.ownerEmail || auth.email || "");
+        grantSheetViewerToOwnerOnly_(rec.sheetId, effectiveOwner);
         invalidateSheetCaches(rec.sheetId);
 
         var saved = upsertTournamentInRegistry({
@@ -2465,7 +2733,8 @@ function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt, par
             courseKey: cfg.courseKey || rec.courseKey || "",
             managerPin: nextManagerPin,
             resultsUrl: nextResultsUrl,
-            createdAt: rec.createdAt
+            createdAt: rec.createdAt,
+            ownerEmail: effectiveOwner
         });
 
         var ghSyncUpd = syncGithubSlugPreviewPage(saved.slug, saved.sheetTitle, false);
@@ -2583,11 +2852,11 @@ function authorizeDrivePermission() {
     Logger.log("Full Drive write/trash permission granted!");
 }
 
-// [Master Only] Trash the linked Google Sheet in Google Drive FIRST, then remove the tournament slug from the registry
-function adminDeleteTournament(masterPin, slug) {
-    verifyMasterPin(masterPin);
+// Trash the linked Google Sheet in Google Drive FIRST, then remove the tournament slug from the registry
+function adminDeleteTournament(authCred, slug) {
     var cleanSlug = normalizeSlug(slug);
-    var rec = lookupTournamentBySlug(cleanSlug);
+    var access = verifyTournamentAccess(cleanSlug, authCred);
+    var rec = access.record;
     var targetSheetId = (rec && rec.sheetId) ? String(rec.sheetId).trim() : "";
 
     var sheetTrashed = false;
@@ -2652,6 +2921,9 @@ function doPost(e) {
             getHallOfFameFeed: getHallOfFameFeed,
             saveGroupScores: saveGroupScores,
             getEventBoardData: getEventBoardData,
+            authLoginUser: authLoginUser,
+            authRegisterUser: authRegisterUser,
+            authVerifySession: authVerifySession,
             adminListTournaments: adminListTournaments,
             adminGetTournament: adminGetTournament,
             adminCreateTournament: adminCreateTournament,

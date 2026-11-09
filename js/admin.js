@@ -1,4 +1,9 @@
     var PIN_STORAGE_KEY = "golf_master_pin_v2";
+    var AUTH_TOKEN_KEY = "golf_organizer_session_token_v1";
+    var AUTH_EMAIL_KEY = "golf_organizer_email_v1";
+    var currentAuthMode = "login"; // "login" | "register"
+    var currentAuthToken = "";
+    var currentAuthEmail = "";
     var editingExistingSlug = "";
     var editingExistingTitle = "";
     var editorGroups = [];
@@ -75,41 +80,184 @@
       return "";
     }
 
-    // Automatically retry with PIN prompt if default PIN was changed by admin
-    function callAdminApiWithPin(fnName, buildArgsFn) {
+    function callRawBackend(fnName, argsArr) {
       var url = getApiUrl();
       if (!url) {
         return Promise.reject(new Error("TournamentConfig.js에 GAS_BACKEND_URL이 설정되지 않았습니다."));
       }
-      var pin = getSavedMasterPin();
       return fetch(url, {
         method: "POST",
         redirect: "follow",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ fn: fnName, args: buildArgsFn(pin) })
+        body: JSON.stringify({ fn: fnName, args: argsArr || [] })
       })
         .then(function (r) { return r.json(); })
         .then(function (res) {
           if (res && res.ok) return res.data;
-          var errMsg = (res && res.error) ? String(res.error) : "서버 오류";
-          if (errMsg.indexOf("PIN") !== -1 || errMsg.indexOf("비밀번호") !== -1) {
-            var entered = prompt("관리자 비밀번호(PIN)를 입력해주세요:");
-            if (!entered || !entered.trim()) throw new Error(errMsg);
-            setSavedMasterPin(entered.trim());
-            return fetch(url, {
-              method: "POST",
-              redirect: "follow",
-              headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify({ fn: fnName, args: buildArgsFn(entered.trim()) })
-            })
-              .then(function (r2) { return r2.json(); })
-              .then(function (res2) {
-                if (res2 && res2.ok) return res2.data;
-                throw new Error((res2 && res2.error) ? res2.error : "비밀번호가 올바르지 않습니다.");
-              });
-          }
-          throw new Error(errMsg);
+          throw new Error((res && res.error) ? String(res.error) : "서버 오류");
         });
+    }
+
+    function callAdminApiWithPin(fnName, buildArgsFn) {
+      var cred = currentAuthToken || getSavedMasterPin();
+      return callRawBackend(fnName, buildArgsFn(cred)).catch(function (err) {
+        var msg = String((err && err.message) || err || "");
+        if (msg.indexOf("세션이 만료") !== -1 || msg.indexOf("세션이 유효하지") !== -1 || msg.indexOf("서명이 올바르지") !== -1) {
+          logoutOrganizer("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.");
+        }
+        throw err;
+      });
+    }
+
+    function switchAuthMode(mode, noticeTextOpt) {
+      currentAuthMode = (mode === "register") ? "register" : "login";
+      var tabLogin = document.getElementById("authTabLogin");
+      var tabReg = document.getElementById("authTabRegister");
+      var confirmField = document.getElementById("authConfirmField");
+      var pwLabel = document.getElementById("authPasswordLabel");
+      var submitBtn = document.getElementById("authSubmitBtn");
+      var switchHint = document.getElementById("authSwitchHint");
+      var noticeEl = document.getElementById("authNoticeBanner");
+      var errEl = document.getElementById("authErrorBanner");
+
+      if (errEl) errEl.style.display = "none";
+      if (noticeEl) {
+        if (noticeTextOpt) {
+          noticeEl.textContent = noticeTextOpt;
+          noticeEl.style.display = "block";
+        } else {
+          noticeEl.style.display = "none";
+        }
+      }
+
+      if (currentAuthMode === "register") {
+        if (tabLogin) tabLogin.classList.remove("active");
+        if (tabReg) tabReg.classList.add("active");
+        if (confirmField) confirmField.style.display = "block";
+        if (pwLabel) pwLabel.textContent = "새 비밀번호 설정 (4자 이상)";
+        if (submitBtn) submitBtn.textContent = "✨ 새 사용자 등록 및 시작하기";
+        if (switchHint) switchHint.innerHTML = '이미 등록된 계정이 있으신가요? <a onclick="switchAuthMode(\'login\')">로그인 화면으로 이동</a>';
+      } else {
+        if (tabLogin) tabLogin.classList.add("active");
+        if (tabReg) tabReg.classList.remove("active");
+        if (confirmField) confirmField.style.display = "none";
+        if (pwLabel) pwLabel.textContent = "비밀번호";
+        if (submitBtn) submitBtn.textContent = "🔐 로그인";
+        if (switchHint) switchHint.innerHTML = '처음 방문하셨나요? <a onclick="switchAuthMode(\'register\')">새 사용자 비밀번호 등록하기</a>';
+      }
+    }
+
+    function showAuthError(msg) {
+      var errEl = document.getElementById("authErrorBanner");
+      if (!errEl) return;
+      errEl.textContent = "⚠️ " + msg;
+      errEl.style.display = "block";
+    }
+
+    function enterAuthenticatedAdmin(email, token) {
+      currentAuthEmail = String(email || "").trim().toLowerCase();
+      currentAuthToken = String(token || "").trim();
+      try {
+        sessionStorage.setItem(AUTH_TOKEN_KEY, currentAuthToken);
+        sessionStorage.setItem(AUTH_EMAIL_KEY, currentAuthEmail);
+      } catch (e) { }
+
+      var gate = document.getElementById("authGateScreen");
+      var appBox = document.getElementById("adminAppContainer");
+      var pill = document.getElementById("loggedInUserEmailPill");
+      var viewerBadge = document.getElementById("sheetViewerEmailBadge");
+      if (gate) gate.style.display = "none";
+      if (appBox) appBox.style.display = "block";
+      if (pill) pill.textContent = "👤 " + currentAuthEmail;
+      if (viewerBadge) viewerBadge.textContent = "🔒 열람 권한: " + currentAuthEmail + " (Viewer 전용)";
+      startFreshTournamentForm();
+    }
+
+    function logoutOrganizer(optionalNotice) {
+      currentAuthToken = "";
+      currentAuthEmail = "";
+      editingExistingSlug = "";
+      editingExistingTitle = "";
+      try {
+        sessionStorage.removeItem(AUTH_TOKEN_KEY);
+        sessionStorage.removeItem(AUTH_EMAIL_KEY);
+      } catch (e) { }
+      var gate = document.getElementById("authGateScreen");
+      var appBox = document.getElementById("adminAppContainer");
+      if (appBox) appBox.style.display = "none";
+      if (gate) gate.style.display = "flex";
+      document.getElementById("authPasswordInput").value = "";
+      document.getElementById("authPasswordConfirmInput").value = "";
+      switchAuthMode("login", optionalNotice || "");
+    }
+
+    function submitAuthForm(ev) {
+      if (ev) ev.preventDefault();
+      var email = String(document.getElementById("authEmailInput").value || "").trim().toLowerCase();
+      var pw = String(document.getElementById("authPasswordInput").value || "");
+      var confirmPw = String(document.getElementById("authPasswordConfirmInput").value || "");
+      var submitBtn = document.getElementById("authSubmitBtn");
+      var errEl = document.getElementById("authErrorBanner");
+      if (errEl) errEl.style.display = "none";
+
+      if (!email || email.indexOf("@") === -1) {
+        showAuthError("올바른 이메일 주소를 입력해주세요.");
+        return false;
+      }
+      if (pw.length < 4) {
+        showAuthError("비밀번호를 4자 이상 입력해주세요.");
+        return false;
+      }
+
+      if (currentAuthMode === "register") {
+        if (pw !== confirmPw) {
+          showAuthError("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+          document.getElementById("authPasswordConfirmInput").focus();
+          return false;
+        }
+        submitBtn.disabled = true;
+        submitBtn.textContent = "⏳ 계정 등록 중...";
+        callRawBackend("authRegisterUser", [email, pw])
+          .then(function (res) {
+            enterAuthenticatedAdmin(res.email, res.token);
+            showToast("🎉 새 계정이 등록되었습니다! 환영합니다 (" + res.email + ")");
+          })
+          .catch(function (err) {
+            showAuthError(err.message || "계정 등록 중 오류가 발생했습니다.");
+          })
+          .finally(function () {
+            submitBtn.disabled = false;
+            if (currentAuthMode === "register") submitBtn.textContent = "✨ 새 사용자 등록 및 시작하기";
+          });
+        return false;
+      }
+
+      // Login mode: if email is unregistered, seamlessly transition to New-User Registration!
+      submitBtn.disabled = true;
+      submitBtn.textContent = "⏳ 확인 중...";
+      callRawBackend("authLoginUser", [email, pw])
+        .then(function (res) {
+          if (res && res.status === "NEW_USER_NEEDS_REGISTER") {
+            switchAuthMode(
+              "register",
+              "✨ 처음 방문하신 새 이메일(" + email + ")입니다! 비밀번호 확인을 한 번 더 입력해 새 사용자로 등록해 주세요."
+            );
+            document.getElementById("authPasswordConfirmInput").value = "";
+            document.getElementById("authPasswordConfirmInput").focus();
+            return;
+          }
+          enterAuthenticatedAdmin(res.email, res.token);
+          showToast("👋 환영합니다! (" + res.email + ")");
+        })
+        .catch(function (err) {
+          showAuthError(err.message || "로그인에 실패했습니다.");
+        })
+        .finally(function () {
+          submitBtn.disabled = false;
+          if (currentAuthMode === "login") submitBtn.textContent = "🔐 로그인";
+          else submitBtn.textContent = "✨ 새 사용자 등록 및 시작하기";
+        });
+      return false;
     }
 
     // Google Docs-style Rich Text Editor Commands
@@ -277,6 +425,10 @@
       document.getElementById("participantShareOpenBtn").href = pUrl;
       document.getElementById("sheetResultUrlText").textContent = resultsUrl || "";
       document.getElementById("sheetResultOpenBtn").href = resultsUrl || "#";
+      var viewerBadge = document.getElementById("sheetViewerEmailBadge");
+      if (viewerBadge && currentAuthEmail) {
+        viewerBadge.textContent = "🔒 열람 권한: " + currentAuthEmail + " 계정에만 Viewer 권한 부여됨";
+      }
       box.style.display = "flex";
     }
 
@@ -1475,8 +1627,25 @@
         });
     }
 
-    // Boot directly into clean 'New Tournament Creation' mode
+    // Boot into Login Gate first; auto-restore active tab session if still valid
     (function initAdminConsole() {
       populateCourseDropdown();
       startFreshTournamentForm();
+      try {
+        var savedToken = sessionStorage.getItem(AUTH_TOKEN_KEY) || "";
+        var savedEmail = sessionStorage.getItem(AUTH_EMAIL_KEY) || "";
+        if (savedToken && savedEmail) {
+          callRawBackend("authVerifySession", [savedToken])
+            .then(function (res) {
+              if (res && res.valid) {
+                enterAuthenticatedAdmin(res.email || savedEmail, savedToken);
+              }
+            })
+            .catch(function () {
+              logoutOrganizer();
+            });
+          return;
+        }
+      } catch (e) { }
+      switchAuthMode("login");
     })();

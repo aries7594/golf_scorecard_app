@@ -5,11 +5,60 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>골프대회 관리 콘솔</title>
-  <link rel="stylesheet" href="css/admin.css?v=20261109b">
+  <link rel="stylesheet" href="css/admin.css?v=20261109c">
 </head>
 
 <body>
-  <div class="container">
+  <!-- First Screen: Organizer Email + Password Login / New-User Registration Gate -->
+  <div class="auth-gate-screen" id="authGateScreen">
+    <div class="auth-card">
+      <div class="auth-logo">⛳</div>
+      <div class="auth-title">골프대회 개설·관리 로그인</div>
+      <div class="auth-sub">
+        아이디(이메일)와 비밀번호로 로그인하세요.<br>
+        처음 방문하신 이메일은 새 비밀번호를 등록해 바로 시작할 수 있습니다.
+      </div>
+
+      <div class="auth-mode-tabs">
+        <button type="button" class="auth-mode-tab active" id="authTabLogin" onclick="switchAuthMode('login')">🔐 로그인</button>
+        <button type="button" class="auth-mode-tab" id="authTabRegister" onclick="switchAuthMode('register')">✨ 새 사용자 등록</button>
+      </div>
+
+      <div class="auth-notice-banner" id="authNoticeBanner"></div>
+      <div class="auth-error-banner" id="authErrorBanner"></div>
+
+      <form onsubmit="return submitAuthForm(event)">
+        <div class="auth-field">
+          <label for="authEmailInput">아이디 (이메일)</label>
+          <input type="email" id="authEmailInput" placeholder="example@gmail.com" autocomplete="username" required>
+        </div>
+
+        <div class="auth-field">
+          <label for="authPasswordInput" id="authPasswordLabel">비밀번호</label>
+          <input type="password" id="authPasswordInput" placeholder="비밀번호 입력 (4자 이상)" autocomplete="current-password" required>
+        </div>
+
+        <div class="auth-field" id="authConfirmField" style="display:none;">
+          <label for="authPasswordConfirmInput">비밀번호 확인 (새 사용자 등록)</label>
+          <input type="password" id="authPasswordConfirmInput" placeholder="비밀번호를 한 번 더 입력하세요" autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="auth-submit-btn" id="authSubmitBtn">🔐 로그인</button>
+      </form>
+
+      <div class="auth-switch-hint" id="authSwitchHint">
+        처음 오셨나요? <a onclick="switchAuthMode('register')">새 사용자 비밀번호 등록하기</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Admin Console (shown only after authenticated login) -->
+  <div class="container" id="adminAppContainer" style="display:none;">
+    <div class="user-account-bar">
+      <span class="user-email-pill" id="loggedInUserEmailPill">👤 -</span>
+      <button type="button" class="btn btn-outline btn-sm" id="logoutBtn" onclick="logoutOrganizer()">로그아웃</button>
+    </div>
+
     <!-- Top Header: Mode / Selected Tournament Title on Left + Past Tournament List Button on Right -->
     <div class="page-header-row">
       <div class="page-mode-banner" id="pageModeBanner">신규 대회 생성</div>
@@ -45,6 +94,7 @@
         <div>
           <div style="font-size:11.5px; font-weight:800; color:#4b5563;">📊 연결된 구글 시트 ('결과'·'Stat' 자동 집계)</div>
           <div class="link-url" id="sheetResultUrlText" style="font-size:12px;"></div>
+          <div class="sheet-viewer-badge" id="sheetViewerEmailBadge">🔒 열람 권한: 로그인 이메일 전용 (Viewer)</div>
         </div>
         <div>
           <a id="sheetResultOpenBtn" href="#" target="_blank" class="btn btn-outline btn-sm">📊 구글 시트 열기 ↗</a>
@@ -278,9 +328,7 @@
       </div>
     </div>
 
-    <div class="footer-tools">
-      <a onclick="promptChangeMasterPin()">🔑 관리자 PIN 변경</a>
-    </div>
+
   </div>
 
   <!-- Past Tournaments Modal Popup -->
@@ -311,11 +359,11 @@
 
   <div id="toast"></div>
 
-  <script src="TournamentConfig.js?v=20261109b"></script>
-  <script src="CourseData.js?v=20261109b"></script>
-  <script src="courses/manifest.js?v=20261109b"></script>
-  <script src="courses/wente.js?v=20261109b"></script>
-  <script src="js/admin.js?v=20261109b"></script>
+  <script src="TournamentConfig.js?v=20261109c"></script>
+  <script src="CourseData.js?v=20261109c"></script>
+  <script src="courses/manifest.js?v=20261109c"></script>
+  <script src="courses/wente.js?v=20261109c"></script>
+  <script src="js/admin.js?v=20261109c"></script>
 </body>
 
 </html>
