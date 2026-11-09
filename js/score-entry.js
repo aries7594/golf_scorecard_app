@@ -297,10 +297,13 @@
             document.head.appendChild(prevStyle);
             var rawDraft = localStorage.getItem("golf_admin_live_preview_v1");
             var draftObj = rawDraft ? JSON.parse(rawDraft) : {};
+            var prevCfg = draftObj.config || T_CFG;
             setTournamentHeaderCardsVisible(true);
-            rebuildActiveCourseVars(draftObj.config || T_CFG, "preview");
-            applyCourseConfigUI();
-            populateGroups(Array.isArray(draftObj.groupList) ? draftObj.groupList : []);
+            ensureCourseLoaded(prevCfg && prevCfg.courseKey, function () {
+              rebuildActiveCourseVars(prevCfg, "preview");
+              applyCourseConfigUI();
+              populateGroups(Array.isArray(draftObj.groupList) ? draftObj.groupList : []);
+            });
             window.selectGroupQuick = function () {
               showToast("📱 첫 페이지 미리보기 화면입니다.");
             };
@@ -337,15 +340,15 @@
             setTournamentHeaderCardsVisible(true);
             if (bundle && typeof bundle === "object" && !Array.isArray(bundle)) {
               var scopeId = bundle.sheetId || ACTIVE_TOURNAMENT_SLUG;
+              var targetCfg = (bundle.config && typeof bundle.config === "object") ? bundle.config : T_CFG;
               if (bundle.config && typeof bundle.config === "object") {
                 try { localStorage.setItem(CACHED_REMOTE_CFG_KEY, JSON.stringify(bundle.config)); } catch (e) { }
-                rebuildActiveCourseVars(bundle.config, scopeId);
-                applyCourseConfigUI();
-              } else {
-                rebuildActiveCourseVars(T_CFG, scopeId);
-                applyCourseConfigUI();
               }
-              populateGroups(bundle.groupList || []);
+              ensureCourseLoaded(targetCfg && targetCfg.courseKey, function () {
+                rebuildActiveCourseVars(targetCfg, scopeId);
+                applyCourseConfigUI();
+                populateGroups(bundle.groupList || []);
+              });
               return;
             }
             populateGroups(Array.isArray(bundle) ? bundle : []);

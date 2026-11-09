@@ -278,7 +278,8 @@
       }
       var nextCfg = cfgSource || T_CFG || {};
       T_CFG = nextCfg;
-      SELECTED_COURSE_KEY = (nextCfg.courseKey && ALL_COURSES[nextCfg.courseKey]) ? nextCfg.courseKey : (Object.keys(ALL_COURSES)[0] || "");
+      var reqKey = (typeof normalizeCourseKey === "function") ? normalizeCourseKey(nextCfg.courseKey) : (nextCfg.courseKey || "");
+      SELECTED_COURSE_KEY = (reqKey && ALL_COURSES[reqKey]) ? reqKey : (Object.keys(ALL_COURSES)[0] || "");
       BASE_COURSE = ALL_COURSES[SELECTED_COURSE_KEY] || {};
       ACTIVE_COURSE = {};
       for (var ck in BASE_COURSE) {
@@ -451,4 +452,12 @@
     window.addEventListener("orientationchange", fitCopyrightOneLine);
 
     applyCourseConfigUI();
+    if (HAS_SLUG_CACHED_CFG && T_CFG && T_CFG.courseKey && typeof ensureCourseLoaded === "function") {
+      ensureCourseLoaded(T_CFG.courseKey, function (loadedCourse) {
+        if (loadedCourse) {
+          rebuildActiveCourseVars(T_CFG, ACTIVE_TOURNAMENT_SCOPE);
+          applyCourseConfigUI();
+        }
+      });
+    }
 

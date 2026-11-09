@@ -65,7 +65,13 @@
           <input type="text" id="tournamentNameInput" placeholder="예: 2027년 봄 골프대회">
         </div>
         <div class="field">
-          <label for="courseSelect">골프장 선택</label>
+          <label for="courseSelect" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>골프장 선택</span>
+            <span id="courseCountHint" style="font-size:11.5px; color:#64748b; font-weight:700;"></span>
+          </label>
+          <input type="text" id="courseSearchInput" placeholder="🔍 골프장 이름 또는 도시 검색 (예: Wente, Pebble, Coyote, Torrey...)"
+            oninput="onCourseSearchInput(this.value)"
+            style="margin-bottom:6px; padding:7px 10px; font-size:12.5px; background:#f8fafc;">
           <select id="courseSelect" onchange="onCourseSelectChange(true)"></select>
         </div>
       </div>
@@ -297,9 +303,8 @@
 
   <script src="TournamentConfig.js"></script>
   <script src="CourseData.js"></script>
-  <script src="courses/moffett.js"></script>
+  <script src="courses/manifest.js"></script>
   <script src="courses/wente.js"></script>
-  <script src="courses/poppy_hills.js"></script>
   <script src="js/admin.js"></script>
 </body>
 

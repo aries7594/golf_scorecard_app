@@ -287,26 +287,103 @@
         .filter(function (n) { return !isNaN(n) && n >= 1 && n <= 18; });
     }
 
-    function populateCourseDropdown() {
-      var sel = document.getElementById("courseSelect");
-      sel.innerHTML = "";
+    function getAllManifestCourses() {
+      if (typeof COURSE_MANIFEST !== "undefined" && Array.isArray(COURSE_MANIFEST) && COURSE_MANIFEST.length > 0) {
+        return COURSE_MANIFEST;
+      }
       var catalog = (typeof COURSE_CATALOG !== "undefined" && COURSE_CATALOG) ? COURSE_CATALOG : {};
+      var fallback = [];
       var seen = {};
       Object.keys(catalog).forEach(function (k) {
         var c = catalog[k];
         if (!c || !c.key || seen[c.key]) return;
         seen[c.key] = true;
-        var opt = document.createElement("option");
-        opt.value = c.key;
-        opt.textContent = (c.name || c.key) + " (" + c.key + ")";
-        sel.appendChild(opt);
+        fallback.push({
+          key: c.key,
+          name: c.name || c.key,
+          city: c.city || "",
+          region: c.region || "NorCal",
+          parTotal: Array.isArray(c.holes) ? c.holes.reduce(function (s, h) { return s + (Number(h.par) || 4); }, 0) : 72,
+          pars: Array.isArray(c.holes) ? c.holes.map(function (h) { return Number(h.par) || 4; }) : [],
+          longDriveHoles: c.longDriveHoles || [],
+          nearPinHoles: c.nearPinHoles || []
+        });
       });
+      return fallback;
+    }
+
+    function populateCourseDropdown(filterTextOpt, keepValueOpt) {
+      var sel = document.getElementById("courseSelect");
+      var prevVal = keepValueOpt !== undefined ? keepValueOpt : sel.value;
+      var q = String(filterTextOpt || "").trim().toLowerCase();
+      var allList = getAllManifestCourses();
+      var filtered = allList.filter(function (c) {
+        if (!q) return true;
+        var blob = ((c.name || "") + " " + (c.city || "") + " " + (c.key || "") + " " + (c.region || "")).toLowerCase();
+        return blob.indexOf(q) !== -1;
+      });
+
+      sel.innerHTML = "";
+      var hintEl = document.getElementById("courseCountHint");
+      if (hintEl) {
+        hintEl.textContent = q
+          ? ("검색 결과 " + filtered.length + "개 / 전체 " + allList.length + "개")
+          : ("캘리포니아 " + allList.length + "개 코스 지원");
+      }
+
+      if (filtered.length === 0) {
+        var emptyOpt = document.createElement("option");
+        emptyOpt.value = "";
+        emptyOpt.textContent = "검색 결과 없음 (검색어를 지워주세요)";
+        sel.appendChild(emptyOpt);
+        return;
+      }
+
+      var norcal = filtered.filter(function (c) { return c.region !== "SoCal"; });
+      var socal = filtered.filter(function (c) { return c.region === "SoCal"; });
+
+      function appendGroup(label, items) {
+        if (items.length === 0) return;
+        var grp = document.createElement("optgroup");
+        grp.label = label + " (" + items.length + "개)";
+        items.forEach(function (c) {
+          var opt = document.createElement("option");
+          opt.value = c.key;
+          var locPart = c.city ? (" — " + c.city) : "";
+          var parPart = c.parTotal ? (" · Par " + c.parTotal) : "";
+          opt.textContent = c.name + locPart + parPart;
+          grp.appendChild(opt);
+        });
+        sel.appendChild(grp);
+      }
+
+      appendGroup("🌲 북가주 (NorCal)", norcal);
+      appendGroup("🌴 남가주 (SoCal)", socal);
+
+      var normPrev = (typeof normalizeCourseKey === "function") ? normalizeCourseKey(prevVal) : prevVal;
+      var hasPrev = filtered.some(function (c) { return c.key === normPrev; });
+      sel.value = hasPrev ? normPrev : filtered[0].key;
+    }
+
+    function onCourseSearchInput(val) {
+      var prev = document.getElementById("courseSelect").value;
+      populateCourseDropdown(val, prev);
+      if (document.getElementById("courseSelect").value !== prev) {
+        onCourseSelectChange(true);
+      }
     }
 
     function getSelectedCourseObj() {
-      var key = document.getElementById("courseSelect").value;
+      var rawKey = document.getElementById("courseSelect").value;
+      var key = (typeof normalizeCourseKey === "function") ? normalizeCourseKey(rawKey) : rawKey;
       var catalog = (typeof COURSE_CATALOG !== "undefined" && COURSE_CATALOG) ? COURSE_CATALOG : {};
-      return catalog[key] || catalog[Object.keys(catalog)[0]] || {};
+      if (catalog[key]) return catalog[key];
+      if (typeof getCourseManifestEntry === "function") {
+        var meta = getCourseManifestEntry(key);
+        if (meta) return meta;
+      }
+      var all = getAllManifestCourses();
+      return all[0] || {};
     }
 
     function getSelectedCoursePars() {
@@ -314,11 +391,17 @@
       if (Array.isArray(cObj.holes) && cObj.holes.length === 18) {
         return cObj.holes.map(function (h) { return Number(h.par) || 4; });
       }
+      if (Array.isArray(cObj.pars) && cObj.pars.length === 18) {
+        return cObj.pars.map(function (p) { return Number(p) || 4; });
+      }
       return [4, 4, 3, 4, 5, 4, 3, 5, 4, 4, 3, 5, 4, 3, 5, 4, 4, 4];
     }
 
     function onCourseSelectChange(autoFillIfNew) {
       var cObj = getSelectedCourseObj();
+      if (cObj && cObj.key && typeof ensureCourseLoaded === "function") {
+        ensureCourseLoaded(cObj.key);
+      }
       if (autoFillIfNew && !editingExistingSlug) {
         if (Array.isArray(cObj.longDriveHoles)) {
           document.getElementById("longHolesInput").value = cObj.longDriveHoles.join(", ");
@@ -787,8 +870,15 @@
         : String(cfg.heroTitle || cfg.sheetTitle || cfg.tournamentTitle || "").replace(/^[⛳🏆🎯\s]+/, "").trim();
       document.getElementById("tournamentNameInput").value = unifiedName;
 
+      var searchIn = document.getElementById("courseSearchInput");
+      if (searchIn && searchIn.value) {
+        searchIn.value = "";
+        populateCourseDropdown("", cfg.courseKey || "wente");
+      }
       var courseSel = document.getElementById("courseSelect");
-      if (cfg.courseKey) courseSel.value = cfg.courseKey;
+      if (cfg.courseKey) {
+        courseSel.value = (typeof normalizeCourseKey === "function") ? normalizeCourseKey(cfg.courseKey) : cfg.courseKey;
+      }
       onCourseSelectChange(false);
 
       var cObj = getSelectedCourseObj();
