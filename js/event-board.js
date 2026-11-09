@@ -13,8 +13,8 @@
     // Map hole number to its column index in 'Near/Long' tab (matching server syncNearPinToSheet), or null
     function getEventBoardInfo(hole) {
       var h = Number(hole);
-      var nearList = (nearPinHoles && nearPinHoles.length > 0) ? nearPinHoles : [3, 7, 11, 14];
-      var longList = (longDriveHoles && longDriveHoles.length > 0) ? longDriveHoles : [5];
+      var nearList = Array.isArray(nearPinHoles) ? nearPinHoles : [];
+      var longList = Array.isArray(longDriveHoles) ? longDriveHoles : [];
       if (longDriveHoles.indexOf(h) !== -1) {
         return { type: "long", nameCol: Math.max(nearList.length * 2 + 1, 9) - 1 + longList.indexOf(h) * 2 };
       }

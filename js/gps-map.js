@@ -95,8 +95,19 @@
       return COURSE_TEE_LIST[0];
     }
 
+    function isCourseMapGeometryReady() {
+      return Boolean(
+        Array.isArray(COURSE_DATA) &&
+        COURSE_DATA.length === 18 &&
+        COURSE_DATA[0] &&
+        Array.isArray(COURSE_DATA[0].path) &&
+        COURSE_DATA[0].path.length === 3
+      );
+    }
+
     function getHoleTeeYardage(holeNum, teeKey) {
       var cfg = getHoleTeeConfig(teeKey);
+      if (!cfg || !Array.isArray(cfg.yds) || cfg.yds.length === 0) return 0;
       var idx = (Number(holeNum) || 1) - 1;
       if (idx < 0 || idx >= cfg.yds.length) idx = 0;
       return cfg.yds[idx];
@@ -676,6 +687,23 @@
     }
 
     function openHoleMapModal(defaultTab) {
+      if (!isCourseMapGeometryReady()) {
+        if (SELECTED_COURSE_KEY && typeof ensureCourseLoaded === "function") {
+          showToast("⏳ 코스 지도 데이터를 불러오는 중입니다...", 2500);
+          ensureCourseLoaded(SELECTED_COURSE_KEY, function (loadedCourse) {
+            if (loadedCourse) {
+              rebuildActiveCourseVars(T_CFG, ACTIVE_TOURNAMENT_SCOPE);
+              applyCourseConfigUI();
+              openHoleMapModal(defaultTab);
+            } else {
+              showToast("📡 통신 음영지역이라 코스 지도를 불러오지 못했습니다.\n신호가 잡히는 곳에서 다시 눌러주세요.", 4500);
+            }
+          });
+        } else {
+          showToast("📡 코스 지도 데이터를 불러올 수 없습니다.", 3500);
+        }
+        return;
+      }
       hmState.open = true;
       hmState.tab = defaultTab || "map";
       var targetHole = currentHole || 1;

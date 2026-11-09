@@ -400,6 +400,9 @@ function lookupTournamentBySlug(rawSlug) {
 function upsertTournamentInRegistry(rec) {
     var slug = normalizeSlug(rec.slug);
     if (!slug) throw new Error("유효한 대회 코드(slug)가 필요합니다.");
+    var regLock = LockService.getScriptLock();
+    regLock.waitLock(15000);
+    try {
     var sh = getOrCreateRegistrySpreadsheet();
     var lastRow = sh.getLastRow();
     var nowIso = new Date().toISOString();
@@ -456,26 +459,36 @@ function upsertTournamentInRegistry(rec) {
         if (cache) cache.put("REG_V2_" + slug, JSON.stringify(savedObj), REGISTRY_CACHE_TTL_SEC);
     } catch (e) { }
     return savedObj;
+    } finally {
+        regLock.releaseLock();
+    }
 }
 
 function removeTournamentFromRegistry(rawSlug) {
     var slug = normalizeSlug(rawSlug);
     if (!slug) return false;
-    var sh = getOrCreateRegistrySpreadsheet();
-    var lastRow = sh.getLastRow();
-    if (lastRow >= 2) {
-        var slugs = sh.getRange(2, 1, lastRow - 1, 1).getValues();
-        for (var r = slugs.length - 1; r >= 0; r--) {
-            if (normalizeSlug(slugs[r][0]) === slug) {
-                sh.deleteRow(r + 2);
+    var regLock = LockService.getScriptLock();
+    regLock.waitLock(15000);
+    try {
+        var sh = getOrCreateRegistrySpreadsheet();
+        var lastRow = sh.getLastRow();
+        if (lastRow >= 2) {
+            var slugs = sh.getRange(2, 1, lastRow - 1, 1).getValues();
+            for (var r = slugs.length - 1; r >= 0; r--) {
+                if (normalizeSlug(slugs[r][0]) === slug) {
+                    sh.deleteRow(r + 2);
+                }
             }
         }
+        SpreadsheetApp.flush();
+        try {
+            var cache = CacheService.getScriptCache();
+            if (cache) cache.remove("REG_V2_" + slug);
+        } catch (e) { }
+        return true;
+    } finally {
+        regLock.releaseLock();
     }
-    try {
-        var cache = CacheService.getScriptCache();
-        if (cache) cache.remove("REG_V2_" + slug);
-    } catch (e) { }
-    return true;
 }
 
 function writeConfigToSpreadsheet(ss, configObj, managerPinOpt) {
@@ -605,12 +618,12 @@ function createTournamentSpreadsheet(spec) {
         ? spec.pars.map(function (p) { return Number(p) || 4; })
         : [4, 4, 3, 4, 5, 4, 3, 5, 4, 4, 3, 5, 4, 3, 5, 4, 4, 4];
 
-    var nearHoles = (Array.isArray(cfg.nearPinHoles) && cfg.nearPinHoles.length > 0)
+    var nearHoles = Array.isArray(cfg.nearPinHoles)
         ? cfg.nearPinHoles.map(function (n) { return Number(n); }).filter(function (n) { return n >= 1 && n <= 18; })
-        : [3, 7, 11, 14];
-    var longHoles = (Array.isArray(cfg.longDriveHoles) && cfg.longDriveHoles.length > 0)
+        : [];
+    var longHoles = Array.isArray(cfg.longDriveHoles)
         ? cfg.longDriveHoles.map(function (n) { return Number(n); }).filter(function (n) { return n >= 1 && n <= 18; })
-        : [8];
+        : [];
 
     var sheetTitle = String(cfg.sheetTitle || cfg.heroTitle || cfg.tournamentTitle || "Golf Tournament Scorecard")
         .replace(/^[⛳🏆🎯\s]+/, "")
@@ -779,12 +792,12 @@ function createTournamentSpreadsheet(spec) {
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
         "합계", "핸디", "넷 스코어",
         "버디", "파", "보기", "더블", "트리플", "쿼드러플",
-        "잉꼬상", "정직상", "바이너리", "전반스코어", "후반스코어", "후반스코어"
+        "잉꼬상", "정직상", "바이너리", "전반스코어", "후반스코어"
     ];
     var resGrid = [resHeaders];
     var resBgGrid = [];
     var headerBg = [];
-    for (var hc = 0; hc < 35; hc++) {
+    for (var hc = 0; hc < 34; hc++) {
         headerBg.push((hc >= 2 && hc <= 19) ? "#ff0000" : "#f1f3f4");
     }
     resBgGrid.push(headerBg);
@@ -801,7 +814,7 @@ function createTournamentSpreadsheet(spec) {
         for (var pi2 = 0; pi2 < grp2.players.length; pi2++) {
             var r = curResRow;
             var pSheetRow = 3 + pi2;
-            var rowArr = new Array(35).fill("");
+            var rowArr = new Array(34).fill("");
 
             if (pi2 === 0) {
                 rowArr[0] = '=IFERROR(REGEXEXTRACT(CELL("address", \'' + gEsc + '\'!A1), "\'?([^\'!]+)\'?!"), "' + grp2.name + '")';
@@ -825,10 +838,9 @@ function createTournamentSpreadsheet(spec) {
             rowArr[31] = '=IF(ISNUMBER($U' + r + '), INDEX(REDUCE({0, 0, -99}, C' + r + ':T' + r + ', LAMBDA(acc, v, LET(mx, INDEX(acc,1), cur, INDEX(acc,2), prv, INDEX(acc,3), ncur, IF(OR(v=0, v=1), IF(AND(OR(prv=0, prv=1), v<>prv), cur+1, 1), 0), {MAX(mx, ncur), ncur, v}))), 1), "")';
             rowArr[32] = '=IF(COUNT(C' + r + ':T' + r + ')=18, SUM(C' + r + ':K' + r + '), "")';
             rowArr[33] = '=IF(COUNT(C' + r + ':T' + r + ')=18, SUM(L' + r + ':T' + r + '), "")';
-            rowArr[34] = '=IF(AND(ISNUMBER(D' + r + '), ISNUMBER(U' + r + ')), SUM(M' + r + ':U' + r + '), "")';
 
             resGrid.push(rowArr);
-            resBgGrid.push(new Array(35).fill(gBg));
+            resBgGrid.push(new Array(34).fill(gBg));
             curResRow++;
         }
 
@@ -838,7 +850,7 @@ function createTournamentSpreadsheet(spec) {
         }
     }
 
-    resSheet.getRange(1, 1, resGrid.length, 35)
+    resSheet.getRange(1, 1, resGrid.length, 34)
         .setValues(resGrid)
         .setBackgrounds(resBgGrid)
         .setHorizontalAlignment("center")
@@ -867,7 +879,7 @@ function createTournamentSpreadsheet(spec) {
     resSheet.setColumnWidth(1, 52);
     resSheet.setColumnWidth(2, 88);
     resSheet.setColumnWidths(3, 18, 38);
-    resSheet.setColumnWidths(21, 15, 68);
+    resSheet.setColumnWidths(21, 14, 68);
     resSheet.setFrozenRows(1);
     resSheet.setFrozenColumns(2);
 
@@ -936,16 +948,19 @@ function createTournamentSpreadsheet(spec) {
     for (var sc = 0; sc < statCategories.length; sc++) {
         var cBase = sc * 2;
         var cat = statCategories[sc];
+        var valRange = "'결과'!" + cat.colL + "2:" + cat.colL + lastResRow;
         statRow1[cBase] = cat.title;
-        statRow2[cBase] = "=IFERROR(SORT({'결과'!B2:B" + lastResRow + ", '결과'!" + cat.colL + "2:" + cat.colL + lastResRow + "}, 2, " + cat.asc + "), \"\")";
+        statRow2[cBase] = "=IFERROR(SORT(FILTER({'결과'!B2:B" + lastResRow + ", " + valRange + "}, ISNUMBER(" + valRange + ")), 2, " + cat.asc + "), \"\")";
     }
     for (var se = 0; se < statEventDefs.length; se++) {
         var eBase = (statCategories.length + se) * 2;
         var evDef = statEventDefs[se];
         var nColL = colIndexToLetter(evDef.nameCol);
         var dColL = colIndexToLetter(evDef.distCol);
+        var nRange = "'니어/롱기'!" + nColL + "2:" + nColL + nearMaxRow;
+        var dRange = "'니어/롱기'!" + dColL + "2:" + dColL + nearMaxRow;
         statRow1[eBase] = evDef.title;
-        statRow2[eBase] = "=IFERROR(SORT({'니어/롱기'!" + nColL + "2:" + nColL + nearMaxRow + ", '니어/롱기'!" + dColL + "2:" + dColL + nearMaxRow + "}, 2, TRUE), \"\")";
+        statRow2[eBase] = "=IFERROR(SORT(FILTER({" + nRange + ", " + dRange + "}, " + nRange + "<>\"\"), 2, TRUE), \"\")";
     }
 
     statSheet.getRange(1, 1, 2, totalStatCols).setValues([statRow1, statRow2]);
@@ -1007,14 +1022,32 @@ function getInitBundle() {
         return { notFound: true, slug: CURRENT_REQ_SLUG, groupList: [] };
     }
     CURRENT_REQ_SHEET_ID = rec.sheetId;
-    var cfg = readConfigFromSpreadsheet(null, rec.sheetId);
+    var rawCfg = readConfigFromSpreadsheet(null, rec.sheetId);
+    var publicCfg = null;
+    if (rawCfg && typeof rawCfg === "object") {
+        publicCfg = {};
+        for (var k in rawCfg) {
+            if (!Object.prototype.hasOwnProperty.call(rawCfg, k)) continue;
+            if (k === "groups" && Array.isArray(rawCfg.groups)) {
+                publicCfg.groups = rawCfg.groups.map(function (g) {
+                    return {
+                        name: g.name,
+                        players: Array.isArray(g.players) ? g.players.map(function (p) {
+                            return { name: (typeof p === "string") ? p : String((p && p.name) || "") };
+                        }) : []
+                    };
+                });
+            } else {
+                publicCfg[k] = rawCfg[k];
+            }
+        }
+    }
     var groupList = getGroupList();
     return {
         notFound: false,
         slug: rec.slug,
         sheetId: rec.sheetId,
-        resultsUrl: rec.resultsUrl,
-        config: cfg,
+        config: publicCfg,
         groupList: groupList
     };
 }
@@ -1642,7 +1675,21 @@ function saveBirdieFeedToCacheAndProps(list) {
     }
     try {
         var propsOut = PropertiesService.getScriptProperties();
-        if (propsOut) propsOut.setProperty(getCurrentSheetScopePrefix("BF_"), outJson);
+        if (propsOut) {
+            var bfKey = getCurrentSheetScopePrefix("BF_");
+            var lruRaw = propsOut.getProperty("BF_LRU_KEYS_V1") || "[]";
+            var lru = [];
+            try { lru = JSON.parse(lruRaw); } catch (le) { lru = []; }
+            if (!Array.isArray(lru)) lru = [];
+            lru = lru.filter(function (k) { return k !== bfKey; });
+            lru.push(bfKey);
+            while (lru.length > 15) {
+                var oldKey = lru.shift();
+                if (oldKey) propsOut.deleteProperty(oldKey);
+            }
+            propsOut.setProperty(bfKey, outJson);
+            propsOut.setProperty("BF_LRU_KEYS_V1", JSON.stringify(lru));
+        }
     } catch (pe) { }
     try {
         var cacheOut = CacheService.getScriptCache();
@@ -1705,7 +1752,33 @@ function getBirdieFeed() {
     }
 }
 
-// Read Hall of Fame feed directly from column K (below K2) of 'Near/Long' tab (clears cache if column K was manually cleared)
+// Dynamically locate the 1-based 'Hall of Fame' column from row 1 of the 'Near/Long' tab (never collides with 5+ Near or 2+ Long holes)
+function getHallOfFameCol_(nearSheet) {
+    if (!nearSheet) return 11;
+    try {
+        var maxCol = Math.max(nearSheet.getLastColumn(), 11);
+        var hdrs = nearSheet.getRange(1, 1, 1, maxCol).getValues()[0];
+        for (var c = 0; c < hdrs.length; c++) {
+            var label = hdrs[c] ? String(hdrs[c]).trim() : "";
+            if (label === "명예의 전당" || label.indexOf("명예의 전당") !== -1) {
+                return c + 1;
+            }
+        }
+        var lastEventEndCol = 0;
+        for (var k = 0; k < hdrs.length; k++) {
+            var kl = hdrs[k] ? String(hdrs[k]).trim() : "";
+            if (kl.indexOf("니어") !== -1 || kl.indexOf("롱기") !== -1) {
+                lastEventEndCol = k + 2;
+            }
+        }
+        if (lastEventEndCol >= 11) {
+            return lastEventEndCol + 1;
+        }
+    } catch (e) { }
+    return 11;
+}
+
+// Read Hall of Fame feed directly from the dynamic 'Hall of Fame' column of 'Near/Long' tab
 function getHallOfFameFeed(ssOpt) {
     try {
         var ss = ssOpt || getTargetSpreadsheet();
@@ -1720,9 +1793,10 @@ function getHallOfFameFeed(ssOpt) {
             }
         }
 
+        var hofCol = getHallOfFameCol_(nearSheet);
         var lastRow = Math.max(nearSheet.getLastRow(), 2);
         var numRows = Math.max(lastRow - 1, 1);
-        var kValues = nearSheet.getRange(2, 11, numRows, 1).getValues();
+        var kValues = nearSheet.getRange(2, hofCol, numRows, 1).getValues();
 
         var sheetItems = [];
         for (var r = 0; r < kValues.length; r++) {
@@ -1878,17 +1952,19 @@ function updateBirdieFeed(newBirdies, canceledBirdies, ssOpt) {
 
         var now = Date.now();
 
-        // Read current lines below K2 in 'Near/Long' tab as source of truth (ensures manually deleted lines in sheet do not resurrect)
+        // Read current lines in the dynamic 'Hall of Fame' column of 'Near/Long' tab as source of truth
         var nearSheet = null;
+        var hofCol = 11;
         var origSheetKLen = 0;
         var filtered = [];
         try {
             var ss = ssOpt || getTargetSpreadsheet();
             nearSheet = ss ? ss.getSheetByName("니어/롱기") : null;
             if (nearSheet) {
+                hofCol = getHallOfFameCol_(nearSheet);
                 var lastRow = Math.max(nearSheet.getLastRow(), 2);
                 var numRows = Math.max(lastRow - 1, 1);
-                var kVals = nearSheet.getRange(2, 11, numRows, 1).getValues();
+                var kVals = nearSheet.getRange(2, hofCol, numRows, 1).getValues();
                 for (var r = 0; r < kVals.length; r++) {
                     var cellStr = kVals[r][0] !== null && kVals[r][0] !== undefined ? String(kVals[r][0]).trim() : "";
                     if (cellStr !== "") {
@@ -1971,7 +2047,7 @@ function updateBirdieFeed(newBirdies, canceledBirdies, ssOpt) {
                             kOutRows.push([""]);
                         }
                     }
-                    nearSheet.getRange(2, 11, writeKLen, 1).setValues(kOutRows);
+                    nearSheet.getRange(2, hofCol, writeKLen, 1).setValues(kOutRows);
                 }
             } catch (we) { }
         }
@@ -2182,8 +2258,8 @@ function parseLongDriveEntries(noteText) {
 // Sync Near-Pin (A:B, C:D, E:F, G:H) and Long-Drive (I:J) entries starting at row 2 of the 'Near/Long' tab
 function syncNearPinToSheet(ss, mergedNotes, activeIdxMap, hasSpecificActiveHoles, groupPlayersMap, nearPinHoles, longDriveHoles) {
     try {
-        var nearList = (Array.isArray(nearPinHoles) && nearPinHoles.length > 0) ? nearPinHoles : [3, 7, 11, 14];
-        var longList = (Array.isArray(longDriveHoles) && longDriveHoles.length > 0) ? longDriveHoles : [5];
+        var nearList = Array.isArray(nearPinHoles) ? nearPinHoles : [];
+        var longList = Array.isArray(longDriveHoles) ? longDriveHoles : [];
         var eventHoleCols = [];
 
         // 1. Near-Pin hole column mapping: 1st->A:B(1), 2nd->C:D(3), 3rd->E:F(5), 4th->G:H(7)
@@ -2312,7 +2388,7 @@ function getEventBoardData() {
     var sheet = getTargetSpreadsheet().getSheetByName("니어/롱기");
     if (!sheet) return [];
     var lastRow = sheet.getLastRow();
-    var lastCol = Math.min(sheet.getLastColumn(), 26);
+    var lastCol = Math.min(sheet.getLastColumn(), 40);
     if (lastRow < 2 || lastCol < 1) return [];
     return sheet.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
 }
@@ -2557,55 +2633,50 @@ function adminCreateTournament(pin, spec) {
         }
     }
 
-    var lock = LockService.getScriptLock();
-    lock.waitLock(30000);
-    try {
-        var cfg = spec.config || {};
-        cfg.tournamentId = slug;
-        var managerPin = String(spec.managerPin !== undefined ? spec.managerPin : (existing ? existing.managerPin : "")).trim();
+    // Standalone new sheet creation & Drive/GitHub calls run WITHOUT holding global ScriptLock (upsertTournamentInRegistry locks for ~0.2s)
+    var cfg = spec.config || {};
+    cfg.tournamentId = slug;
+    var managerPin = String(spec.managerPin !== undefined ? spec.managerPin : (existing ? existing.managerPin : "")).trim();
 
-        var created = createTournamentSpreadsheet({
-            config: cfg,
-            groups: spec.groups || cfg.groups || [],
-            pars: spec.pars,
-            managerPin: managerPin
-        });
+    var created = createTournamentSpreadsheet({
+        config: cfg,
+        groups: spec.groups || cfg.groups || [],
+        pars: spec.pars,
+        managerPin: managerPin
+    });
 
-        if (existing && existing.sheetId) {
-            invalidateSheetCaches(existing.sheetId);
-        }
-        invalidateSheetCaches(created.sheetId);
-
-        var viewerShare = grantSheetViewerToOwnerOnly_(created.sheetId, ownerEmail);
-
-        var regSaved = upsertTournamentInRegistry({
-            slug: slug,
-            sheetId: created.sheetId,
-            sheetTitle: created.sheetTitle,
-            courseKey: cfg.courseKey || "",
-            managerPin: managerPin,
-            resultsUrl: created.resultsUrl,
-            createdAt: existing ? existing.createdAt : "",
-            ownerEmail: ownerEmail
-        });
-
-        var ghSync = syncGithubSlugPreviewPage(regSaved.slug, created.sheetTitle, false);
-        return {
-            slug: regSaved.slug,
-            sheetId: created.sheetId,
-            sheetTitle: created.sheetTitle,
-            resultsUrl: created.resultsUrl,
-            managerPin: managerPin,
-            ownerEmail: ownerEmail,
-            viewerGranted: viewerShare.viewerGranted,
-            viewerNote: viewerShare.viewerNote,
-            ghPreviewSynced: Boolean(ghSync && ghSync.synced),
-            config: cfg,
-            groupList: created.groupList
-        };
-    } finally {
-        lock.releaseLock();
+    if (existing && existing.sheetId) {
+        invalidateSheetCaches(existing.sheetId);
     }
+    invalidateSheetCaches(created.sheetId);
+
+    var viewerShare = grantSheetViewerToOwnerOnly_(created.sheetId, ownerEmail);
+
+    var regSaved = upsertTournamentInRegistry({
+        slug: slug,
+        sheetId: created.sheetId,
+        sheetTitle: created.sheetTitle,
+        courseKey: cfg.courseKey || "",
+        managerPin: managerPin,
+        resultsUrl: created.resultsUrl,
+        createdAt: existing ? existing.createdAt : "",
+        ownerEmail: ownerEmail
+    });
+
+    var ghSync = syncGithubSlugPreviewPage(regSaved.slug, created.sheetTitle, false);
+    return {
+        slug: regSaved.slug,
+        sheetId: created.sheetId,
+        sheetTitle: created.sheetTitle,
+        resultsUrl: created.resultsUrl,
+        managerPin: managerPin,
+        ownerEmail: ownerEmail,
+        viewerGranted: viewerShare.viewerGranted,
+        viewerNote: viewerShare.viewerNote,
+        ghPreviewSynced: Boolean(ghSync && ghSync.synced),
+        config: cfg,
+        groupList: created.groupList
+    };
 }
 
 // Normalize raw group roster array into [{ name, players: [{ name, handicap }] }]
@@ -2630,6 +2701,178 @@ function normalizeTournamentGroups_(rawGroups) {
         if (cleanPlayers.length > 0) norm.push({ name: gName, players: cleanPlayers });
     }
     return norm;
+}
+
+// Snapshot entered hole scores, Near/Long memos, and Hall of Fame entries before rebuilding tabs on the same golf course
+function snapshotExistingTournamentProgress_(ss) {
+    var snap = {
+        hasAnyScores: false,
+        hasAnyMemos: false,
+        byGroupAndPlayer: {},
+        byPlayer: {},
+        playerHoleMemos: {},
+        groupFreeMemos: {},
+        hofLines: []
+    };
+    if (!ss) return snap;
+    try {
+        var sheets = ss.getSheets();
+        for (var i = 0; i < sheets.length; i++) {
+            var sh = sheets[i];
+            var gName = sh.getName();
+            if (gName.indexOf("조") === -1 || gName.indexOf("결과") !== -1 || gName.indexOf("Copy") !== -1) {
+                continue;
+            }
+            var maxR = Math.max(sh.getLastRow(), 16);
+            var vals = sh.getRange(1, 1, maxR, 19).getValues();
+            var inPlayers = true;
+            for (var r = 2; r < vals.length; r++) {
+                var label = vals[r][0] !== null && vals[r][0] !== undefined ? String(vals[r][0]).trim() : "";
+                if (label === "홀파미션" || label.indexOf("점수") !== -1 || (vals[r][1] && String(vals[r][1]).indexOf("파 대비") !== -1)) {
+                    inPlayers = false;
+                    continue;
+                }
+                if (label === "메모" || label.indexOf("메모") !== -1) {
+                    inPlayers = false;
+                    for (var h = 0; h < 18; h++) {
+                        var rawMemo = vals[r][h + 1] !== null && vals[r][h + 1] !== undefined ? String(vals[r][h + 1]).trim() : "";
+                        if (!rawMemo) continue;
+                        snap.hasAnyMemos = true;
+                        var lines = rawMemo.split(/\r?\n/);
+                        for (var li = 0; li < lines.length; li++) {
+                            var ln = lines[li].trim();
+                            if (!ln) continue;
+                            var colonIdx = ln.indexOf(":");
+                            if (colonIdx > 0) {
+                                var mpName = ln.slice(0, colonIdx).trim();
+                                if (!snap.playerHoleMemos[h]) snap.playerHoleMemos[h] = {};
+                                snap.playerHoleMemos[h][mpName] = ln;
+                            } else {
+                                if (!snap.groupFreeMemos[gName]) snap.groupFreeMemos[gName] = {};
+                                snap.groupFreeMemos[gName][h] = (snap.groupFreeMemos[gName][h] ? (snap.groupFreeMemos[gName][h] + "\n") : "") + ln;
+                            }
+                        }
+                    }
+                    break;
+                }
+                if (inPlayers && label) {
+                    var rowScores = [];
+                    var playerHasScore = false;
+                    for (var hc = 1; hc <= 18; hc++) {
+                        var sv = vals[r][hc];
+                        if (sv !== "" && sv !== null && sv !== undefined && !isNaN(Number(sv))) {
+                            rowScores.push(Number(sv));
+                            playerHasScore = true;
+                        } else {
+                            rowScores.push("");
+                        }
+                    }
+                    if (playerHasScore) {
+                        snap.hasAnyScores = true;
+                        snap.byGroupAndPlayer[gName + "::" + label] = rowScores;
+                        if (!snap.byPlayer[label]) {
+                            snap.byPlayer[label] = rowScores;
+                        }
+                    }
+                }
+            }
+        }
+        var oldNear = ss.getSheetByName("니어/롱기");
+        if (oldNear && oldNear.getLastRow() >= 2) {
+            var oldHofCol = getHallOfFameCol_(oldNear);
+            var hVals = oldNear.getRange(2, oldHofCol, oldNear.getLastRow() - 1, 1).getValues();
+            for (var hr = 0; hr < hVals.length; hr++) {
+                var hs = hVals[hr][0] !== null && hVals[hr][0] !== undefined ? String(hVals[hr][0]).trim() : "";
+                if (hs) snap.hofLines.push(hs);
+            }
+        }
+    } catch (e) { }
+    return snap;
+}
+
+// Silently restore preserved player hole scores, Near/Long memos, and Hall of Fame entries onto rebuilt tabs
+function restoreTournamentProgressToRebuiltSheet_(ss, normNewGroups, cfg, snap) {
+    if (!ss || !snap) return false;
+    if (!snap.hasAnyScores && !snap.hasAnyMemos && snap.hofLines.length === 0) return false;
+
+    var restoredAny = false;
+    var mergedNotesMap = {};
+    var groupPlayersMap = {};
+
+    for (var gi = 0; gi < normNewGroups.length; gi++) {
+        var grp = normNewGroups[gi];
+        var gSheet = ss.getSheetByName(grp.name);
+        if (!gSheet) continue;
+        var pCount = grp.players.length;
+        var lastPlayerRow = 2 + pCount;
+        var missionRow = lastPlayerRow + 2;
+        var memoRow = Math.max(15, missionRow + 3);
+
+        var pMap = {};
+        var scoreMatrix = [];
+        var groupHasScore = false;
+
+        for (var pi = 0; pi < pCount; pi++) {
+            var pName = grp.players[pi].name;
+            pMap[pName] = true;
+            var savedRow = snap.byGroupAndPlayer[grp.name + "::" + pName] || snap.byPlayer[pName] || null;
+            if (savedRow) {
+                scoreMatrix.push(savedRow.slice(0, 18));
+                groupHasScore = true;
+                restoredAny = true;
+            } else {
+                var blank = [];
+                for (var b = 0; b < 18; b++) blank.push("");
+                scoreMatrix.push(blank);
+            }
+        }
+        groupPlayersMap[grp.name] = pMap;
+
+        if (groupHasScore) {
+            gSheet.getRange(3, 2, pCount, 18).setValues(scoreMatrix);
+        }
+
+        var memoCells = [];
+        var groupHasMemo = false;
+        for (var h = 0; h < 18; h++) {
+            var parts = [];
+            var phMap = snap.playerHoleMemos[h] || {};
+            for (var pi2 = 0; pi2 < pCount; pi2++) {
+                var pn2 = grp.players[pi2].name;
+                if (phMap[pn2]) parts.push(phMap[pn2]);
+            }
+            if (snap.groupFreeMemos[grp.name] && snap.groupFreeMemos[grp.name][h]) {
+                parts.push(snap.groupFreeMemos[grp.name][h]);
+            }
+            var cellTxt = parts.join("\n");
+            if (cellTxt) {
+                groupHasMemo = true;
+                restoredAny = true;
+            }
+            memoCells.push(cellTxt);
+        }
+        if (groupHasMemo) {
+            gSheet.getRange(memoRow, 2, 1, 18).setValues([memoCells]);
+            mergedNotesMap[grp.name] = memoCells;
+        }
+    }
+
+    if (Object.keys(mergedNotesMap).length > 0) {
+        syncNearPinToSheet(ss, mergedNotesMap, {}, false, groupPlayersMap, cfg.nearPinHoles || [], cfg.longDriveHoles || []);
+    }
+
+    if (snap.hofLines.length > 0) {
+        var newNear = ss.getSheetByName("니어/롱기");
+        if (newNear) {
+            var newHofCol = getHallOfFameCol_(newNear);
+            var hofRows = snap.hofLines.map(function (ln) { return [ln]; });
+            newNear.getRange(2, newHofCol, hofRows.length, 1).setValues(hofRows);
+            restoredAny = true;
+        }
+    }
+
+    SpreadsheetApp.flush();
+    return restoredAny;
 }
 
 // [Master OR Club Manager] Unified Save: updates config, player names/handicaps, or group tabs inside the SAME Google Sheet
@@ -2689,6 +2932,9 @@ function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt, par
         var nextResultsUrl = rec.resultsUrl;
 
         if (normNewGroups.length > 0 && (!sameShape || courseChanged || eventHolesChanged)) {
+            // If staying on the same golf course, snapshot existing scores/memos/Hall-of-Fame so zero progress is lost!
+            var progressSnap = (!courseChanged) ? snapshotExistingTournamentProgress_(ss) : null;
+
             // Rebuild tabs inside the SAME existing spreadsheet (same sheetId, zero duplicate files)
             var rebuilt = createTournamentSpreadsheet({
                 existingSs: ss,
@@ -2698,7 +2944,15 @@ function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt, par
                 managerPin: nextManagerPin
             });
             nextResultsUrl = rebuilt.resultsUrl;
-            updateMode = "rebuilt_in_same_sheet";
+
+            if (courseChanged) {
+                CURRENT_REQ_SHEET_ID = rec.sheetId;
+                try { PropertiesService.getScriptProperties().deleteProperty(getCurrentSheetScopePrefix("BF_")); } catch (bfe) { }
+                updateMode = "rebuilt_course_changed";
+            } else {
+                var scoresRestored = restoreTournamentProgressToRebuiltSheet_(ss, normNewGroups, cfg, progressSnap);
+                updateMode = scoresRestored ? "rebuilt_scores_preserved" : "rebuilt_in_same_sheet";
+            }
         } else {
             if (normNewGroups.length > 0 && sameShape && !samePlayers) {
                 // Update only player names (col A) and handicaps (col U) in-place while preserving all entered hole scores
@@ -2722,10 +2976,12 @@ function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt, par
             writeConfigToSpreadsheet(ss, cfg, nextManagerPin);
         }
 
-        var effectiveOwner = normalizeUserEmail_(rec.ownerEmail || auth.email || "");
-        grantSheetViewerToOwnerOnly_(rec.sheetId, effectiveOwner);
         invalidateSheetCaches(rec.sheetId);
+        var effectiveOwner = normalizeUserEmail_(rec.ownerEmail || auth.email || "");
+        lock.releaseLock();
+        lock = null;
 
+        var updViewerShare = grantSheetViewerToOwnerOnly_(rec.sheetId, effectiveOwner);
         var saved = upsertTournamentInRegistry({
             slug: rec.slug,
             sheetId: rec.sheetId,
@@ -2741,6 +2997,8 @@ function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt, par
         return {
             updated: true,
             updateMode: updateMode,
+            viewerGranted: updViewerShare.viewerGranted,
+            viewerNote: updViewerShare.viewerNote,
             ghPreviewSynced: Boolean(ghSyncUpd && ghSyncUpd.synced),
             slug: saved.slug,
             sheetId: saved.sheetId,
@@ -2749,7 +3007,7 @@ function adminUpdateTournamentConfig(slug, pin, newConfig, newManagerPinOpt, par
             config: cfg
         };
     } finally {
-        lock.releaseLock();
+        if (lock) lock.releaseLock();
     }
 }
 
@@ -2881,6 +3139,20 @@ function adminDeleteTournament(authCred, slug) {
                 }
                 // If the file was already manually deleted in Drive, continue cleaning up the registry
             }
+        }
+        if (!otherReference) {
+            try {
+                var delProps = PropertiesService.getScriptProperties();
+                var delBfKey = "BF_" + targetSheetId.slice(0, 28) + "_";
+                delProps.deleteProperty(delBfKey);
+                var lruRawDel = delProps.getProperty("BF_LRU_KEYS_V1");
+                if (lruRawDel) {
+                    var lruArr = JSON.parse(lruRawDel);
+                    if (Array.isArray(lruArr)) {
+                        delProps.setProperty("BF_LRU_KEYS_V1", JSON.stringify(lruArr.filter(function (k) { return k !== delBfKey; })));
+                    }
+                }
+            } catch (peDel) { }
         }
         invalidateSheetCaches(targetSheetId);
     }

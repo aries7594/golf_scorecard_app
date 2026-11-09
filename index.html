@@ -9,7 +9,14 @@
   <meta name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Golf ScoreCard</title>
-  <link rel="stylesheet" href="css/app.css?v=20261109e">
+  <script>
+    try {
+      if (/KAKAOTALK/i.test(navigator.userAgent || "") && window.top === window.self) {
+        window.location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(window.location.href);
+      }
+    } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/app.css?v=20261109i">
 </head>
 
 <body>
@@ -23,7 +30,7 @@
 
     <!-- Landing screen: course hero banner + notice card + group selection grid -->
     <div id="quickSelectArea">
-      <div class="golf-hero-card">
+      <div class="golf-hero-card" style="display:none;">
         <img id="heroImgEl" alt="" class="golf-hero-img">
         <div class="golf-hero-overlay">
           <div class="golf-hero-venue" id="heroVenueEl"></div>
@@ -42,7 +49,7 @@
         </div>
       </div>
 
-      <div class="notice-card">
+      <div class="notice-card" style="display:none;">
         <div class="notice-header">
           <span id="noticeTitleEl">📢 경기 진행 안내</span>
         </div>
@@ -444,15 +451,13 @@
   </div>
 
   <!-- Load TournamentConfig.js & CourseData.js for direct GitHub execution -->
-  <script src="TournamentConfig.js?v=20261109e"></script>
-  <script src="CourseData.js?v=20261109e"></script>
-  <script src="courses/manifest.js?v=20261109e"></script>
-  <script src="courses/wente.js?v=20261109e"></script>
-  <script src="js/api-client.js?v=20261109e"></script>
-  <script src="js/gps-map.js?v=20261109e"></script>
-  <script src="js/boards.js?v=20261109e"></script>
-  <script src="js/score-entry.js?v=20261109e"></script>
-  <script src="js/event-board.js?v=20261109e"></script>
+  <script src="TournamentConfig.js?v=20261109i"></script>
+  <script src="CourseData.js?v=20261109i"></script>
+  <script src="js/api-client.js?v=20261109i"></script>
+  <script src="js/gps-map.js?v=20261109i"></script>
+  <script src="js/boards.js?v=20261109i"></script>
+  <script src="js/score-entry.js?v=20261109i"></script>
+  <script src="js/event-board.js?v=20261109i"></script>
 </body>
 
 </html>

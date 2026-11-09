@@ -416,7 +416,7 @@
       }
     }
 
-    function showIssuedLinksBanner(slug, resultsUrl, sheetTitle) {
+    function showIssuedLinksBanner(slug, resultsUrl, sheetTitle, viewerGrantedOpt) {
       var box = document.getElementById("issuedLinksBox");
       var pUrl = buildParticipantUrl(slug);
       document.getElementById("issuedBannerTitle").textContent =
@@ -427,7 +427,17 @@
       document.getElementById("sheetResultOpenBtn").href = resultsUrl || "#";
       var viewerBadge = document.getElementById("sheetViewerEmailBadge");
       if (viewerBadge && currentAuthEmail) {
-        viewerBadge.textContent = "🔒 열람 권한: " + currentAuthEmail + " 계정에만 Viewer 권한 부여됨";
+        if (viewerGrantedOpt === false) {
+          viewerBadge.style.background = "#fffbeb";
+          viewerBadge.style.borderColor = "#fde68a";
+          viewerBadge.style.color = "#b45309";
+          viewerBadge.textContent = "⚠️ " + currentAuthEmail + " 은(는) 구글 계정이 아니어서 시트 열람이 제한될 수 있습니다 (Gmail 계정 권장)";
+        } else {
+          viewerBadge.style.background = "#eff6ff";
+          viewerBadge.style.borderColor = "#bfdbfe";
+          viewerBadge.style.color = "#1d4ed8";
+          viewerBadge.textContent = "🔒 열람 권한: " + currentAuthEmail + " 계정에만 Viewer 권한 부여됨";
+        }
       }
       box.style.display = "flex";
     }
@@ -1186,6 +1196,8 @@
         document.getElementById("noticeRichEditor").innerHTML = "";
         document.getElementById("afterPartyPlaceInput").value = "";
         document.getElementById("afterPartyAddrInput").value = "";
+        document.getElementById("firstTeeTimeInput").value = "";
+        document.getElementById("teeIntervalInput").value = "8";
         editorGroups = [];
       } else {
         // Restore tee selections or custom tee text
@@ -1222,6 +1234,8 @@
 
         document.getElementById("afterPartyPlaceInput").value = cfg.afterPartyPlace || "";
         document.getElementById("afterPartyAddrInput").value = cfg.afterPartyAddr || "";
+        document.getElementById("firstTeeTimeInput").value = cfg.firstTeeTime || "";
+        document.getElementById("teeIntervalInput").value = String(cfg.teeIntervalMin || 8);
 
         var grpSource = (Array.isArray(groupsOpt) && groupsOpt.length > 0) ? groupsOpt : (cfg.groups || []);
         editorGroups = normalizeGroupsForEditor(grpSource);
@@ -1284,9 +1298,12 @@
       var afterAddr = document.getElementById("afterPartyAddrInput").value.trim();
       var baseCfg = (typeof TOURNAMENT_CONFIG !== "undefined" && TOURNAMENT_CONFIG) ? TOURNAMENT_CONFIG : {};
 
+      var selCourseObj = getSelectedCourseObj();
       return {
         tournamentId: slug,
         courseKey: document.getElementById("courseSelect").value,
+        courseName: (selCourseObj && selCourseObj.name) || "",
+        coursePars: getSelectedCoursePars(),
         heroImgUrl: "images/hero_hills.jpg",
         sheetTitle: sheetTitle,
         tournamentTitle: tournamentTitle,
@@ -1307,7 +1324,8 @@
         afterPartyAddr: afterAddr,
         afterPartyHtml: buildAfterPartyHtml(afterPlace, afterAddr),
         copyrightHtml: baseCfg.copyrightHtml || "",
-        firstTeeTime: "",
+        firstTeeTime: document.getElementById("firstTeeTimeInput").value.trim(),
+        teeIntervalMin: Math.max(1, parseInt(document.getElementById("teeIntervalInput").value, 10) || 8),
         groups: collectCleanedGroups()
       };
     }
@@ -1503,7 +1521,7 @@
           editingExistingSlug = res.slug;
           editingExistingTitle = res.sheetTitle || cfg.sheetTitle;
           refreshEditingModeUI();
-          showIssuedLinksBanner(res.slug, res.resultsUrl, editingExistingTitle);
+          showIssuedLinksBanner(res.slug, res.resultsUrl, editingExistingTitle, res.viewerGranted);
           syncSlugLocalCache(res.slug, res.config || cfg, res.sheetId);
           showToast("🎉 [" + editingExistingTitle + "] 구글 시트와 전용 링크가 발급되었습니다!", 5000);
           window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1541,9 +1559,11 @@
         .then(function (res) {
           editingExistingTitle = cfg.sheetTitle;
           refreshEditingModeUI();
-          showIssuedLinksBanner(slug, res.resultsUrl, editingExistingTitle);
+          showIssuedLinksBanner(slug, res.resultsUrl, editingExistingTitle, res.viewerGranted);
           syncSlugLocalCache(slug, cfg, res.sheetId);
-          if (res && res.updateMode === "rebuilt_in_same_sheet") {
+          if (res && res.updateMode === "rebuilt_scores_preserved") {
+            showToast("✅ [" + editingExistingTitle + "] 변경사항이 반영되었습니다! (기존 입력 점수 자동 유지)");
+          } else if (res && (res.updateMode === "rebuilt_in_same_sheet" || res.updateMode === "rebuilt_course_changed")) {
             showToast("✅ [" + editingExistingTitle + "] 변경된 명단과 설정이 기존 시트에 반영되었습니다!");
           } else if (res && res.updateMode === "roster_inplace") {
             showToast("✅ [" + editingExistingTitle + "] 선수 이름·핸디 및 설정이 저장되었습니다! (기존 점수 유지)");

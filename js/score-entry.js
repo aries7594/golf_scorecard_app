@@ -266,7 +266,7 @@
           '<div style="font-size:13px; color:#4b5563; line-height:1.55; margin-bottom:16px;">카톡 등으로 전달받으신 <b>대회 전용 링크</b>로 접속하시거나,<br>안내받은 <b>대회 코드</b>를 아래에 입력해 주세요.</div>' +
           alertHtml +
           '<form onsubmit="return submitPortalTournamentSlug(event)" style="display:flex; gap:8px; justify-content:center; max-width:340px; margin:0 auto 16px auto;">' +
-          '<input id="portalSlugInput" type="text" placeholder="대회 코드 (예: 2026-fall)" value="' + (ACTIVE_TOURNAMENT_SLUG || "") + '" ' +
+          '<input id="portalSlugInput" type="text" placeholder="대회 코드 (예: 8cgqps)" value="' + (ACTIVE_TOURNAMENT_SLUG || "") + '" ' +
           'style="flex:1; padding:11px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:14px; font-weight:700; text-transform:lowercase;">' +
           '<button type="submit" style="padding:11px 18px; border:none; border-radius:10px; background:linear-gradient(180deg,#9e0028 0%,#800020 100%); color:#fff; font-size:14px; font-weight:800; cursor:pointer; white-space:nowrap;">입장 ➔</button>' +
           '</form>' +
@@ -298,10 +298,10 @@
             var rawDraft = localStorage.getItem("golf_admin_live_preview_v1");
             var draftObj = rawDraft ? JSON.parse(rawDraft) : {};
             var prevCfg = draftObj.config || T_CFG;
-            setTournamentHeaderCardsVisible(true);
             ensureCourseLoaded(prevCfg && prevCfg.courseKey, function () {
               rebuildActiveCourseVars(prevCfg, "preview");
               applyCourseConfigUI();
+              setTournamentHeaderCardsVisible(true);
               populateGroups(Array.isArray(draftObj.groupList) ? draftObj.groupList : []);
             });
             window.selectGroupQuick = function () {
@@ -331,33 +331,80 @@
           // Hide default static template banners until this slug's own config arrives (~0.2s)
           setTournamentHeaderCardsVisible(false);
         }
-        google.script.run
-          .withSuccessHandler(function (bundle) {
-            if (bundle && (bundle.missingSlug || bundle.notFound)) {
-              renderTournamentPortalCard("⚠️ 등록되지 않은 대회 코드입니다: <b>" + (ACTIVE_TOURNAMENT_SLUG || "") + "</b><br>전달받으신 대회 전용 링크를 다시 확인해 주세요.");
-              return;
-            }
-            setTournamentHeaderCardsVisible(true);
-            if (bundle && typeof bundle === "object" && !Array.isArray(bundle)) {
-              var scopeId = bundle.sheetId || ACTIVE_TOURNAMENT_SLUG;
-              var targetCfg = (bundle.config && typeof bundle.config === "object") ? bundle.config : T_CFG;
-              if (bundle.config && typeof bundle.config === "object") {
-                try { localStorage.setItem(CACHED_REMOTE_CFG_KEY, JSON.stringify(bundle.config)); } catch (e) { }
+        function renderInitRetryErrorCard(errMsg) {
+          var quickGrid = document.getElementById("quickGroupGrid");
+          if (!quickGrid) return;
+          var ua = navigator.userAgent || "";
+          var isInApp = /KAKAOTALK|FBAN|FBAV|Instagram|Line|NAVER/i.test(ua);
+          var extBtnHtml = isInApp
+            ? '<button type="button" onclick="openInExternalBrowser()" style="margin-top:8px; width:100%; padding:11px 14px; border:1.5px solid #003876; border-radius:10px; background:#eff6ff; color:#003876; font-size:13px; font-weight:800; cursor:pointer;">🌐 외부 브라우저(크롬/사파리)로 열기</button>'
+            : '';
+          quickGrid.innerHTML =
+            '<div style="grid-column:1 / -1; background:#fff5f5; border:1.5px solid #ffc9c9; border-radius:16px; padding:22px 16px; text-align:center; margin-top:12px;">' +
+            '<div style="font-size:15px; font-weight:900; color:#c92a2a; margin-bottom:6px;">📡 통신 상태가 불안정하여 대회 정보를 불러오지 못했습니다</div>' +
+            '<div style="font-size:12.5px; color:#5c3c00; margin-bottom:14px; line-height:1.5;">잠시 후 아래 버튼을 눌러 다시 시도해 주세요.' +
+            (errMsg ? ('<br><span style="font-size:11px; color:#868e96;">(' + errMsg.replace(/[<>&]/g, "") + ')</span>') : '') + '</div>' +
+            '<button type="button" id="retryInitBundleBtn" onclick="window.__retryInitBundleNow()" style="width:100%; max-width:260px; padding:12px 18px; border:none; border-radius:11px; background:linear-gradient(180deg,#9e0028 0%,#800020 100%); color:#fff; font-size:14px; font-weight:900; cursor:pointer;">🔄 다시 시도</button>' +
+            extBtnHtml +
+            '</div>';
+        }
+
+        function fetchInitBundleWithRetry(attemptNum) {
+          var quickGrid = document.getElementById("quickGroupGrid");
+          if (attemptNum === 0 && quickGrid && quickGrid.querySelector("#retryInitBundleBtn")) {
+            quickGrid.innerHTML = '<div class="loading-notice">⏳ 조 편성표를 다시 불러오는 중입니다...</div>';
+          }
+          google.script.run
+            .withSuccessHandler(function (bundle) {
+              if (bundle && (bundle.missingSlug || bundle.notFound)) {
+                renderTournamentPortalCard("⚠️ 등록되지 않은 대회 코드입니다: <b>" + (ACTIVE_TOURNAMENT_SLUG || "") + "</b><br>전달받으신 대회 전용 링크를 다시 확인해 주세요.");
+                return;
               }
-              ensureCourseLoaded(targetCfg && targetCfg.courseKey, function () {
-                rebuildActiveCourseVars(targetCfg, scopeId);
-                applyCourseConfigUI();
-                populateGroups(bundle.groupList || []);
-              });
-              return;
-            }
-            populateGroups(Array.isArray(bundle) ? bundle : []);
-          })
-          .withFailureHandler(function (err) {
-            var msg = String((err && err.message) || err || "");
-            showToast("대회 정보 로드 실패: " + msg);
-          })
-          .getInitBundle();
+              if (bundle && typeof bundle === "object" && !Array.isArray(bundle)) {
+                var scopeId = bundle.sheetId || ACTIVE_TOURNAMENT_SLUG;
+                var targetCfg = (bundle.config && typeof bundle.config === "object") ? bundle.config : T_CFG;
+                if (bundle.config && typeof bundle.config === "object") {
+                  try { localStorage.setItem(CACHED_REMOTE_CFG_KEY, JSON.stringify(bundle.config)); } catch (e) { }
+                }
+                ensureCourseLoaded(targetCfg && targetCfg.courseKey, function (loadedCourse) {
+                  function finalizeRender() {
+                    rebuildActiveCourseVars(targetCfg, scopeId);
+                    applyCourseConfigUI();
+                    setTournamentHeaderCardsVisible(true);
+                    populateGroups(bundle.groupList || []);
+                    if (!loadedCourse && targetCfg && targetCfg.courseKey) {
+                      showToast("⚠️ 통신이 불안정해 코스 지도 데이터를 아직 받지 못했습니다.\n(홀별 파·점수 입력은 정상 작동하며, 코스맵을 누르면 다시 불러옵니다.)", 5500);
+                    }
+                  }
+                  // If both course JS failed AND legacy config lacked coursePars, lazy-load manifest.js once for exact pars
+                  if (!loadedCourse && targetCfg && targetCfg.courseKey && (!Array.isArray(targetCfg.coursePars) || targetCfg.coursePars.length !== 18) && (!window.COURSE_MANIFEST || window.COURSE_MANIFEST.length === 0)) {
+                    var mfScript = document.createElement("script");
+                    mfScript.src = "courses/manifest.js";
+                    mfScript.onload = finalizeRender;
+                    mfScript.onerror = finalizeRender;
+                    (document.head || document.documentElement).appendChild(mfScript);
+                  } else {
+                    finalizeRender();
+                  }
+                });
+                return;
+              }
+              setTournamentHeaderCardsVisible(true);
+              populateGroups(Array.isArray(bundle) ? bundle : []);
+            })
+            .withFailureHandler(function (err) {
+              var msg = String((err && err.message) || err || "");
+              if (attemptNum < 2) {
+                setTimeout(function () { fetchInitBundleWithRetry(attemptNum + 1); }, 1100 * (attemptNum + 1));
+                return;
+              }
+              renderInitRetryErrorCard(msg);
+              showToast("대회 정보 로드 실패: " + msg);
+            })
+            .getInitBundle();
+        }
+        window.__retryInitBundleNow = function () { fetchInitBundleWithRetry(0); };
+        fetchInitBundleWithRetry(0);
       }
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", runInit);
@@ -366,8 +413,20 @@
       }
     })();
 
-    // Automatically flush pending offline holes when internet connection returns
+    // Automatically recover course map geometry & flush pending offline holes when internet connection returns
     window.addEventListener("online", function () {
+      if (SELECTED_COURSE_KEY && typeof isFullCourseLoaded === "function" && !isFullCourseLoaded(SELECTED_COURSE_KEY)) {
+        ensureCourseLoaded(SELECTED_COURSE_KEY, function (loadedCourse) {
+          if (loadedCourse) {
+            rebuildActiveCourseVars(T_CFG, ACTIVE_TOURNAMENT_SCOPE);
+            applyCourseConfigUI();
+            if (currentGroupData) {
+              renderHole(currentHole, true);
+              renderMiniScorecard(false);
+            }
+          }
+        });
+      }
       if (!isViewOnly && hasPendingLocalSave && currentGroupData && !isSaving && !isDirty) {
         if (pendingLocalHoles.length > 0) {
           syncPendingOfflineHoles();

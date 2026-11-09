@@ -261,15 +261,44 @@
     }
 
     var ALL_COURSES = (typeof COURSE_CATALOG !== "undefined" && COURSE_CATALOG) ? COURSE_CATALOG : {};
-    var SELECTED_COURSE_KEY = (T_CFG.courseKey && ALL_COURSES[T_CFG.courseKey]) ? T_CFG.courseKey : (Object.keys(ALL_COURSES)[0] || "");
+    var SELECTED_COURSE_KEY = "";
 
-    var BASE_COURSE = ALL_COURSES[SELECTED_COURSE_KEY] || {};
+    var BASE_COURSE = {};
     var ACTIVE_COURSE = {};
     var longDriveHoles = [];
     var nearPinHoles = [];
     var COURSE_DATA = [];
     var COURSE_TEE_LIST = [];
     var SEEN_BIRDIES_STORAGE_KEY = "";
+
+    // Build an exact-Par course shell from COURSE_MANIFEST or saved config.coursePars if courses/<key>.js fails in a dead zone
+    function buildFallbackCourseShell(courseKey, cfgObj) {
+      var meta = (typeof getCourseManifestEntry === "function" && courseKey) ? getCourseManifestEntry(courseKey) : null;
+      var pars = (meta && Array.isArray(meta.pars) && meta.pars.length === 18)
+        ? meta.pars
+        : ((cfgObj && Array.isArray(cfgObj.coursePars) && cfgObj.coursePars.length === 18) ? cfgObj.coursePars : null);
+      var cName = (meta && meta.name) || (cfgObj && cfgObj.courseName) || "";
+      var cCity = (meta && meta.city) || "";
+      var holesShell = [];
+      if (pars) {
+        for (var i = 0; i < 18; i++) {
+          holesShell.push({ hole: i + 1, par: Number(pars[i]) || 4, hdcp: i + 1 });
+        }
+      }
+      var parSum = pars ? pars.reduce(function (s, p) { return s + (Number(p) || 4); }, 0) : 72;
+      return {
+        key: courseKey || "",
+        name: cName,
+        heroVenue: cName ? (cName + " · Par " + parSum) : "",
+        address: cCity ? (cCity + ", CA") : "",
+        longDriveHoles: (meta && meta.longDriveHoles) || [],
+        nearPinHoles: (meta && meta.nearPinHoles) || [],
+        defaultTeeKey: "white",
+        teeList: [],
+        holes: holesShell,
+        isFallbackShell: true
+      };
+    }
 
     function rebuildActiveCourseVars(cfgSource, sheetScopeOpt) {
       if (sheetScopeOpt) {
@@ -278,9 +307,12 @@
       }
       var nextCfg = cfgSource || T_CFG || {};
       T_CFG = nextCfg;
-      var reqKey = (typeof normalizeCourseKey === "function") ? normalizeCourseKey(nextCfg.courseKey) : (nextCfg.courseKey || "");
-      SELECTED_COURSE_KEY = (reqKey && ALL_COURSES[reqKey]) ? reqKey : (Object.keys(ALL_COURSES)[0] || "");
-      BASE_COURSE = ALL_COURSES[SELECTED_COURSE_KEY] || {};
+      var reqKey = (typeof normalizeCourseKey === "function") ? normalizeCourseKey(nextCfg.courseKey) : String(nextCfg.courseKey || "").trim();
+      if (reqKey && typeof restoreCourseFromLocalCache === "function") {
+        restoreCourseFromLocalCache(reqKey);
+      }
+      SELECTED_COURSE_KEY = reqKey;
+      BASE_COURSE = (reqKey && ALL_COURSES[reqKey]) ? ALL_COURSES[reqKey] : buildFallbackCourseShell(reqKey, nextCfg);
       ACTIVE_COURSE = {};
       for (var ck in BASE_COURSE) {
         if (Object.prototype.hasOwnProperty.call(BASE_COURSE, ck)) ACTIVE_COURSE[ck] = BASE_COURSE[ck];
@@ -451,13 +483,26 @@
     window.addEventListener("resize", fitCopyrightOneLine);
     window.addEventListener("orientationchange", fitCopyrightOneLine);
 
-    applyCourseConfigUI();
-    if (HAS_SLUG_CACHED_CFG && T_CFG && T_CFG.courseKey && typeof ensureCourseLoaded === "function") {
-      ensureCourseLoaded(T_CFG.courseKey, function (loadedCourse) {
-        if (loadedCourse) {
-          rebuildActiveCourseVars(T_CFG, ACTIVE_TOURNAMENT_SCOPE);
-          applyCourseConfigUI();
-        }
-      });
+    // Warm boot: only reveal hero/notice immediately if BOTH tournament config AND exact course geometry are already cached in localStorage
+    if (HAS_SLUG_CACHED_CFG && T_CFG && T_CFG.courseKey) {
+      if (typeof isFullCourseLoaded === "function" && isFullCourseLoaded(T_CFG.courseKey)) {
+        rebuildActiveCourseVars(T_CFG, ACTIVE_TOURNAMENT_SCOPE);
+        applyCourseConfigUI();
+        var hc = document.querySelector(".golf-hero-card");
+        var nc = document.querySelector(".notice-card");
+        if (hc) hc.style.display = "";
+        if (nc) nc.style.display = "";
+      } else if (typeof ensureCourseLoaded === "function") {
+        ensureCourseLoaded(T_CFG.courseKey, function (loadedCourse) {
+          if (loadedCourse) {
+            rebuildActiveCourseVars(T_CFG, ACTIVE_TOURNAMENT_SCOPE);
+            applyCourseConfigUI();
+            var hc2 = document.querySelector(".golf-hero-card");
+            var nc2 = document.querySelector(".notice-card");
+            if (hc2) hc2.style.display = "";
+            if (nc2) nc2.style.display = "";
+          }
+        });
+      }
     }
 

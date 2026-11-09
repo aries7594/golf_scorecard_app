@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>골프대회 관리 콘솔</title>
-  <link rel="stylesheet" href="css/admin.css?v=20261109e">
+  <link rel="stylesheet" href="css/admin.css?v=20261109i">
 </head>
 
 <body>
@@ -16,7 +16,7 @@
       <div class="auth-title">골프대회 개설·관리 로그인</div>
       <div class="auth-sub">
         아이디(이메일)와 비밀번호로 로그인하세요.<br>
-        처음 방문하신 이메일은 새 비밀번호를 등록해 바로 시작할 수 있습니다.
+        <span style="color:#003876; font-weight:700;">구글 시트 열람 권한 부여를 위해 Gmail(구글 계정) 이메일 사용을 권장합니다.</span>
       </div>
 
       <div class="auth-mode-tabs">
@@ -122,7 +122,7 @@
           <div class="course-combo-wrap" id="courseComboWrap">
             <div class="course-combo-input-box">
               <input type="text" id="courseSearchInput" autocomplete="off"
-                placeholder="🔍 영문 골프장 이름 또는 도시 검색 (예: Wente, Harding, Coyote, Torrey...)"
+                placeholder="🔍 영문 골프장 이름 또는 도시 검색 (예: Pebble, Harding, Coyote, Torrey...)"
                 onfocus="openCourseComboOnFocus()"
                 oninput="onCourseSearchInput(this.value)"
                 onkeydown="onCourseComboKeydown(event)">
@@ -166,6 +166,17 @@
           <label for="nearHolesInput">니어(Near Pin) 홀 번호</label>
           <input type="text" id="nearHolesInput" placeholder="미정 시 비워둠 (예: 3, 7, 11, 14)" oninput="syncGuideFooterUI()">
           <span class="hint"><a href="#" onclick="fillRecommendedEventHoles(); return false;">골프장 추천 홀 자동 입력</a></span>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:12px;">
+        <div class="field">
+          <label for="firstTeeTimeInput">⏰ 첫 조 티타임 (선택 · 비워두면 표시 안 함)</label>
+          <input type="text" id="firstTeeTimeInput" placeholder="예: 11:30 (비워두면 조 카드에 시간 미표시)">
+        </div>
+        <div class="field">
+          <label for="teeIntervalInput">티타임 간격 (분 · 첫 티타임 입력 시 적용)</label>
+          <input type="number" id="teeIntervalInput" min="5" max="20" value="8" placeholder="8">
         </div>
       </div>
 
@@ -359,11 +370,10 @@
 
   <div id="toast"></div>
 
-  <script src="TournamentConfig.js?v=20261109e"></script>
-  <script src="CourseData.js?v=20261109e"></script>
-  <script src="courses/manifest.js?v=20261109e"></script>
-  <script src="courses/wente.js?v=20261109e"></script>
-  <script src="js/admin.js?v=20261109e"></script>
+  <script src="TournamentConfig.js?v=20261109i"></script>
+  <script src="CourseData.js?v=20261109i"></script>
+  <script src="courses/manifest.js?v=20261109i"></script>
+  <script src="js/admin.js?v=20261109i"></script>
 </body>
 
 </html>
