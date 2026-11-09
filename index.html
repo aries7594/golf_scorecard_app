@@ -6617,6 +6617,24 @@
       }
 
       function runInit() {
+        try {
+          var qParams = new URLSearchParams(window.location.search || "");
+          if (qParams.get("preview") === "1") {
+            var rawDraft = localStorage.getItem("golf_admin_live_preview_v1");
+            var draftObj = rawDraft ? JSON.parse(rawDraft) : {};
+            setTournamentHeaderCardsVisible(true);
+            rebuildActiveCourseVars(draftObj.config || T_CFG, "preview");
+            applyCourseConfigUI();
+            populateGroups(Array.isArray(draftObj.groupList) ? draftObj.groupList : []);
+            window.selectGroupQuick = function () {
+              showToast("📱 첫 페이지 미리보기 화면입니다.");
+            };
+            window.selectFromGroupDropdown = function () {
+              showToast("📱 첫 페이지 미리보기 화면입니다.");
+            };
+            return;
+          }
+        } catch (ePrev) { }
         if (window.__PRELOADED_GROUP_LIST__) {
           var preloaded = window.__PRELOADED_GROUP_LIST__;
           window.__PRELOADED_GROUP_LIST__ = null;
