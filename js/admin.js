@@ -312,66 +312,226 @@
       return fallback;
     }
 
+    var courseComboKbIndex = -1;
+    var courseComboFilteredKeys = [];
+
+    function formatCourseDisplayLabel(c) {
+      if (!c) return "";
+      var locPart = c.city ? (" — " + c.city) : "";
+      var parPart = c.parTotal ? (" · Par " + c.parTotal) : "";
+      return (c.name || c.key) + locPart + parPart;
+    }
+
+    function syncCourseInputWithSelected() {
+      var sel = document.getElementById("courseSelect");
+      var inp = document.getElementById("courseSearchInput");
+      if (!sel || !inp) return;
+      var allList = getAllManifestCourses();
+      var curKey = (typeof normalizeCourseKey === "function") ? normalizeCourseKey(sel.value) : sel.value;
+      for (var i = 0; i < allList.length; i++) {
+        if (allList[i].key === curKey) {
+          inp.value = formatCourseDisplayLabel(allList[i]);
+          return;
+        }
+      }
+    }
+
     function populateCourseDropdown(filterTextOpt, keepValueOpt) {
       var sel = document.getElementById("courseSelect");
       var prevVal = keepValueOpt !== undefined ? keepValueOpt : sel.value;
-      var q = String(filterTextOpt || "").trim().toLowerCase();
       var allList = getAllManifestCourses();
+      sel.innerHTML = "";
+      allList.forEach(function (c) {
+        var opt = document.createElement("option");
+        opt.value = c.key;
+        opt.textContent = formatCourseDisplayLabel(c);
+        sel.appendChild(opt);
+      });
+      var normPrev = (typeof normalizeCourseKey === "function") ? normalizeCourseKey(prevVal) : prevVal;
+      var exists = allList.some(function (c) { return c.key === normPrev; });
+      sel.value = exists ? normPrev : (allList[0] ? allList[0].key : "");
+      renderCourseComboMenu(filterTextOpt || "");
+      if (!filterTextOpt) {
+        syncCourseInputWithSelected();
+      }
+    }
+
+    function renderCourseComboMenu(rawQuery) {
+      var menu = document.getElementById("courseComboMenu");
+      var hintEl = document.getElementById("courseCountHint");
+      var sel = document.getElementById("courseSelect");
+      if (!menu || !sel) return;
+
+      var allList = getAllManifestCourses();
+      var q = String(rawQuery || "").trim().toLowerCase();
       var filtered = allList.filter(function (c) {
         if (!q) return true;
-        var blob = ((c.name || "") + " " + (c.city || "") + " " + (c.key || "") + " " + (c.region || "")).toLowerCase();
+        var blob = ((c.name || "") + " " + (c.city || "") + " " + (c.key || "") + " " + (c.region || "") + " " + (c.ko || "")).toLowerCase();
         return blob.indexOf(q) !== -1;
       });
 
-      sel.innerHTML = "";
-      var hintEl = document.getElementById("courseCountHint");
       if (hintEl) {
         hintEl.textContent = q
           ? ("검색 결과 " + filtered.length + "개 / 전체 " + allList.length + "개")
           : ("캘리포니아 " + allList.length + "개 코스 지원");
       }
 
+      menu.innerHTML = "";
+      courseComboFilteredKeys = [];
+      courseComboKbIndex = -1;
+
       if (filtered.length === 0) {
-        var emptyOpt = document.createElement("option");
-        emptyOpt.value = "";
-        emptyOpt.textContent = "검색 결과 없음 (검색어를 지워주세요)";
-        sel.appendChild(emptyOpt);
+        var emptyDiv = document.createElement("div");
+        emptyDiv.className = "course-combo-empty";
+        emptyDiv.textContent = "'" + rawQuery + "' 검색 결과가 없습니다. (한글 또는 영문 골프장·도시명 입력)";
+        menu.appendChild(emptyDiv);
         return;
       }
 
+      var curKey = sel.value;
       var norcal = filtered.filter(function (c) { return c.region !== "SoCal"; });
       var socal = filtered.filter(function (c) { return c.region === "SoCal"; });
 
-      function appendGroup(label, items) {
+      function appendGroup(title, items) {
         if (items.length === 0) return;
-        var grp = document.createElement("optgroup");
-        grp.label = label + " (" + items.length + "개)";
+        var hdr = document.createElement("div");
+        hdr.className = "course-combo-group-hdr";
+        hdr.textContent = title + " (" + items.length + "개)";
+        menu.appendChild(hdr);
+
         items.forEach(function (c) {
-          var opt = document.createElement("option");
-          opt.value = c.key;
-          var locPart = c.city ? (" — " + c.city) : "";
-          var parPart = c.parTotal ? (" · Par " + c.parTotal) : "";
-          opt.textContent = c.name + locPart + parPart;
-          grp.appendChild(opt);
+          var idx = courseComboFilteredKeys.length;
+          courseComboFilteredKeys.push(c.key);
+          var row = document.createElement("div");
+          row.className = "course-combo-item" + (c.key === curKey ? " selected-course" : "");
+          row.setAttribute("data-key", c.key);
+          row.setAttribute("data-idx", String(idx));
+
+          var leftSpan = document.createElement("span");
+          leftSpan.textContent = c.name;
+          var rightSpan = document.createElement("span");
+          rightSpan.className = "course-combo-item-sub";
+          rightSpan.textContent = (c.city ? c.city + " · " : "") + "Par " + (c.parTotal || 72);
+
+          row.appendChild(leftSpan);
+          row.appendChild(rightSpan);
+          row.onmousedown = function (ev) {
+            ev.preventDefault();
+            selectCourseFromCombo(c.key);
+          };
+          menu.appendChild(row);
         });
-        sel.appendChild(grp);
       }
 
       appendGroup("🌲 북가주 (NorCal)", norcal);
       appendGroup("🌴 남가주 (SoCal)", socal);
+    }
 
-      var normPrev = (typeof normalizeCourseKey === "function") ? normalizeCourseKey(prevVal) : prevVal;
-      var hasPrev = filtered.some(function (c) { return c.key === normPrev; });
-      sel.value = hasPrev ? normPrev : filtered[0].key;
+    function openCourseComboOnFocus() {
+      var inp = document.getElementById("courseSearchInput");
+      var menu = document.getElementById("courseComboMenu");
+      if (!inp || !menu) return;
+      renderCourseComboMenu("");
+      menu.classList.add("open");
+      setTimeout(function () {
+        try { inp.select(); } catch (e) { }
+      }, 10);
+    }
+
+    function closeCourseComboMenu(restoreLabel) {
+      var menu = document.getElementById("courseComboMenu");
+      if (menu) menu.classList.remove("open");
+      if (restoreLabel) {
+        syncCourseInputWithSelected();
+        var allList = getAllManifestCourses();
+        var hintEl = document.getElementById("courseCountHint");
+        if (hintEl) hintEl.textContent = "캘리포니아 " + allList.length + "개 코스 지원";
+      }
+    }
+
+    function selectCourseFromCombo(courseKey) {
+      var sel = document.getElementById("courseSelect");
+      if (!sel || !courseKey) return;
+      sel.value = courseKey;
+      syncCourseInputWithSelected();
+      closeCourseComboMenu(true);
+      onCourseSelectChange(true);
+      var inp = document.getElementById("courseSearchInput");
+      if (inp) inp.blur();
+    }
+
+    function clearCourseSearchInput(ev) {
+      if (ev) ev.preventDefault();
+      var inp = document.getElementById("courseSearchInput");
+      var menu = document.getElementById("courseComboMenu");
+      if (!inp || !menu) return;
+      inp.value = "";
+      renderCourseComboMenu("");
+      menu.classList.add("open");
+      inp.focus();
     }
 
     function onCourseSearchInput(val) {
-      var prev = document.getElementById("courseSelect").value;
-      populateCourseDropdown(val, prev);
-      if (document.getElementById("courseSelect").value !== prev) {
-        onCourseSelectChange(true);
+      var menu = document.getElementById("courseComboMenu");
+      renderCourseComboMenu(val);
+      if (menu) menu.classList.add("open");
+      if (courseComboFilteredKeys.length === 1) {
+        var sel = document.getElementById("courseSelect");
+        if (sel && sel.value !== courseComboFilteredKeys[0]) {
+          sel.value = courseComboFilteredKeys[0];
+          onCourseSelectChange(true);
+        }
       }
     }
+
+    function onCourseComboKeydown(ev) {
+      var menu = document.getElementById("courseComboMenu");
+      if (!menu) return;
+      if (ev.key === "ArrowDown") {
+        ev.preventDefault();
+        if (!menu.classList.contains("open")) menu.classList.add("open");
+        if (courseComboFilteredKeys.length > 0) {
+          courseComboKbIndex = (courseComboKbIndex + 1) % courseComboFilteredKeys.length;
+          highlightCourseComboKbRow();
+        }
+      } else if (ev.key === "ArrowUp") {
+        ev.preventDefault();
+        if (courseComboFilteredKeys.length > 0) {
+          courseComboKbIndex = (courseComboKbIndex - 1 + courseComboFilteredKeys.length) % courseComboFilteredKeys.length;
+          highlightCourseComboKbRow();
+        }
+      } else if (ev.key === "Enter") {
+        ev.preventDefault();
+        if (courseComboKbIndex >= 0 && courseComboFilteredKeys[courseComboKbIndex]) {
+          selectCourseFromCombo(courseComboFilteredKeys[courseComboKbIndex]);
+        } else if (courseComboFilteredKeys.length > 0) {
+          selectCourseFromCombo(courseComboFilteredKeys[0]);
+        }
+      } else if (ev.key === "Escape") {
+        closeCourseComboMenu(true);
+      }
+    }
+
+    function highlightCourseComboKbRow() {
+      var menu = document.getElementById("courseComboMenu");
+      if (!menu) return;
+      var rows = menu.querySelectorAll(".course-combo-item");
+      for (var i = 0; i < rows.length; i++) {
+        if (i === courseComboKbIndex) {
+          rows[i].classList.add("active-kb");
+          rows[i].scrollIntoView({ block: "nearest" });
+        } else {
+          rows[i].classList.remove("active-kb");
+        }
+      }
+    }
+
+    document.addEventListener("mousedown", function (ev) {
+      var wrap = document.getElementById("courseComboWrap");
+      if (wrap && !wrap.contains(ev.target)) {
+        closeCourseComboMenu(true);
+      }
+    });
 
     function getSelectedCourseObj() {
       var rawKey = document.getElementById("courseSelect").value;
@@ -870,15 +1030,12 @@
         : String(cfg.heroTitle || cfg.sheetTitle || cfg.tournamentTitle || "").replace(/^[⛳🏆🎯\s]+/, "").trim();
       document.getElementById("tournamentNameInput").value = unifiedName;
 
-      var searchIn = document.getElementById("courseSearchInput");
-      if (searchIn && searchIn.value) {
-        searchIn.value = "";
-        populateCourseDropdown("", cfg.courseKey || "wente");
-      }
       var courseSel = document.getElementById("courseSelect");
       if (cfg.courseKey) {
         courseSel.value = (typeof normalizeCourseKey === "function") ? normalizeCourseKey(cfg.courseKey) : cfg.courseKey;
       }
+      syncCourseInputWithSelected();
+      closeCourseComboMenu(false);
       onCourseSelectChange(false);
 
       var cObj = getSelectedCourseObj();

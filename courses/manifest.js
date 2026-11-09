@@ -1,4 +1,4 @@
-/* Lightweight California Golf Course Search Manifest (Auto-Generated) */
+/* Lightweight California Golf Course Search Manifest (English + Korean Search) */
 window.COURSE_MANIFEST = [
   {
     "key": "wente",
@@ -35,7 +35,8 @@ window.COURSE_MANIFEST = [
       11,
       14
     ],
-    "file": "courses/wente.js"
+    "file": "courses/wente.js",
+    "ko": "웬티 빈야드 리버모어 북가주"
   },
   {
     "key": "moffett",
@@ -72,7 +73,8 @@ window.COURSE_MANIFEST = [
       13,
       15
     ],
-    "file": "courses/moffett.js"
+    "file": "courses/moffett.js",
+    "ko": "모펫 모펫필드 마운틴뷰 북가주"
   },
   {
     "key": "poppy_hills",
@@ -110,7 +112,8 @@ window.COURSE_MANIFEST = [
       15,
       17
     ],
-    "file": "courses/poppy_hills.js"
+    "file": "courses/poppy_hills.js",
+    "ko": "파피힐스 포피힐스 페블비치 몬터레이 북가주"
   },
   {
     "key": "ancil_hoffman",
@@ -147,7 +150,8 @@ window.COURSE_MANIFEST = [
       14,
       17
     ],
-    "file": "courses/ancil_hoffman.js"
+    "file": "courses/ancil_hoffman.js",
+    "ko": "앤실호프만 새크라멘토 북가주"
   },
   {
     "key": "baylands",
@@ -185,7 +189,8 @@ window.COURSE_MANIFEST = [
       15,
       17
     ],
-    "file": "courses/baylands.js"
+    "file": "courses/baylands.js",
+    "ko": "베이랜즈 팔로알토 북가주"
   },
   {
     "key": "boundary_oak",
@@ -222,7 +227,8 @@ window.COURSE_MANIFEST = [
       12,
       17
     ],
-    "file": "courses/boundary_oak.js"
+    "file": "courses/boundary_oak.js",
+    "ko": "바운더리오크 월넛크릭 북가주"
   },
   {
     "key": "callippe_preserve",
@@ -259,7 +265,8 @@ window.COURSE_MANIFEST = [
       13,
       16
     ],
-    "file": "courses/callippe_preserve.js"
+    "file": "courses/callippe_preserve.js",
+    "ko": "칼리피 플레즌튼 북가주"
   },
   {
     "key": "crystal_springs",
@@ -296,7 +303,8 @@ window.COURSE_MANIFEST = [
       11,
       13
     ],
-    "file": "courses/crystal_springs.js"
+    "file": "courses/crystal_springs.js",
+    "ko": "크리스탈스프링스 벌링게임 북가주"
   },
   {
     "key": "haggin_oaks",
@@ -334,7 +342,8 @@ window.COURSE_MANIFEST = [
       11,
       12
     ],
-    "file": "courses/haggin_oaks.js"
+    "file": "courses/haggin_oaks.js",
+    "ko": "해긴옥스 새크라멘토 북가주"
   },
   {
     "key": "las_positas",
@@ -372,7 +381,8 @@ window.COURSE_MANIFEST = [
       15,
       16
     ],
-    "file": "courses/las_positas.js"
+    "file": "courses/las_positas.js",
+    "ko": "라스포시타스 리버모어 북가주"
   },
   {
     "key": "los_lagos",
@@ -410,7 +420,8 @@ window.COURSE_MANIFEST = [
       7,
       8
     ],
-    "file": "courses/los_lagos.js"
+    "file": "courses/los_lagos.js",
+    "ko": "로스라고스 산호세 북가주"
   },
   {
     "key": "pacific_grove",
@@ -448,7 +459,8 @@ window.COURSE_MANIFEST = [
       10,
       17
     ],
-    "file": "courses/pacific_grove.js"
+    "file": "courses/pacific_grove.js",
+    "ko": "퍼시픽그로브 몬터레이 북가주"
   },
   {
     "key": "pasatiempo",
@@ -486,7 +498,8 @@ window.COURSE_MANIFEST = [
       15,
       18
     ],
-    "file": "courses/pasatiempo.js"
+    "file": "courses/pasatiempo.js",
+    "ko": "파사티엠포 산타크루즈 북가주"
   },
   {
     "key": "poplar_creek",
@@ -524,7 +537,8 @@ window.COURSE_MANIFEST = [
       12,
       15
     ],
-    "file": "courses/poplar_creek.js"
+    "file": "courses/poplar_creek.js",
+    "ko": "포플러크릭 코요테포인트 산마테오 북가주"
   },
   {
     "key": "poppy_ridge",
@@ -561,7 +575,8 @@ window.COURSE_MANIFEST = [
       14,
       17
     ],
-    "file": "courses/poppy_ridge.js"
+    "file": "courses/poppy_ridge.js",
+    "ko": "파피릿지 포피릿지 리버모어 북가주"
   },
   {
     "key": "presidio",
@@ -598,7 +613,8 @@ window.COURSE_MANIFEST = [
       13,
       15
     ],
-    "file": "courses/presidio.js"
+    "file": "courses/presidio.js",
+    "ko": "프레시디오 샌프란시스코 북가주"
   },
   {
     "key": "san_jose_muni",
@@ -635,7 +651,8 @@ window.COURSE_MANIFEST = [
       12,
       17
     ],
-    "file": "courses/san_jose_muni.js"
+    "file": "courses/san_jose_muni.js",
+    "ko": "산호세뮤uni 산호세시립 산호세 북가주"
   },
   {
     "key": "santa_teresa",
@@ -673,7 +690,8 @@ window.COURSE_MANIFEST = [
       9,
       14
     ],
-    "file": "courses/santa_teresa.js"
+    "file": "courses/santa_teresa.js",
+    "ko": "산타테레사 산호세 북가주"
   },
   {
     "key": "sharp_park",
@@ -710,7 +728,8 @@ window.COURSE_MANIFEST = [
       12,
       15
     ],
-    "file": "courses/sharp_park.js"
+    "file": "courses/sharp_park.js",
+    "ko": "샤프파크 퍼시피카 샌프란시스코 북가주"
   },
   {
     "key": "shoreline",
@@ -747,7 +766,8 @@ window.COURSE_MANIFEST = [
       11,
       17
     ],
-    "file": "courses/shoreline.js"
+    "file": "courses/shoreline.js",
+    "ko": "쇼어라인 마운틴뷰 북가주"
   },
   {
     "key": "sunnyvale",
@@ -784,7 +804,8 @@ window.COURSE_MANIFEST = [
       13,
       15
     ],
-    "file": "courses/sunnyvale.js"
+    "file": "courses/sunnyvale.js",
+    "ko": "써니베일 서니베일 북가주"
   },
   {
     "key": "tpc_harding_park",
@@ -821,7 +842,8 @@ window.COURSE_MANIFEST = [
       11,
       17
     ],
-    "file": "courses/tpc_harding_park.js"
+    "file": "courses/tpc_harding_park.js",
+    "ko": "하딩파크 티피씨하딩 샌프란시스코 북가주"
   },
   {
     "key": "spanish_bay",
@@ -858,7 +880,8 @@ window.COURSE_MANIFEST = [
       13,
       16
     ],
-    "file": "courses/spanish_bay.js"
+    "file": "courses/spanish_bay.js",
+    "ko": "스패니시베이 스페니쉬베이 페블비치 몬터레이 북가주"
   },
   {
     "key": "tilden_park",
@@ -895,7 +918,8 @@ window.COURSE_MANIFEST = [
       11,
       16
     ],
-    "file": "courses/tilden_park.js"
+    "file": "courses/tilden_park.js",
+    "ko": "틸든파크 버클리 북가주"
   },
   {
     "key": "yocha_dehe",
@@ -932,7 +956,8 @@ window.COURSE_MANIFEST = [
       13,
       16
     ],
-    "file": "courses/yocha_dehe.js"
+    "file": "courses/yocha_dehe.js",
+    "ko": "요차데헤 캐시크릭 새크라멘토 북가주"
   },
   {
     "key": "angeles_national",
@@ -969,7 +994,8 @@ window.COURSE_MANIFEST = [
       12,
       14
     ],
-    "file": "courses/angeles_national.js"
+    "file": "courses/angeles_national.js",
+    "ko": "엔젤레스내셔널 로스앤젤레스 엘에이 남가주"
   },
   {
     "key": "aviara",
@@ -1006,7 +1032,8 @@ window.COURSE_MANIFEST = [
       11,
       14
     ],
-    "file": "courses/aviara.js"
+    "file": "courses/aviara.js",
+    "ko": "아비아라 칼스배드 샌디에이고 남가주"
   },
   {
     "key": "balboa_park",
@@ -1043,7 +1070,8 @@ window.COURSE_MANIFEST = [
       13,
       17
     ],
-    "file": "courses/balboa_park.js"
+    "file": "courses/balboa_park.js",
+    "ko": "발보아파크 샌디에이고 남가주"
   },
   {
     "key": "coronado",
@@ -1080,7 +1108,8 @@ window.COURSE_MANIFEST = [
       11,
       15
     ],
-    "file": "courses/coronado.js"
+    "file": "courses/coronado.js",
+    "ko": "코로나도 샌디에이고 남가주"
   },
   {
     "key": "coyote_hills",
@@ -1117,7 +1146,8 @@ window.COURSE_MANIFEST = [
       14,
       17
     ],
-    "file": "courses/coyote_hills.js"
+    "file": "courses/coyote_hills.js",
+    "ko": "코요테힐스 플러튼 오렌지카운티 남가주"
   },
   {
     "key": "el_dorado_park",
@@ -1154,7 +1184,8 @@ window.COURSE_MANIFEST = [
       12,
       17
     ],
-    "file": "courses/el_dorado_park.js"
+    "file": "courses/el_dorado_park.js",
+    "ko": "엘도라도 롱비치 남가주"
   },
   {
     "key": "encinitas_ranch",
@@ -1191,7 +1222,8 @@ window.COURSE_MANIFEST = [
       12,
       17
     ],
-    "file": "courses/encinitas_ranch.js"
+    "file": "courses/encinitas_ranch.js",
+    "ko": "엔시니타스 샌디에이고 남가주"
   },
   {
     "key": "goose_creek",
@@ -1229,7 +1261,8 @@ window.COURSE_MANIFEST = [
       11,
       16
     ],
-    "file": "courses/goose_creek.js"
+    "file": "courses/goose_creek.js",
+    "ko": "구스크릭 리버사이드 남가주"
   },
   {
     "key": "indian_wells",
@@ -1264,7 +1297,8 @@ window.COURSE_MANIFEST = [
       6,
       16
     ],
-    "file": "courses/indian_wells.js"
+    "file": "courses/indian_wells.js",
+    "ko": "인디언웰스 팜스프링스 남가주"
   },
   {
     "key": "los_robles",
@@ -1302,7 +1336,8 @@ window.COURSE_MANIFEST = [
       11,
       16
     ],
-    "file": "courses/los_robles.js"
+    "file": "courses/los_robles.js",
+    "ko": "로스로블스 사우전드옥스 남가주"
   },
   {
     "key": "los_verdes",
@@ -1339,7 +1374,8 @@ window.COURSE_MANIFEST = [
       12,
       17
     ],
-    "file": "courses/los_verdes.js"
+    "file": "courses/los_verdes.js",
+    "ko": "로스버데스 팔로스버데스 엘에이 남가주"
   },
   {
     "key": "maderas",
@@ -1376,7 +1412,8 @@ window.COURSE_MANIFEST = [
       15,
       17
     ],
-    "file": "courses/maderas.js"
+    "file": "courses/maderas.js",
+    "ko": "마데라스 파웨이 샌디에이고 남가주"
   },
   {
     "key": "mile_square",
@@ -1413,7 +1450,8 @@ window.COURSE_MANIFEST = [
       13,
       15
     ],
-    "file": "courses/mile_square.js"
+    "file": "courses/mile_square.js",
+    "ko": "마일스퀘어 파운틴밸리 오렌지카운티 남가주"
   },
   {
     "key": "monarch_beach",
@@ -1451,7 +1489,8 @@ window.COURSE_MANIFEST = [
       15,
       17
     ],
-    "file": "courses/monarch_beach.js"
+    "file": "courses/monarch_beach.js",
+    "ko": "모나크비치 다나포인트 오렌지카운티 남가주"
   },
   {
     "key": "oak_quarry",
@@ -1488,7 +1527,8 @@ window.COURSE_MANIFEST = [
       12,
       16
     ],
-    "file": "courses/oak_quarry.js"
+    "file": "courses/oak_quarry.js",
+    "ko": "오크쿼리 리버사이드 남가주"
   },
   {
     "key": "rancho_park",
@@ -1525,7 +1565,8 @@ window.COURSE_MANIFEST = [
       12,
       16
     ],
-    "file": "courses/rancho_park.js"
+    "file": "courses/rancho_park.js",
+    "ko": "란초파크 로스앤젤레스 엘에이 남가주"
   },
   {
     "key": "rustic_canyon",
@@ -1563,7 +1604,8 @@ window.COURSE_MANIFEST = [
       15,
       17
     ],
-    "file": "courses/rustic_canyon.js"
+    "file": "courses/rustic_canyon.js",
+    "ko": "러스틱캐년 무어파크 남가주"
   },
   {
     "key": "torrey_pines_north",
@@ -1600,7 +1642,8 @@ window.COURSE_MANIFEST = [
       12,
       16
     ],
-    "file": "courses/torrey_pines_north.js"
+    "file": "courses/torrey_pines_north.js",
+    "ko": "토리파인 노스 라호야 샌디에이고 남가주"
   },
   {
     "key": "torrey_pines_south",
@@ -1637,7 +1680,8 @@ window.COURSE_MANIFEST = [
       11,
       16
     ],
-    "file": "courses/torrey_pines_south.js"
+    "file": "courses/torrey_pines_south.js",
+    "ko": "토리파인 사우스 라호야 샌디에이고 남가주"
   },
   {
     "key": "trump_national_la",
@@ -1675,6 +1719,7 @@ window.COURSE_MANIFEST = [
       15,
       17
     ],
-    "file": "courses/trump_national_la.js"
+    "file": "courses/trump_national_la.js",
+    "ko": "트럼프내셔널 팔로스버데스 엘에이 남가주"
   }
 ];
