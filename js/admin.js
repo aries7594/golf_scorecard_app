@@ -518,14 +518,14 @@
       var q = String(rawQuery || "").trim().toLowerCase();
       var filtered = allList.filter(function (c) {
         if (!q) return true;
-        var blob = ((c.name || "") + " " + (c.city || "") + " " + (c.key || "") + " " + (c.region || "")).toLowerCase();
+        var blob = ((c.name || "") + " " + (c.city || "") + " " + (c.key || "")).toLowerCase();
         return blob.indexOf(q) !== -1;
       });
 
       if (hintEl) {
         hintEl.textContent = q
           ? ("검색 결과 " + filtered.length + "개 / 전체 " + allList.length + "개")
-          : ("캘리포니아 " + allList.length + "개 코스 지원");
+          : (allList.length + "개 코스 지원");
       }
 
       menu.innerHTML = "";
@@ -541,42 +541,28 @@
       }
 
       var curKey = sel.value;
-      var norcal = filtered.filter(function (c) { return c.region !== "SoCal"; });
-      var socal = filtered.filter(function (c) { return c.region === "SoCal"; });
+      filtered.forEach(function (c) {
+        var idx = courseComboFilteredKeys.length;
+        courseComboFilteredKeys.push(c.key);
+        var row = document.createElement("div");
+        row.className = "course-combo-item" + (c.key === curKey ? " selected-course" : "");
+        row.setAttribute("data-key", c.key);
+        row.setAttribute("data-idx", String(idx));
 
-      function appendGroup(title, items) {
-        if (items.length === 0) return;
-        var hdr = document.createElement("div");
-        hdr.className = "course-combo-group-hdr";
-        hdr.textContent = title + " (" + items.length + "개)";
-        menu.appendChild(hdr);
+        var leftSpan = document.createElement("span");
+        leftSpan.textContent = c.name;
+        var rightSpan = document.createElement("span");
+        rightSpan.className = "course-combo-item-sub";
+        rightSpan.textContent = (c.city ? c.city + " · " : "") + "Par " + (c.parTotal || 72);
 
-        items.forEach(function (c) {
-          var idx = courseComboFilteredKeys.length;
-          courseComboFilteredKeys.push(c.key);
-          var row = document.createElement("div");
-          row.className = "course-combo-item" + (c.key === curKey ? " selected-course" : "");
-          row.setAttribute("data-key", c.key);
-          row.setAttribute("data-idx", String(idx));
-
-          var leftSpan = document.createElement("span");
-          leftSpan.textContent = c.name;
-          var rightSpan = document.createElement("span");
-          rightSpan.className = "course-combo-item-sub";
-          rightSpan.textContent = (c.city ? c.city + " · " : "") + "Par " + (c.parTotal || 72);
-
-          row.appendChild(leftSpan);
-          row.appendChild(rightSpan);
-          row.onmousedown = function (ev) {
-            ev.preventDefault();
-            selectCourseFromCombo(c.key);
-          };
-          menu.appendChild(row);
-        });
-      }
-
-      appendGroup("🌲 북가주 (NorCal)", norcal);
-      appendGroup("🌴 남가주 (SoCal)", socal);
+        row.appendChild(leftSpan);
+        row.appendChild(rightSpan);
+        row.onmousedown = function (ev) {
+          ev.preventDefault();
+          selectCourseFromCombo(c.key);
+        };
+        menu.appendChild(row);
+      });
     }
 
     function openCourseComboOnFocus() {
@@ -597,7 +583,7 @@
         syncCourseInputWithSelected();
         var allList = getAllManifestCourses();
         var hintEl = document.getElementById("courseCountHint");
-        if (hintEl) hintEl.textContent = "캘리포니아 " + allList.length + "개 코스 지원";
+        if (hintEl) hintEl.textContent = allList.length + "개 코스 지원";
       }
     }
 
