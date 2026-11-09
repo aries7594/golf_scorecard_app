@@ -46,7 +46,7 @@ function ensureCourseLoaded(courseKey, callback) {
   __COURSE_LOAD_QUEUE[key] = [done];
   var entry = getCourseManifestEntry(key);
   var baseSrc = (entry && entry.file) ? entry.file : ("courses/" + encodeURIComponent(key) + ".js");
-  var srcPath = baseSrc + (baseSrc.indexOf("?") === -1 ? "?v=20261109a" : "");
+  var srcPath = baseSrc + (baseSrc.indexOf("?") === -1 ? "?v=20261109b" : "");
   var scriptEl = document.createElement("script");
   scriptEl.src = srcPath;
   scriptEl.async = true;

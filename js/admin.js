@@ -366,7 +366,7 @@
       var q = String(rawQuery || "").trim().toLowerCase();
       var filtered = allList.filter(function (c) {
         if (!q) return true;
-        var blob = ((c.name || "") + " " + (c.city || "") + " " + (c.key || "") + " " + (c.region || "") + " " + (c.ko || "")).toLowerCase();
+        var blob = ((c.name || "") + " " + (c.city || "") + " " + (c.key || "") + " " + (c.region || "")).toLowerCase();
         return blob.indexOf(q) !== -1;
       });
 
@@ -383,7 +383,7 @@
       if (filtered.length === 0) {
         var emptyDiv = document.createElement("div");
         emptyDiv.className = "course-combo-empty";
-        emptyDiv.textContent = "'" + rawQuery + "' 검색 결과가 없습니다. (한글 또는 영문 골프장·도시명 입력)";
+        emptyDiv.textContent = "'" + rawQuery + "' 검색 결과가 없습니다. (영문 골프장 이름 또는 도시명 입력)";
         menu.appendChild(emptyDiv);
         return;
       }
